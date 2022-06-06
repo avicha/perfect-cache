@@ -2,8 +2,8 @@
   "name": "browser-cache",
   "version": "1.0.0",
   "description": "browser cache lib",
-  "main": "src/index.js",
   "scripts": {
+    "build": "vite build",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
@@ -19,5 +19,19 @@
   "bugs": {
     "url": "https://github.com/avicha/browser-cache/issues"
   },
-  "homepage": "https://github.com/avicha/browser-cache#readme"
+  "files": [
+    "dist"
+  ],
+  "main": "./dist/browser-cache.umd.js",
+  "module": "./dist/browser-cache.es.js",
+  "exports": {
+    ".": {
+      "import": "./dist/browser-cache.es.js",
+      "require": "./dist/browser-cache.umd.js"
+    }
+  },
+  "homepage": "https://github.com/avicha/browser-cache#readme",
+  "devDependencies": {
+    "vite": "^2.9.9"
+  }
 }

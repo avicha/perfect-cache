@@ -27,7 +27,7 @@ class BrowserCache {
             Object.prototype.toString.call(driver) === "[object Object]" &&
             suportedDriverList.includes(driver.driver)
           ) {
-            opts = { ...defaultOpts, driver };
+            opts = { ...defaultOpts, ...driver };
           } else {
             // driver is invalid
             throw new Error(
