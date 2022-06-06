@@ -1,0 +1,23 @@
+{
+  "name": "browser-cache",
+  "version": "1.0.0",
+  "description": "browser cache lib",
+  "main": "src/index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/avicha/browser-cache.git"
+  },
+  "keywords": [
+    "browser",
+    "cache"
+  ],
+  "author": "avicha",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/avicha/browser-cache/issues"
+  },
+  "homepage": "https://github.com/avicha/browser-cache#readme"
+}
