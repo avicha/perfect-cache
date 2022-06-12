@@ -1,5 +1,5 @@
-import defaultOpts from "./defaultOpts";
-import { getSupportedDriverList, getStoreClass } from "./utils";
+import defaultOpts from './defaultOpts';
+import { getSupportedDriverList, getStoreClass } from './utils';
 
 class BrowserCache {
   opts;
@@ -16,7 +16,7 @@ class BrowserCache {
       if (driver) {
         // driver is string and valid
         if (suportedDriverList.includes(driver)) {
-          if (Object.prototype.toString.call(opts) === "[object Object]") {
+          if (Object.prototype.toString.call(opts) === '[object Object]') {
             opts = { ...defaultOpts, driver, ...opts };
           } else {
             opts = { ...defaultOpts, driver };
@@ -24,20 +24,20 @@ class BrowserCache {
         } else {
           // driver is object opts
           if (
-            Object.prototype.toString.call(driver) === "[object Object]" &&
+            Object.prototype.toString.call(driver) === '[object Object]' &&
             suportedDriverList.includes(driver.driver)
           ) {
             opts = { ...defaultOpts, ...driver };
           } else {
             // driver is invalid
             throw new Error(
-              "please input the correct driver param as the first param or in the opts params."
+              'please input the correct driver param as the first param or in the opts params.'
             );
           }
         }
       } else {
         // driver is null and opts is not null
-        throw new Error("please input the driver as first param.");
+        throw new Error('please input the driver as first param.');
       }
     }
     if (opts && opts.driver) {
@@ -45,7 +45,7 @@ class BrowserCache {
       this.initDriver();
       this.__init = true;
     } else {
-      throw new Error("please input the driver as first param.");
+      throw new Error('please input the driver as first param.');
     }
   }
   initDriver() {
@@ -58,7 +58,12 @@ class BrowserCache {
     ) {
       const StoreClass = getStoreClass(this.opts.driver);
       this.store = new StoreClass(this.opts);
+      this.driver = this.opts.driver;
     }
+  }
+  setDriver(driver) {
+    this.opts.driver = driver;
+    this.initDriver();
   }
   get(key) {}
 }

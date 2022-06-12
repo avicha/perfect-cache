@@ -1,3 +1,3 @@
 export default {
-  driver: "memcache",
+  driver: 'memory',
 };

@@ -22,15 +22,15 @@ var __publicField = (obj, key, value) => {
   return value;
 };
 var defaultOpts = {
-  driver: "memcache"
+  driver: "memory"
 };
 class BaseStore {
 }
-class MemcacheStore extends BaseStore {
+class MemoryStore extends BaseStore {
 }
-__publicField(MemcacheStore, "driver", "memcache");
+__publicField(MemoryStore, "driver", "memory");
 const systemStores = {};
-for (const store of [MemcacheStore]) {
+for (const store of [MemoryStore]) {
   systemStores[store.driver] = store;
 }
 const externalStores = {};
@@ -44,7 +44,7 @@ const registerStore = (store) => {
   }
 };
 const getSupportedDriverList = () => {
-  let supportedDriverList = ["memcache"];
+  let supportedDriverList = ["memory"];
   if (window.localStorage && systemStores.localStorage) {
     supportedDriverList.push("localStorage");
   }
@@ -104,11 +104,14 @@ class BrowserCache {
     if (!this.store && this.opts && this.opts.driver && suportedDriverList.includes(this.opts.driver)) {
       const StoreClass = getStoreClass(this.opts.driver);
       this.store = new StoreClass(this.opts);
+      this.driver = this.opts.driver;
     }
+  }
+  setDriver(driver) {
+    this.opts.driver = driver;
+    this.initDriver();
   }
   get(key) {
   }
 }
-const browserCacheInstance = new BrowserCache();
-console.log(browserCacheInstance);
-export { BaseStore, BrowserCache, browserCacheInstance as default, registerStore };
+export { BaseStore, BrowserCache, registerStore };

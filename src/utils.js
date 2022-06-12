@@ -1,7 +1,7 @@
 import { systemStores, externalStores } from './stores';
 
 const getSupportedDriverList = () => {
-  let supportedDriverList = ['memcache'];
+  let supportedDriverList = ['memory'];
   if (window.localStorage && systemStores.localStorage) {
     supportedDriverList.push('localStorage');
   }

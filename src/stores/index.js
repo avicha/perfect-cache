@@ -1,7 +1,7 @@
 import BaseStore from './BaseStore';
-import MemcacheStore from './MemcacheStore';
+import MemoryStore from './MemoryStore';
 const systemStores = {};
-for (const store of [MemcacheStore]) {
+for (const store of [MemoryStore]) {
   systemStores[store.driver] = store;
 }
 const externalStores = {};
