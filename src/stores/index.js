@@ -1,7 +1,19 @@
 import BaseStore from './BaseStore';
+import LocalStorageStore from './LocalStorageStore';
 import MemoryStore from './MemoryStore';
+import SessionStorageStore from './SessionStorageStore';
+import CookieStore from './CookieStore';
+import StoreResult from './StoreResult';
+import SyncStore from './SyncStore';
+import AsyncStore from './AsyncStore';
+
 const systemStores = {};
-for (const store of [MemoryStore]) {
+for (const store of [
+  MemoryStore,
+  LocalStorageStore,
+  SessionStorageStore,
+  CookieStore,
+]) {
   systemStores[store.driver] = store;
 }
 const externalStores = {};
@@ -14,4 +26,12 @@ const registerStore = (store) => {
     }
   }
 };
-export { systemStores, externalStores, BaseStore, registerStore };
+export {
+  systemStores,
+  externalStores,
+  BaseStore,
+  SyncStore,
+  AsyncStore,
+  StoreResult,
+  registerStore,
+};

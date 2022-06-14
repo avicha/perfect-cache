@@ -9,8 +9,22 @@
   <body>
     <script src="./dist/browser-cache.umd.js"></script>
     <script>
-      const browserCacheInstance = new BrowserCache.BrowserCache();
+      const browserCacheInstance = new BrowserCache.BrowserCache({
+        driver: 'cookie',
+      });
       window.console.log(browserCacheInstance);
+      const result1 = browserCacheInstance.set(
+        'key1',
+        { a: 1, b: 2 },
+        { PX: 2000, NX: true, GET: true }
+      );
+      window.console.log(result1, browserCacheInstance.get('key1'));
+      const result2 = browserCacheInstance.set(
+        'key1',
+        { a: 3, b: 4 },
+        { PX: 2000, XX: true, GET: true }
+      );
+      window.console.log(result2, browserCacheInstance.get('key1'));
     </script>
   </body>
 </html>

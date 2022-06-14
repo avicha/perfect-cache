@@ -65,6 +65,14 @@ class BrowserCache {
     this.opts.driver = driver;
     this.initDriver();
   }
-  get(key) {}
+  get() {
+    return this.store.get.apply(this.store, arguments);
+  }
+  set() {
+    return this.store.set.apply(this.store, arguments);
+  }
+  existsKey() {
+    return this.store.existsKey.apply(this.store, arguments);
+  }
 }
 export default BrowserCache;

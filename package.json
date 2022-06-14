@@ -33,5 +33,8 @@
   "homepage": "https://github.com/avicha/browser-cache#readme",
   "devDependencies": {
     "vite": "^2.9.9"
+  },
+  "dependencies": {
+    "js-cookie": "^3.0.1"
   }
 }

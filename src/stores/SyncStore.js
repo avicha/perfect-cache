@@ -27,6 +27,7 @@ export default class SyncStore extends BaseStore {
           return valueObj.value;
         }
       } catch (error) {
+        window.console.debug('get key json parse error', error);
         return undefined;
       }
     }
@@ -66,14 +67,15 @@ export default class SyncStore extends BaseStore {
     }
     if (NX || XX || GET) {
       const oldValue = this.get(key);
-      if (NX && this.existsKey(key)) {
+      const existsKey = this.existsKey(key);
+      if (NX && existsKey) {
         if (GET) {
           return oldValue;
         } else {
           return StoreResult.NX_SET_NOT_PERFORMED;
         }
       }
-      if (XX && !this.existsKey(key)) {
+      if (XX && !existsKey) {
         if (GET) {
           return oldValue;
         } else {

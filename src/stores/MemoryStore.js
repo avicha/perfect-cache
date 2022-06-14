@@ -10,9 +10,9 @@ export default class MemoryStore extends SyncStore {
   }
   existsKey(key) {
     if (this.data.has(key)) {
-      return 1;
+      return true;
     } else {
-      return 0;
+      return false;
     }
   }
 }
