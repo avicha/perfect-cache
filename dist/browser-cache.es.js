@@ -24,7 +24,50 @@ var __publicField = (obj, key, value) => {
 var defaultOpts = {
   driver: "memory"
 };
-class BaseStore {
+function mitt(n) {
+  return { all: n = n || /* @__PURE__ */ new Map(), on: function(t, e) {
+    var i = n.get(t);
+    i ? i.push(e) : n.set(t, [e]);
+  }, off: function(t, e) {
+    var i = n.get(t);
+    i && (e ? i.splice(i.indexOf(e) >>> 0, 1) : n.set(t, []));
+  }, emit: function(t, e) {
+    var i = n.get(t);
+    i && i.slice().map(function(n2) {
+      n2(e);
+    }), (i = n.get("*")) && i.slice().map(function(n2) {
+      n2(t, e);
+    });
+  } };
+}
+class EventListener {
+  constructor() {
+    __publicField(this, "mitt", new mitt());
+  }
+  get all() {
+    return this.mitt.all;
+  }
+  $on() {
+    return this.mitt.on.apply(this, arguments);
+  }
+  $off() {
+    return this.mitt.off.apply(this, arguments);
+  }
+  $emit() {
+    return this.mitt.emit.apply(this, arguments);
+  }
+}
+class BaseStore extends EventListener {
+  constructor(opts = {}) {
+    super();
+    __publicField(this, "opts");
+    __publicField(this, "isReady", false);
+    this.opts = opts;
+    this.isReady = false;
+  }
+  existsKey() {
+    return Promise.reject(new Error("please implement the existsKey method for this driver."));
+  }
   get() {
     throw new Error("please implement the get method for this driver.");
   }
@@ -41,6 +84,11 @@ const StoreResult = {
   XX_SET_NOT_PERFORMED: Symbol("XX_SET_NOT_PERFORMED")
 };
 class SyncStore extends BaseStore {
+  constructor(opts) {
+    super(opts);
+    this.isReady = true;
+    this.$emit("ready");
+  }
   keyValueGet() {
     throw new Error("please implement the keyValueGet method for this driver.");
   }
@@ -282,6 +330,9 @@ class CookieStore extends SyncStore {
 }
 __publicField(CookieStore, "driver", "cookie");
 class AsyncStore extends BaseStore {
+  constructor(opts) {
+    super(opts);
+  }
   keyValueGet() {
     return Promise.reject(new Error("please implement the keyValueGet method for this driver."));
   }
@@ -386,12 +437,130 @@ class AsyncStore extends BaseStore {
     });
   }
 }
+class IndexedDBStore extends AsyncStore {
+  constructor(opts) {
+    var _a, _b, _c;
+    super(opts);
+    __publicField(this, "dbName", "browser-cache");
+    __publicField(this, "objectStoreName", "browser-cache");
+    __publicField(this, "dbVersion", 1);
+    __publicField(this, "dbConnection");
+    this.isReady = false;
+    if ((_a = this.opts) == null ? void 0 : _a.dbName) {
+      this.dbName = this.opts.dbName;
+    }
+    if ((_b = this.opts) == null ? void 0 : _b.objectStoreName) {
+      this.objectStoreName = this.opts.objectStoreName;
+    }
+    if ((_c = this.opts) == null ? void 0 : _c.dbVersion) {
+      this.dbVersion = this.opts.dbVersion;
+    }
+    this.connectDB().then(() => {
+      this.initObjectStore();
+    });
+  }
+  connectDB() {
+    return new Promise((resolve, reject) => {
+      const request = window.indexedDB.open(this.dbName, this.dbVersion);
+      request.onerror = () => {
+        window.console.error(`Database ${this.dbName} init occurs error`, request.result);
+        reject(request.result);
+      };
+      request.onsuccess = () => {
+        this.dbConnection = request.result;
+        window.console.debug(`Database ${this.dbName} initialised.`);
+        resolve(this.dbConnection);
+      };
+      request.onupgradeneeded = (event) => {
+        this.dbConnection = event.target.result;
+        window.console.debug("Database version upgraded success.");
+        resolve(this.dbConnection);
+      };
+    });
+  }
+  initObjectStore() {
+    return new Promise((resolve, reject) => {
+      if (this.dbConnection) {
+        if (!this.dbConnection.objectStoreNames.contains(this.objectStoreName)) {
+          this.dbConnection.createObjectStore(this.objectStoreName, {
+            keyPath: "key"
+          });
+        }
+        this.isReady = true;
+        this.$emit("ready");
+        resolve();
+      } else {
+        const error = new Error(`Database ${this.dbName} connection is not initialised.`);
+        window.console.error(error);
+        reject(error);
+      }
+    });
+  }
+  keyValueGet(key) {
+    return new Promise((resolve, reject) => {
+      if (this.dbConnection) {
+        const request = this.dbConnection.transaction([this.objectStoreName], "readonly").objectStore(this.objectStoreName).get(key);
+        request.onerror = () => {
+          window.console.error("Database keyValueGet occurs error", request.result);
+          reject(request.result);
+        };
+        request.onsuccess = () => {
+          var _a;
+          resolve((_a = request.result) == null ? void 0 : _a.value);
+        };
+      } else {
+        const error = new Error(`Database ${this.dbName} connection is not initialised.`);
+        window.console.error(error);
+        reject(error);
+      }
+    });
+  }
+  keyValueSet(key, value) {
+    return new Promise((resolve, reject) => {
+      if (this.dbConnection) {
+        const request = this.dbConnection.transaction([this.objectStoreName], "readwrite").objectStore(this.objectStoreName).put({ key, value });
+        request.onerror = () => {
+          window.console.error("Database keyValueSet occurs error", request.result);
+          reject(request.result);
+        };
+        request.onsuccess = () => {
+          var _a;
+          resolve((_a = request.result) == null ? void 0 : _a.value);
+        };
+      } else {
+        const error = new Error(`Database ${this.dbName} connection is not initialised.`);
+        window.console.error(error);
+        reject(error);
+      }
+    });
+  }
+  existsKey(key) {
+    return new Promise((resolve, reject) => {
+      if (this.dbConnection) {
+        const request = this.dbConnection.transaction([this.objectStoreName], "readonly").objectStore(this.objectStoreName).count(key);
+        request.onerror = () => {
+          window.console.error("Database existsKey occurs error", request.result);
+          reject(request.result);
+        };
+        request.onsuccess = () => {
+          resolve(!!request.result);
+        };
+      } else {
+        const error = new Error(`Database ${this.dbName} connection is not initialised.`);
+        window.console.error(error);
+        reject(error);
+      }
+    });
+  }
+}
+__publicField(IndexedDBStore, "driver", "indexedDB");
 const systemStores = {};
 for (const store of [
   MemoryStore,
   LocalStorageStore,
   SessionStorageStore,
-  CookieStore
+  CookieStore,
+  IndexedDBStore
 ]) {
   systemStores[store.driver] = store;
 }
@@ -425,8 +594,9 @@ const getSupportedDriverList = () => {
 const getStoreClass = (driver) => {
   return systemStores[driver] || externalStores[driver];
 };
-class BrowserCache {
+class BrowserCache extends EventListener {
   constructor(driver, opts) {
+    super();
     __publicField(this, "opts");
     __publicField(this, "__init", false);
     __publicField(this, "driver");
@@ -456,31 +626,35 @@ class BrowserCache {
     if (opts && opts.driver) {
       this.opts = opts;
       this.initDriver();
-      this.__init = true;
     } else {
       throw new Error("please input the driver as first param.");
     }
   }
   initDriver() {
     const suportedDriverList = getSupportedDriverList();
-    if (!this.store && this.opts && this.opts.driver && suportedDriverList.includes(this.opts.driver)) {
+    if (this.opts && this.opts.driver && suportedDriverList.includes(this.opts.driver)) {
+      this.__init = false;
       const StoreClass = getStoreClass(this.opts.driver);
       this.store = new StoreClass(this.opts);
-      this.driver = this.opts.driver;
+      this.store.$on("ready", () => {
+        this.__init = true;
+        this.driver = this.opts.driver;
+        this.$emit("ready");
+      });
     }
   }
   setDriver(driver) {
     this.opts.driver = driver;
     this.initDriver();
   }
+  existsKey() {
+    return this.store.existsKey.apply(this.store, arguments);
+  }
   get() {
     return this.store.get.apply(this.store, arguments);
   }
   set() {
     return this.store.set.apply(this.store, arguments);
-  }
-  existsKey() {
-    return this.store.existsKey.apply(this.store, arguments);
   }
 }
 export { AsyncStore, BaseStore, BrowserCache, StoreResult, SyncStore, registerStore };

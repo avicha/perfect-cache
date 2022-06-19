@@ -25,6 +25,20 @@
         { PX: 2000, XX: true, GET: true }
       );
       window.console.log(result2, browserCacheInstance.get('key1'));
+      const browserCacheAsyncInstance = new BrowserCache.BrowserCache({
+        driver: 'indexedDB',
+      });
+      browserCacheAsyncInstance.$on('ready', () => {
+        window.console.log('indexedDB ready.');
+        browserCacheAsyncInstance.get('key1').then((value) => {
+          window.console.log('key1 get success', value);
+          browserCacheAsyncInstance
+            .set('key1', { a: 3, b: 2, c: 1 })
+            .then(() => {
+              window.console.log('key1 set success');
+            });
+        });
+      });
     </script>
   </body>
 </html>

@@ -1,12 +1,14 @@
 import defaultOpts from './defaultOpts';
+import EventListener from './EventListener';
 import { getSupportedDriverList, getStoreClass } from './utils';
 
-class BrowserCache {
+class BrowserCache extends EventListener {
   opts;
   __init = false;
   driver;
   store;
   constructor(driver, opts) {
+    super();
     const suportedDriverList = getSupportedDriverList();
     // driver and opts is null, then set the default opts
     if (!driver && !opts) {
@@ -43,7 +45,6 @@ class BrowserCache {
     if (opts && opts.driver) {
       this.opts = opts;
       this.initDriver();
-      this.__init = true;
     } else {
       throw new Error('please input the driver as first param.');
     }
@@ -51,28 +52,32 @@ class BrowserCache {
   initDriver() {
     const suportedDriverList = getSupportedDriverList();
     if (
-      !this.store &&
       this.opts &&
       this.opts.driver &&
       suportedDriverList.includes(this.opts.driver)
     ) {
+      this.__init = false;
       const StoreClass = getStoreClass(this.opts.driver);
       this.store = new StoreClass(this.opts);
-      this.driver = this.opts.driver;
+      this.store.$on('ready', () => {
+        this.__init = true;
+        this.driver = this.opts.driver;
+        this.$emit('ready');
+      });
     }
   }
   setDriver(driver) {
     this.opts.driver = driver;
     this.initDriver();
   }
+  existsKey() {
+    return this.store.existsKey.apply(this.store, arguments);
+  }
   get() {
     return this.store.get.apply(this.store, arguments);
   }
   set() {
     return this.store.set.apply(this.store, arguments);
-  }
-  existsKey() {
-    return this.store.existsKey.apply(this.store, arguments);
   }
 }
 export default BrowserCache;

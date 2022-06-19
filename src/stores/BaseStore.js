@@ -1,4 +1,18 @@
-export default class BaseStore {
+import EventListener from '../EventListener';
+
+export default class BaseStore extends EventListener {
+  opts;
+  isReady = false;
+  constructor(opts = {}) {
+    super();
+    this.opts = opts;
+    this.isReady = false;
+  }
+  existsKey() {
+    return Promise.reject(
+      new Error('please implement the existsKey method for this driver.')
+    );
+  }
   get() {
     throw new Error('please implement the get method for this driver.');
   }

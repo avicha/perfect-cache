@@ -3,6 +3,7 @@ import LocalStorageStore from './LocalStorageStore';
 import MemoryStore from './MemoryStore';
 import SessionStorageStore from './SessionStorageStore';
 import CookieStore from './CookieStore';
+import IndexedDBStore from './IndexedDBStore';
 import StoreResult from './StoreResult';
 import SyncStore from './SyncStore';
 import AsyncStore from './AsyncStore';
@@ -13,6 +14,7 @@ for (const store of [
   LocalStorageStore,
   SessionStorageStore,
   CookieStore,
+  IndexedDBStore,
 ]) {
   systemStores[store.driver] = store;
 }

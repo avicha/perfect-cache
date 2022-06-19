@@ -2,6 +2,9 @@ import BaseStore from './BaseStore';
 import StoreResult from './StoreResult';
 
 export default class AsyncStore extends BaseStore {
+  constructor(opts) {
+    super(opts);
+  }
   keyValueGet() {
     return Promise.reject(
       new Error('please implement the keyValueGet method for this driver.')

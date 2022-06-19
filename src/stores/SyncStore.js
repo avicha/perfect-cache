@@ -2,6 +2,11 @@ import BaseStore from './BaseStore';
 import StoreResult from './StoreResult';
 
 export default class SyncStore extends BaseStore {
+  constructor(opts) {
+    super(opts);
+    this.isReady = true;
+    this.$emit('ready');
+  }
   keyValueGet() {
     throw new Error('please implement the keyValueGet method for this driver.');
   }
