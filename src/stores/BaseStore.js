@@ -9,9 +9,7 @@ export default class BaseStore extends EventListener {
     this.isReady = false;
   }
   existsKey() {
-    return Promise.reject(
-      new Error('please implement the existsKey method for this driver.')
-    );
+    throw new Error('please implement the existsKey method for this driver.');
   }
   get() {
     throw new Error('please implement the get method for this driver.');

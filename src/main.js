@@ -18,9 +18,11 @@ class BrowserCache extends EventListener {
       if (driver) {
         // driver is string and valid
         if (suportedDriverList.includes(driver)) {
+          // opts is object config
           if (Object.prototype.toString.call(opts) === '[object Object]') {
             opts = { ...defaultOpts, driver, ...opts };
           } else {
+            // opts is not object, then discard.
             opts = { ...defaultOpts, driver };
           }
         } else {
