@@ -4,7 +4,7 @@
   "description": "browser cache lib",
   "scripts": {
     "build": "vite build",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "jest test --env=jsdom"
   },
   "repository": {
     "type": "git",
@@ -32,6 +32,12 @@
   },
   "homepage": "https://github.com/avicha/browser-cache#readme",
   "devDependencies": {
+    "@babel/core": "^7.18.5",
+    "@babel/preset-env": "^7.18.2",
+    "@types/jest": "^28.1.2",
+    "babel-jest": "^28.1.1",
+    "jest": "^28.1.1",
+    "jest-environment-jsdom": "^28.1.1",
     "vite": "^2.9.9"
   },
   "dependencies": {
