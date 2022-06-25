@@ -1,22 +1,5 @@
 var __defProp = Object.defineProperty;
-var __defProps = Object.defineProperties;
-var __getOwnPropDescs = Object.getOwnPropertyDescriptors;
-var __getOwnPropSymbols = Object.getOwnPropertySymbols;
-var __hasOwnProp = Object.prototype.hasOwnProperty;
-var __propIsEnum = Object.prototype.propertyIsEnumerable;
 var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
-var __spreadValues = (a, b) => {
-  for (var prop in b || (b = {}))
-    if (__hasOwnProp.call(b, prop))
-      __defNormalProp(a, prop, b[prop]);
-  if (__getOwnPropSymbols)
-    for (var prop of __getOwnPropSymbols(b)) {
-      if (__propIsEnum.call(b, prop))
-        __defNormalProp(a, prop, b[prop]);
-    }
-  return a;
-};
-var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 var __publicField = (obj, key, value) => {
   __defNormalProp(obj, typeof key !== "symbol" ? key + "" : key, value);
   return value;
@@ -603,18 +586,18 @@ class BrowserCache extends EventListener {
     __publicField(this, "store");
     const suportedDriverList = getSupportedDriverList();
     if (!driver && !opts) {
-      opts = __spreadValues({}, defaultOpts);
+      opts = { ...defaultOpts };
     } else {
       if (driver) {
         if (suportedDriverList.includes(driver)) {
           if (Object.prototype.toString.call(opts) === "[object Object]") {
-            opts = __spreadValues(__spreadProps(__spreadValues({}, defaultOpts), { driver }), opts);
+            opts = { ...defaultOpts, driver, ...opts };
           } else {
-            opts = __spreadProps(__spreadValues({}, defaultOpts), { driver });
+            opts = { ...defaultOpts, driver };
           }
         } else {
           if (Object.prototype.toString.call(driver) === "[object Object]" && suportedDriverList.includes(driver.driver)) {
-            opts = __spreadValues(__spreadValues({}, defaultOpts), driver);
+            opts = { ...defaultOpts, ...driver };
           } else {
             throw new Error("please input the correct driver param as the first param or in the opts params.");
           }
