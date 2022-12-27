@@ -7,6 +7,8 @@ class BrowserCache extends EventListener {
   __init = false;
   driver;
   store;
+  keyFallbacks = [];
+  keyRegexFallbacks = [];
   constructor(driver, opts) {
     super();
     const suportedDriverList = getSupportedDriverList();
@@ -66,6 +68,9 @@ class BrowserCache extends EventListener {
         this.driver = this.opts.driver;
         this.$emit('ready');
       });
+      this.store.$on('cacheExpired', (key) => {
+        this.$emit('cacheExpired', key);
+      });
     }
   }
   setDriver(driver) {
@@ -80,6 +85,51 @@ class BrowserCache extends EventListener {
   }
   set() {
     return this.store.set.apply(this.store, arguments);
+  }
+  remember(key, expiredTime, fallback) {
+    if (typeof key === 'string' && fallback instanceof Function) {
+      return this.keyFallbacks.set(key, fallback);
+    }
+    if (key instanceof RegExp && fallback instanceof Function) {
+      return this.keyRegexFallbacks.push({ regex: key, fallback });
+    }
+  }
+  rememberForever(key, fallback) {
+    if (typeof key === 'string' && fallback instanceof Function) {
+      return this.keyFallbacks.set(key, fallback);
+    }
+    if (key instanceof RegExp && fallback instanceof Function) {
+      return this.keyRegexFallbacks.push({ regex: key, fallback });
+    }
+  }
+  __getFallbackByKey(key) {
+    const fallback = this.keyFallbacks.get(key);
+    if (fallback && fallback instanceof Function) {
+      return fallback;
+    } else {
+      for (const obj of this.keyRegexFallbacks) {
+        if (obj.regex.test(key) && obj.fallback instanceof Function) {
+          return obj.fallback;
+        }
+      }
+    }
+  }
+  async getWithFallback(key, expiredTime) {
+    let result = this.get(key);
+    const isResultInvalid =
+      result === undefined || result === null || isNaN(result) || result === '';
+    if (isResultInvalid) {
+      const fallback = this.__getFallbackByKey(key);
+      if (fallback) {
+        result = await fallback(key);
+        await this.set(key, result, { expiredTime });
+        return result;
+      } else {
+        return result;
+      }
+    } else {
+      return result;
+    }
   }
 }
 export default BrowserCache;
