@@ -86,43 +86,62 @@ class BrowserCache extends EventListener {
   set() {
     return this.store.set.apply(this.store, arguments);
   }
-  remember(key, expiredTime, fallback) {
-    if (typeof key === 'string' && fallback instanceof Function) {
-      return this.keyFallbacks.set(key, fallback);
+  fallbackKey(key, expiredTime, fallback) {
+    if (!fallback && expiredTime instanceof Function) {
+      fallback = expiredTime;
+      expiredTime = null;
     }
-    if (key instanceof RegExp && fallback instanceof Function) {
-      return this.keyRegexFallbacks.push({ regex: key, fallback });
+    if (typeof key === 'string') {
+      if (
+        fallback instanceof Function &&
+        (!expiredTime || typeof expiredTime === 'number')
+      ) {
+        return this.keyFallbacks.push({ key, expiredTime, fallback });
+      } else {
+        throw new Error(
+          'please input the expiredTime as type [number] and fallback as type [Function]'
+        );
+      }
     }
-  }
-  rememberForever(key, fallback) {
-    if (typeof key === 'string' && fallback instanceof Function) {
-      return this.keyFallbacks.set(key, fallback);
-    }
-    if (key instanceof RegExp && fallback instanceof Function) {
-      return this.keyRegexFallbacks.push({ regex: key, fallback });
-    }
-  }
-  __getFallbackByKey(key) {
-    const fallback = this.keyFallbacks.get(key);
-    if (fallback && fallback instanceof Function) {
-      return fallback;
-    } else {
-      for (const obj of this.keyRegexFallbacks) {
-        if (obj.regex.test(key) && obj.fallback instanceof Function) {
-          return obj.fallback;
-        }
+    if (key instanceof RegExp) {
+      if (
+        fallback instanceof Function &&
+        (!expiredTime || typeof expiredTime === 'number')
+      ) {
+        return this.keyRegexFallbacks.push({
+          regex: key,
+          expiredTime,
+          fallback,
+        });
+      } else {
+        throw new Error(
+          'please input the expiredTime as type [number] and fallback as type [Function]'
+        );
       }
     }
   }
-  async getWithFallback(key, expiredTime) {
+  __getFallbackByKey(key) {
+    let fallback = this.keyFallbacks.find((obj) => {
+      return obj.key === key && obj.fallback instanceof Function;
+    });
+    if (fallback) {
+      return fallback;
+    } else {
+      fallback = this.keyRegexFallbacks.find((obj) => {
+        return obj.regex.test(key) && obj.fallback instanceof Function;
+      });
+      return fallback;
+    }
+  }
+  async getWithFallback(key) {
     let result = this.get(key);
     const isResultInvalid =
       result === undefined || result === null || isNaN(result) || result === '';
     if (isResultInvalid) {
-      const fallback = this.__getFallbackByKey(key);
-      if (fallback) {
-        result = await fallback(key);
-        await this.set(key, result, { expiredTime });
+      const res = this.__getFallbackByKey(key);
+      if (res) {
+        result = await res.fallback(key);
+        await this.set(key, result, { expiredTime: res.expiredTime });
         return result;
       } else {
         return result;
