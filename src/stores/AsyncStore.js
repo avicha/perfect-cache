@@ -1,5 +1,5 @@
-import BaseStore from './BaseStore';
-import StoreResult from './StoreResult';
+import BaseStore from "./BaseStore";
+import StoreResult from "./StoreResult";
 
 export default class AsyncStore extends BaseStore {
   constructor(opts) {
@@ -7,20 +7,20 @@ export default class AsyncStore extends BaseStore {
   }
   keyValueGet() {
     return Promise.reject(
-      new Error('please implement the keyValueGet method for this driver.')
+      new Error("please implement the keyValueGet method for this driver.")
     );
   }
   keyValueSet() {
     return Promise.reject(
-      new Error('please implement the keyValueSet method for this driver.')
+      new Error("please implement the keyValueSet method for this driver.")
     );
   }
   existsKey() {
     return Promise.reject(
-      new Error('please implement the existsKey method for this driver.')
+      new Error("please implement the existsKey method for this driver.")
     );
   }
-  get(key, defaultVal) {
+  get(key) {
     return new Promise((resolve, reject) => {
       this.keyValueGet(key)
         .then((valueStr) => {
@@ -29,24 +29,20 @@ export default class AsyncStore extends BaseStore {
               const valueObj = JSON.parse(valueStr);
               if (valueObj.expiredAt) {
                 if (valueObj.expiredAt > Date.now()) {
-                  resolve(
-                    valueObj.value === undefined ? defaultVal : valueObj.value
-                  );
+                  resolve(valueObj.value);
                 } else {
-                  this.$emit('cacheExpired', key);
-                  resolve(defaultVal);
+                  this.$emit("cacheExpired", key);
+                  resolve();
                 }
               } else {
-                resolve(
-                  valueObj.value === undefined ? defaultVal : valueObj.value
-                );
+                resolve(valueObj.value);
               }
             } catch (error) {
-              window.console.debug('get key json parse error', error);
-              resolve(defaultVal);
+              window.console.debug("get key json parse error", error);
+              resolve();
             }
           } else {
-            resolve(defaultVal);
+            resolve();
           }
         })
         .catch((e) => {
@@ -66,12 +62,12 @@ export default class AsyncStore extends BaseStore {
       setOnlyExist = false,
     } = options;
     let expiredAt, maxAge;
-    if (expiredTime && typeof expiredTime === 'number' && expiredTime > 0) {
+    if (expiredTime && typeof expiredTime === "number" && expiredTime > 0) {
       expiredAt = Date.now() + expiredTime;
     }
     if (
       expiredTimeAt &&
-      typeof expiredTimeAt === 'number' &&
+      typeof expiredTimeAt === "number" &&
       expiredTimeAt > 0
     ) {
       expiredAt = expiredTimeAt;

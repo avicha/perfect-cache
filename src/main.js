@@ -1,6 +1,6 @@
-import defaultOpts from './defaultOpts';
-import EventListener from './EventListener';
-import { getSupportedDriverList, getStoreClass } from './utils';
+import defaultOpts from "./defaultOpts";
+import EventListener from "./EventListener";
+import { getSupportedDriverList, getStoreClass } from "./utils";
 
 class BrowserCache extends EventListener {
   opts;
@@ -21,7 +21,7 @@ class BrowserCache extends EventListener {
         // driver is string and valid
         if (suportedDriverList.includes(driver)) {
           // opts is object config
-          if (Object.prototype.toString.call(opts) === '[object Object]') {
+          if (Object.prototype.toString.call(opts) === "[object Object]") {
             opts = { ...defaultOpts, driver, ...opts };
           } else {
             // opts is not object, then discard.
@@ -30,27 +30,27 @@ class BrowserCache extends EventListener {
         } else {
           // driver is object opts
           if (
-            Object.prototype.toString.call(driver) === '[object Object]' &&
+            Object.prototype.toString.call(driver) === "[object Object]" &&
             suportedDriverList.includes(driver.driver)
           ) {
             opts = { ...defaultOpts, ...driver };
           } else {
             // driver is invalid
             throw new Error(
-              'please input the correct driver param as the first param or in the opts params.'
+              "please input the correct driver param as the first param or in the opts params."
             );
           }
         }
       } else {
         // driver is null and opts is not null
-        throw new Error('please input the driver as first param.');
+        throw new Error("please input the driver as first param.");
       }
     }
     if (opts && opts.driver) {
       this.opts = opts;
       this.initDriver();
     } else {
-      throw new Error('please input the driver as first param.');
+      throw new Error("please input the driver as first param.");
     }
   }
   initDriver() {
@@ -63,13 +63,13 @@ class BrowserCache extends EventListener {
       this.__init = false;
       const StoreClass = getStoreClass(this.opts.driver);
       this.store = new StoreClass(this.opts);
-      this.store.$on('ready', () => {
+      this.store.$on("ready", () => {
         this.__init = true;
         this.driver = this.opts.driver;
-        this.$emit('ready');
+        this.$emit("ready");
       });
-      this.store.$on('cacheExpired', (key) => {
-        this.$emit('cacheExpired', key);
+      this.store.$on("cacheExpired", (key) => {
+        this.$emit("cacheExpired", key);
       });
     }
   }
@@ -80,8 +80,32 @@ class BrowserCache extends EventListener {
   existsKey() {
     return this.store.existsKey.apply(this.store, arguments);
   }
-  get() {
-    return this.store.get.apply(this.store, arguments);
+  async get(key, opts = {}) {
+    const { defaultVal, withFallback = true, refreshCache = true } = opts;
+    const result = await this.get(key);
+    const isResultInvalid =
+      result === undefined || result === null || isNaN(result) || result === "";
+    if (isResultInvalid && withFallback) {
+      const res = this.__getFallbackByKey(key);
+      if (res) {
+        const fallbackResult = await res.fallback(key);
+        const isFallbackResultInvalid =
+          fallbackResult === undefined ||
+          fallbackResult === null ||
+          isNaN(fallbackResult) ||
+          fallbackResult === "";
+        if (refreshCache) {
+          await this.set(key, fallbackResult, { expiredTime: res.expiredTime });
+        }
+        return isFallbackResultInvalid && defaultVal !== undefined
+          ? defaultVal
+          : fallbackResult;
+      } else {
+        return defaultVal === undefined ? result : defaultVal;
+      }
+    } else {
+      return isResultInvalid && defaultVal !== undefined ? defaultVal : result;
+    }
   }
   set() {
     return this.store.set.apply(this.store, arguments);
@@ -91,22 +115,22 @@ class BrowserCache extends EventListener {
       fallback = expiredTime;
       expiredTime = null;
     }
-    if (typeof key === 'string') {
+    if (typeof key === "string") {
       if (
         fallback instanceof Function &&
-        (!expiredTime || typeof expiredTime === 'number')
+        (!expiredTime || typeof expiredTime === "number")
       ) {
         return this.keyFallbacks.push({ key, expiredTime, fallback });
       } else {
         throw new Error(
-          'please input the expiredTime as type [number] and fallback as type [Function]'
+          "please input the expiredTime as type [number] and fallback as type [Function]"
         );
       }
     }
     if (key instanceof RegExp) {
       if (
         fallback instanceof Function &&
-        (!expiredTime || typeof expiredTime === 'number')
+        (!expiredTime || typeof expiredTime === "number")
       ) {
         return this.keyRegexFallbacks.push({
           regex: key,
@@ -115,39 +139,31 @@ class BrowserCache extends EventListener {
         });
       } else {
         throw new Error(
-          'please input the expiredTime as type [number] and fallback as type [Function]'
+          "please input the expiredTime as type [number] and fallback as type [Function]"
         );
       }
     }
   }
+  /**
+   *
+   * @param {String} key the cache key
+   * @returns {Object} the fallback config object if exists, undefined otherwise.
+   */
   __getFallbackByKey(key) {
+    // find the exact key matches the config first
     let fallback = this.keyFallbacks.find((obj) => {
       return obj.key === key && obj.fallback instanceof Function;
     });
+    // if found the config then return
     if (fallback) {
       return fallback;
     } else {
+      // else find the regex key matches and return
       fallback = this.keyRegexFallbacks.find((obj) => {
         return obj.regex.test(key) && obj.fallback instanceof Function;
       });
+      // return the found fallback config and undefined otherwise
       return fallback;
-    }
-  }
-  async getWithFallback(key) {
-    let result = this.get(key);
-    const isResultInvalid =
-      result === undefined || result === null || isNaN(result) || result === '';
-    if (isResultInvalid) {
-      const res = this.__getFallbackByKey(key);
-      if (res) {
-        result = await res.fallback(key);
-        await this.set(key, result, { expiredTime: res.expiredTime });
-        return result;
-      } else {
-        return result;
-      }
-    } else {
-      return result;
     }
   }
 }

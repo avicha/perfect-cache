@@ -1,42 +1,42 @@
-import BaseStore from './BaseStore';
-import StoreResult from './StoreResult';
+import BaseStore from "./BaseStore";
+import StoreResult from "./StoreResult";
 
 export default class SyncStore extends BaseStore {
   constructor(opts) {
     super(opts);
     this.isReady = true;
-    this.$emit('ready');
+    this.$emit("ready");
   }
   keyValueGet() {
-    throw new Error('please implement the keyValueGet method for this driver.');
+    throw new Error("please implement the keyValueGet method for this driver.");
   }
   keyValueSet() {
-    throw new Error('please implement the keyValueSet method for this driver.');
+    throw new Error("please implement the keyValueSet method for this driver.");
   }
   existsKey() {
-    throw new Error('please implement the existsKey method for this driver.');
+    throw new Error("please implement the existsKey method for this driver.");
   }
-  get(key, defaultVal) {
+  get(key) {
     const valueStr = this.keyValueGet(key);
     if (valueStr) {
       try {
         const valueObj = JSON.parse(valueStr);
         if (valueObj.expiredAt) {
           if (valueObj.expiredAt > Date.now()) {
-            return valueObj.value === undefined ? defaultVal : valueObj.value;
+            return valueObj.value;
           } else {
-            this.$emit('cacheExpired', key);
-            return defaultVal;
+            this.$emit("cacheExpired", key);
+            return;
           }
         } else {
-          return valueObj.value === undefined ? defaultVal : valueObj.value;
+          return valueObj.value;
         }
       } catch (error) {
-        window.console.debug('get key json parse error', error);
-        return defaultVal;
+        window.console.debug("get key json parse error", error);
+        return;
       }
     } else {
-      return defaultVal;
+      return;
     }
   }
   set(key, value, options = {}) {
@@ -51,12 +51,12 @@ export default class SyncStore extends BaseStore {
       setOnlyExist = false,
     } = options;
     let expiredAt, maxAge;
-    if (expiredTime && typeof expiredTime === 'number' && expiredTime > 0) {
+    if (expiredTime && typeof expiredTime === "number" && expiredTime > 0) {
       expiredAt = Date.now() + expiredTime;
     }
     if (
       expiredTimeAt &&
-      typeof expiredTimeAt === 'number' &&
+      typeof expiredTimeAt === "number" &&
       expiredTimeAt > 0
     ) {
       expiredAt = expiredTimeAt;
