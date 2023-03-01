@@ -58,6 +58,7 @@ class BaseStore extends EventListener {
   constructor(opts = {}) {
     super();
     __publicField(this, "opts");
+    __publicField(this, "isAsync", false);
     __publicField(this, "isReady", false);
     this.opts = opts;
     this.isReady = false;
@@ -83,8 +84,11 @@ const StoreResult = {
 class SyncStore extends BaseStore {
   constructor(opts) {
     super(opts);
-    this.isReady = true;
-    this.$emit("ready");
+    this.isAsync = true;
+    setTimeout(() => {
+      this.isReady = true;
+      this.$emit("ready");
+    }, 0);
   }
   keyValueGet() {
     throw new Error("please implement the keyValueGet method for this driver.");
@@ -309,6 +313,7 @@ __publicField(CookieStore, "driver", "cookie");
 class AsyncStore extends BaseStore {
   constructor(opts) {
     super(opts);
+    this.isAsync = true;
   }
   keyValueGet() {
     return Promise.reject(new Error("please implement the keyValueGet method for this driver."));
@@ -610,24 +615,64 @@ class PerfectCache extends EventListener {
   existsKey() {
     return this.store.existsKey.apply(this.store, arguments);
   }
-  async get(key, opts = {}) {
+  get(key, opts = {}) {
     const { defaultVal, withFallback = true, refreshCache = true } = opts;
-    const result = await this.get(key);
-    const isResultInvalid = result === void 0 || result === null || isNaN(result) || result === "";
-    if (isResultInvalid && withFallback) {
-      const res = this.__getFallbackByKey(key);
-      if (res) {
-        const fallbackResult = await res.fallback(key);
-        const isFallbackResultInvalid = fallbackResult === void 0 || fallbackResult === null || isNaN(fallbackResult) || fallbackResult === "";
-        if (refreshCache) {
-          await this.set(key, fallbackResult, { expiredTime: res.expiredTime });
+    if (this.isAsync) {
+      return new Promise(async (resolve, reject) => {
+        const result = await this.get(key);
+        const isResultInvalid = result === void 0 || result === null || isNaN(result) || result === "";
+        if (isResultInvalid && withFallback) {
+          const res = this.__getFallbackByKey(key);
+          if (res) {
+            const fallbackResult = await res.fallback(key);
+            const isFallbackResultInvalid = fallbackResult === void 0 || fallbackResult === null || isNaN(fallbackResult) || fallbackResult === "";
+            if (refreshCache) {
+              await this.set(key, fallbackResult, {
+                expiredTime: res.expiredTime
+              });
+            }
+            resolve(isFallbackResultInvalid && defaultVal !== void 0 ? defaultVal : fallbackResult);
+          } else {
+            resolve(defaultVal === void 0 ? result : defaultVal);
+          }
+        } else {
+          resolve(isResultInvalid && defaultVal !== void 0 ? defaultVal : result);
         }
-        return isFallbackResultInvalid && defaultVal !== void 0 ? defaultVal : fallbackResult;
-      } else {
-        return defaultVal === void 0 ? result : defaultVal;
-      }
+      });
     } else {
-      return isResultInvalid && defaultVal !== void 0 ? defaultVal : result;
+      const result = this.get(key);
+      const isResultInvalid = result === void 0 || result === null || isNaN(result) || result === "";
+      if (isResultInvalid && withFallback) {
+        const res = this.__getFallbackByKey(key);
+        if (res) {
+          const fallbackReturn = res.fallback(key);
+          let fallbackResult;
+          if (fallbackReturn instanceof Promise) {
+            return fallbackReturn().then((fallbackResult2) => {
+              const isFallbackResultInvalid = fallbackResult2 === void 0 || fallbackResult2 === null || isNaN(fallbackResult2) || fallbackResult2 === "";
+              if (refreshCache) {
+                this.set(key, fallbackResult2, {
+                  expiredTime: res.expiredTime
+                });
+              }
+              return isFallbackResultInvalid && defaultVal !== void 0 ? defaultVal : fallbackResult2;
+            });
+          } else {
+            fallbackResult = fallbackReturn;
+            const isFallbackResultInvalid = fallbackResult === void 0 || fallbackResult === null || isNaN(fallbackResult) || fallbackResult === "";
+            if (refreshCache) {
+              this.set(key, fallbackResult, {
+                expiredTime: res.expiredTime
+              });
+            }
+            return isFallbackResultInvalid && defaultVal !== void 0 ? defaultVal : fallbackResult;
+          }
+        } else {
+          return defaultVal === void 0 ? result : defaultVal;
+        }
+      } else {
+        return isResultInvalid && defaultVal !== void 0 ? defaultVal : result;
+      }
     }
   }
   set() {
