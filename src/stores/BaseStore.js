@@ -1,7 +1,8 @@
-import EventListener from '../EventListener';
+import EventListener from "../EventListener";
 
 export default class BaseStore extends EventListener {
   opts;
+  isAsync = false;
   isReady = false;
   constructor(opts = {}) {
     super();
@@ -9,12 +10,12 @@ export default class BaseStore extends EventListener {
     this.isReady = false;
   }
   existsKey() {
-    throw new Error('please implement the existsKey method for this driver.');
+    throw new Error("please implement the existsKey method for this driver.");
   }
   get() {
-    throw new Error('please implement the get method for this driver.');
+    throw new Error("please implement the get method for this driver.");
   }
   set() {
-    throw new Error('please implement the set method for this driver.');
+    throw new Error("please implement the set method for this driver.");
   }
 }

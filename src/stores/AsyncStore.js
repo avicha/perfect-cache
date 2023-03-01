@@ -4,6 +4,7 @@ import StoreResult from "./StoreResult";
 export default class AsyncStore extends BaseStore {
   constructor(opts) {
     super(opts);
+    this.isAsync = true;
   }
   keyValueGet() {
     return Promise.reject(

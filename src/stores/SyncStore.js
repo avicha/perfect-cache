@@ -4,8 +4,11 @@ import StoreResult from "./StoreResult";
 export default class SyncStore extends BaseStore {
   constructor(opts) {
     super(opts);
-    this.isReady = true;
-    this.$emit("ready");
+    this.isAsync = true;
+    setTimeout(() => {
+      this.isReady = true;
+      this.$emit("ready");
+    }, 0);
   }
   keyValueGet() {
     throw new Error("please implement the keyValueGet method for this driver.");

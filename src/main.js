@@ -116,41 +116,119 @@ class PerfectCache extends EventListener {
    * @param {Boolean} opts.refreshCache if refresh the cache result when use the fallback
    * @returns
    */
-  async get(key, opts = {}) {
+  get(key, opts = {}) {
     const { defaultVal, withFallback = true, refreshCache = true } = opts;
-    // get the cache value
-    const result = await this.get(key);
-    // is the result null
-    const isResultInvalid =
-      result === undefined || result === null || isNaN(result) || result === "";
-    // if the result is invalid and use fallback function
-    if (isResultInvalid && withFallback) {
-      // get the fallback config
-      const res = this.__getFallbackByKey(key);
-      if (res) {
-        // get the fallback result
-        const fallbackResult = await res.fallback(key);
-        // is fallback result invalid
-        const isFallbackResultInvalid =
-          fallbackResult === undefined ||
-          fallbackResult === null ||
-          isNaN(fallbackResult) ||
-          fallbackResult === "";
-        // if need refresh cache, then set the fallback result as the cache value
-        if (refreshCache) {
-          await this.set(key, fallbackResult, { expiredTime: res.expiredTime });
+    if (this.isAsync) {
+      return new Promise(async (resolve, reject) => {
+        // get the cache value
+        const result = await this.get(key);
+        // is the result null
+        const isResultInvalid =
+          result === undefined ||
+          result === null ||
+          isNaN(result) ||
+          result === "";
+        // if the result is invalid and use fallback function
+        if (isResultInvalid && withFallback) {
+          // get the fallback config
+          const res = this.__getFallbackByKey(key);
+          if (res) {
+            // get the fallback result
+            const fallbackResult = await res.fallback(key);
+            // is fallback result invalid
+            const isFallbackResultInvalid =
+              fallbackResult === undefined ||
+              fallbackResult === null ||
+              isNaN(fallbackResult) ||
+              fallbackResult === "";
+            // if need refresh cache, then set the fallback result as the cache value
+            if (refreshCache) {
+              await this.set(key, fallbackResult, {
+                expiredTime: res.expiredTime,
+              });
+            }
+            // return the default value or the fallback result
+            resolve(
+              isFallbackResultInvalid && defaultVal !== undefined
+                ? defaultVal
+                : fallbackResult
+            );
+          } else {
+            // have not the fallback config then return the default value or the origin result
+            resolve(defaultVal === undefined ? result : defaultVal);
+          }
+        } else {
+          // if the result is valid or does not use fallback function,then return the default value or the origin result
+          resolve(
+            isResultInvalid && defaultVal !== undefined ? defaultVal : result
+          );
         }
-        // return the default value or the fallback result
-        return isFallbackResultInvalid && defaultVal !== undefined
-          ? defaultVal
-          : fallbackResult;
-      } else {
-        // have not the fallback config then return the default value or the origin result
-        return defaultVal === undefined ? result : defaultVal;
-      }
+      });
     } else {
-      // if the result is valid or does not use fallback function,then return the default value or the origin result
-      return isResultInvalid && defaultVal !== undefined ? defaultVal : result;
+      // get the cache value
+      const result = this.get(key);
+      // is the result null
+      const isResultInvalid =
+        result === undefined ||
+        result === null ||
+        isNaN(result) ||
+        result === "";
+      // if the result is invalid and use fallback function
+      if (isResultInvalid && withFallback) {
+        // get the fallback config
+        const res = this.__getFallbackByKey(key);
+        if (res) {
+          // get the fallback result
+          const fallbackReturn = res.fallback(key);
+          let fallbackResult;
+          if (fallbackReturn instanceof Promise) {
+            return fallbackReturn().then((fallbackResult) => {
+              // is fallback result invalid
+              const isFallbackResultInvalid =
+                fallbackResult === undefined ||
+                fallbackResult === null ||
+                isNaN(fallbackResult) ||
+                fallbackResult === "";
+              // if need refresh cache, then set the fallback result as the cache value
+              if (refreshCache) {
+                this.set(key, fallbackResult, {
+                  expiredTime: res.expiredTime,
+                });
+              }
+              // return the default value or the fallback result
+              return isFallbackResultInvalid && defaultVal !== undefined
+                ? defaultVal
+                : fallbackResult;
+            });
+          } else {
+            fallbackResult = fallbackReturn;
+            // is fallback result invalid
+            const isFallbackResultInvalid =
+              fallbackResult === undefined ||
+              fallbackResult === null ||
+              isNaN(fallbackResult) ||
+              fallbackResult === "";
+            // if need refresh cache, then set the fallback result as the cache value
+            if (refreshCache) {
+              this.set(key, fallbackResult, {
+                expiredTime: res.expiredTime,
+              });
+            }
+            // return the default value or the fallback result
+            return isFallbackResultInvalid && defaultVal !== undefined
+              ? defaultVal
+              : fallbackResult;
+          }
+        } else {
+          // have not the fallback config then return the default value or the origin result
+          return defaultVal === undefined ? result : defaultVal;
+        }
+      } else {
+        // if the result is valid or does not use fallback function,then return the default value or the origin result
+        return isResultInvalid && defaultVal !== undefined
+          ? defaultVal
+          : result;
+      }
     }
   }
   /**
