@@ -84,7 +84,7 @@ const StoreResult = {
 class SyncStore extends BaseStore {
   constructor(opts) {
     super(opts);
-    this.isAsync = true;
+    this.isAsync = false;
     setTimeout(() => {
       this.isReady = true;
       this.$emit("ready");
