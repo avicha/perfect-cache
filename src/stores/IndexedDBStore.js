@@ -1,8 +1,8 @@
-import AsyncStore from './AsyncStore';
+import AsyncStore from "./AsyncStore";
 export default class IndexedDBStore extends AsyncStore {
-  static driver = 'indexedDB';
-  dbName = 'browser-cache';
-  objectStoreName = 'browser-cache';
+  static driver = "indexedDB";
+  dbName = "perfect-cache";
+  objectStoreName = "perfect-cache";
   dbVersion = 1;
   dbConnection;
   constructor(opts) {
@@ -38,7 +38,7 @@ export default class IndexedDBStore extends AsyncStore {
       };
       request.onupgradeneeded = (event) => {
         this.dbConnection = event.target.result;
-        window.console.debug('Database version upgraded success.');
+        window.console.debug("Database version upgraded success.");
         resolve(this.dbConnection);
       };
     });
@@ -50,11 +50,11 @@ export default class IndexedDBStore extends AsyncStore {
           !this.dbConnection.objectStoreNames.contains(this.objectStoreName)
         ) {
           this.dbConnection.createObjectStore(this.objectStoreName, {
-            keyPath: 'key',
+            keyPath: "key",
           });
         }
         this.isReady = true;
-        this.$emit('ready');
+        this.$emit("ready");
         resolve();
       } else {
         const error = new Error(
@@ -69,12 +69,12 @@ export default class IndexedDBStore extends AsyncStore {
     return new Promise((resolve, reject) => {
       if (this.dbConnection) {
         const request = this.dbConnection
-          .transaction([this.objectStoreName], 'readonly')
+          .transaction([this.objectStoreName], "readonly")
           .objectStore(this.objectStoreName)
           .get(key);
         request.onerror = () => {
           window.console.error(
-            'Database keyValueGet occurs error',
+            "Database keyValueGet occurs error",
             request.result
           );
           reject(request.result);
@@ -95,12 +95,12 @@ export default class IndexedDBStore extends AsyncStore {
     return new Promise((resolve, reject) => {
       if (this.dbConnection) {
         const request = this.dbConnection
-          .transaction([this.objectStoreName], 'readwrite')
+          .transaction([this.objectStoreName], "readwrite")
           .objectStore(this.objectStoreName)
           .put({ key, value });
         request.onerror = () => {
           window.console.error(
-            'Database keyValueSet occurs error',
+            "Database keyValueSet occurs error",
             request.result
           );
           reject(request.result);
@@ -121,12 +121,12 @@ export default class IndexedDBStore extends AsyncStore {
     return new Promise((resolve, reject) => {
       if (this.dbConnection) {
         const request = this.dbConnection
-          .transaction([this.objectStoreName], 'readonly')
+          .transaction([this.objectStoreName], "readonly")
           .objectStore(this.objectStoreName)
           .count(key);
         request.onerror = () => {
           window.console.error(
-            'Database existsKey occurs error',
+            "Database existsKey occurs error",
             request.result
           );
           reject(request.result);

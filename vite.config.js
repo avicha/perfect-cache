@@ -1,16 +1,16 @@
-import { defineConfig } from 'vite';
-const path = require('path');
+import { defineConfig } from "vite";
+const path = require("path");
 
 export default defineConfig(({ command, mode }) => {
   console.log(command, mode);
-  if (command === 'serve') {
+  if (command === "serve") {
     // dev 独有配置
     return {
       build: {
         lib: {
-          entry: path.resolve(__dirname, 'src/index.js'),
-          name: 'BrowserCache',
-          fileName: (format) => `browser-cache.${format}.js`,
+          entry: path.resolve(__dirname, "src/index.js"),
+          name: "PerfectCache",
+          fileName: (format) => `perfect-cache.${format}.js`,
         },
       },
     };
@@ -20,9 +20,9 @@ export default defineConfig(({ command, mode }) => {
     return {
       build: {
         lib: {
-          entry: path.resolve(__dirname, 'src/index.js'),
-          name: 'BrowserCache',
-          fileName: (format) => `browser-cache.${format}.js`,
+          entry: path.resolve(__dirname, "src/index.js"),
+          name: "PerfectCache",
+          fileName: (format) => `perfect-cache.${format}.js`,
         },
       },
     };

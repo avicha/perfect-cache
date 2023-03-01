@@ -2,7 +2,7 @@ import defaultOpts from "./defaultOpts";
 import EventListener from "./EventListener";
 import { getSupportedDriverList, getStoreClass } from "./utils";
 
-class BrowserCache extends EventListener {
+class PerfectCache extends EventListener {
   // cache options
   opts;
   // driver is init
@@ -228,4 +228,4 @@ class BrowserCache extends EventListener {
     }
   }
 }
-export default BrowserCache;
+export default PerfectCache;

@@ -1,11 +1,11 @@
-import { BrowserCache } from "../src";
+import { PerfectCache } from "../src";
 describe("memory cache should be correct", () => {
-  let browserCacheInstance;
+  let PerfectCacheInstance;
   beforeAll(() => {
-    browserCacheInstance = new BrowserCache();
+    PerfectCacheInstance = new PerfectCache();
   });
   test("key not exists", () => {
-    const value = browserCacheInstance.get("key");
+    const value = PerfectCacheInstance.get("key");
     expect(value).toBeUndefined();
   });
 });

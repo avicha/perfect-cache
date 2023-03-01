@@ -4,35 +4,35 @@
     <meta charset="UTF-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Browser Cache</title>
+    <title>Perfect Cache</title>
   </head>
   <body>
-    <script src="./dist/browser-cache.umd.js"></script>
+    <script src="./dist/perfect-cache.umd.js"></script>
     <script>
-      const browserCacheInstance = new BrowserCache.BrowserCache({
+      const PerfectCacheInstance = new PerfectCache.PerfectCache({
         driver: 'cookie',
       });
-      window.console.log(browserCacheInstance);
-      const result1 = browserCacheInstance.set(
+      window.console.log(PerfectCacheInstance);
+      const result1 = PerfectCacheInstance.set(
         'key1',
         { a: 1, b: 2 },
         { PX: 2000, NX: true, GET: true }
       );
-      window.console.log(result1, browserCacheInstance.get('key1'));
-      const result2 = browserCacheInstance.set(
+      window.console.log(result1, PerfectCacheInstance.get('key1'));
+      const result2 = PerfectCacheInstance.set(
         'key1',
         { a: 3, b: 4 },
         { PX: 2000, XX: true, GET: true }
       );
-      window.console.log(result2, browserCacheInstance.get('key1'));
-      const browserCacheAsyncInstance = new BrowserCache.BrowserCache({
+      window.console.log(result2, PerfectCacheInstance.get('key1'));
+      const PerfectCacheAsyncInstance = new PerfectCache.PerfectCache({
         driver: 'indexedDB',
       });
-      browserCacheAsyncInstance.$on('ready', () => {
+      PerfectCacheAsyncInstance.$on('ready', () => {
         window.console.log('indexedDB ready.');
-        browserCacheAsyncInstance.get('key1').then((value) => {
+        PerfectCacheAsyncInstance.get('key1').then((value) => {
           window.console.log('key1 get success', value);
-          browserCacheAsyncInstance
+          PerfectCacheAsyncInstance
             .set('key1', { a: 3, b: 2, c: 1 })
             .then(() => {
               window.console.log('key1 set success');

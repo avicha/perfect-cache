@@ -1,14 +1,14 @@
-import BrowserCache from './main';
+import PerfectCache from "./main";
 import {
   BaseStore,
   SyncStore,
   AsyncStore,
   StoreResult,
   registerStore,
-} from './stores';
+} from "./stores";
 
 export {
-  BrowserCache,
+  PerfectCache,
   BaseStore,
   SyncStore,
   AsyncStore,
