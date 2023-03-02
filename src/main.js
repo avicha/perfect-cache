@@ -124,10 +124,7 @@ class PerfectCache extends EventListener {
         const result = await this.store.get(key);
         // is the result null
         const isResultInvalid =
-          result === undefined ||
-          result === null ||
-          isNaN(result) ||
-          result === "";
+          result === undefined || result === null || result === "";
         // if the result is invalid and use fallback function
         if (isResultInvalid && withFallback) {
           // get the fallback config
@@ -139,7 +136,6 @@ class PerfectCache extends EventListener {
             const isFallbackResultInvalid =
               fallbackResult === undefined ||
               fallbackResult === null ||
-              isNaN(fallbackResult) ||
               fallbackResult === "";
             // if need refresh cache, then set the fallback result as the cache value
             if (refreshCache) {
@@ -169,10 +165,7 @@ class PerfectCache extends EventListener {
       const result = this.store.get(key);
       // is the result null
       const isResultInvalid =
-        result === undefined ||
-        result === null ||
-        isNaN(result) ||
-        result === "";
+        result === undefined || result === null || result === "";
       // if the result is invalid and use fallback function
       if (isResultInvalid && withFallback) {
         // get the fallback config
@@ -187,7 +180,6 @@ class PerfectCache extends EventListener {
               const isFallbackResultInvalid =
                 fallbackResult === undefined ||
                 fallbackResult === null ||
-                isNaN(fallbackResult) ||
                 fallbackResult === "";
               // if need refresh cache, then set the fallback result as the cache value
               if (refreshCache) {
@@ -206,7 +198,6 @@ class PerfectCache extends EventListener {
             const isFallbackResultInvalid =
               fallbackResult === undefined ||
               fallbackResult === null ||
-              isNaN(fallbackResult) ||
               fallbackResult === "";
             // if need refresh cache, then set the fallback result as the cache value
             if (refreshCache) {
