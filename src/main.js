@@ -121,7 +121,7 @@ class PerfectCache extends EventListener {
     if (this.isAsync) {
       return new Promise(async (resolve, reject) => {
         // get the cache value
-        const result = await this.get(key);
+        const result = await this.store.get(key);
         // is the result null
         const isResultInvalid =
           result === undefined ||
@@ -143,7 +143,7 @@ class PerfectCache extends EventListener {
               fallbackResult === "";
             // if need refresh cache, then set the fallback result as the cache value
             if (refreshCache) {
-              await this.set(key, fallbackResult, {
+              await this.store.set(key, fallbackResult, {
                 expiredTime: res.expiredTime,
               });
             }
@@ -166,7 +166,7 @@ class PerfectCache extends EventListener {
       });
     } else {
       // get the cache value
-      const result = this.get(key);
+      const result = this.store.get(key);
       // is the result null
       const isResultInvalid =
         result === undefined ||
@@ -191,7 +191,7 @@ class PerfectCache extends EventListener {
                 fallbackResult === "";
               // if need refresh cache, then set the fallback result as the cache value
               if (refreshCache) {
-                this.set(key, fallbackResult, {
+                this.store.set(key, fallbackResult, {
                   expiredTime: res.expiredTime,
                 });
               }
@@ -210,7 +210,7 @@ class PerfectCache extends EventListener {
               fallbackResult === "";
             // if need refresh cache, then set the fallback result as the cache value
             if (refreshCache) {
-              this.set(key, fallbackResult, {
+              this.store.set(key, fallbackResult, {
                 expiredTime: res.expiredTime,
               });
             }

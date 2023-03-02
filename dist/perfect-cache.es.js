@@ -619,7 +619,7 @@ class PerfectCache extends EventListener {
     const { defaultVal, withFallback = true, refreshCache = true } = opts;
     if (this.isAsync) {
       return new Promise(async (resolve, reject) => {
-        const result = await this.get(key);
+        const result = await this.store.get(key);
         const isResultInvalid = result === void 0 || result === null || isNaN(result) || result === "";
         if (isResultInvalid && withFallback) {
           const res = this.__getFallbackByKey(key);
@@ -627,7 +627,7 @@ class PerfectCache extends EventListener {
             const fallbackResult = await res.fallback(key);
             const isFallbackResultInvalid = fallbackResult === void 0 || fallbackResult === null || isNaN(fallbackResult) || fallbackResult === "";
             if (refreshCache) {
-              await this.set(key, fallbackResult, {
+              await this.store.set(key, fallbackResult, {
                 expiredTime: res.expiredTime
               });
             }
@@ -640,7 +640,7 @@ class PerfectCache extends EventListener {
         }
       });
     } else {
-      const result = this.get(key);
+      const result = this.store.get(key);
       const isResultInvalid = result === void 0 || result === null || isNaN(result) || result === "";
       if (isResultInvalid && withFallback) {
         const res = this.__getFallbackByKey(key);
@@ -651,7 +651,7 @@ class PerfectCache extends EventListener {
             return fallbackReturn().then((fallbackResult2) => {
               const isFallbackResultInvalid = fallbackResult2 === void 0 || fallbackResult2 === null || isNaN(fallbackResult2) || fallbackResult2 === "";
               if (refreshCache) {
-                this.set(key, fallbackResult2, {
+                this.store.set(key, fallbackResult2, {
                   expiredTime: res.expiredTime
                 });
               }
@@ -661,7 +661,7 @@ class PerfectCache extends EventListener {
             fallbackResult = fallbackReturn;
             const isFallbackResultInvalid = fallbackResult === void 0 || fallbackResult === null || isNaN(fallbackResult) || fallbackResult === "";
             if (refreshCache) {
-              this.set(key, fallbackResult, {
+              this.store.set(key, fallbackResult, {
                 expiredTime: res.expiredTime
               });
             }
