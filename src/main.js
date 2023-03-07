@@ -118,7 +118,7 @@ class PerfectCache extends EventListener {
    */
   get(key, opts = {}) {
     const { defaultVal, withFallback = true, refreshCache = true } = opts;
-    if (this.isAsync) {
+    if (this.store.isAsync) {
       return new Promise(async (resolve, reject) => {
         // get the cache value
         const result = await this.store.get(key);
