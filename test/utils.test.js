@@ -18,6 +18,7 @@ describe("getSupportedDriverList should be correct", () => {
     expect(supportedDriverList).toContain("memory");
     expect(supportedDriverList).toContain("localStorage");
     expect(supportedDriverList).toContain("sessionStorage");
+    expect(supportedDriverList).toContain("cookie");
   });
 });
 
