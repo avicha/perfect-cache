@@ -16,13 +16,13 @@
       const result1 = PerfectCacheInstance.set(
         'key1',
         { a: 1, b: 2 },
-        { PX: 2000, NX: true, GET: true }
+        { expiredTime: 2000, setOnlyNotExist: true }
       );
       window.console.log(result1, PerfectCacheInstance.get('key1'));
       const result2 = PerfectCacheInstance.set(
         'key1',
         { a: 3, b: 4 },
-        { PX: 2000, XX: true, GET: true }
+        { expiredTime: 2000, setOnlyExist: true}
       );
       window.console.log(result2, PerfectCacheInstance.get('key1'));
       const PerfectCacheAsyncInstance = new PerfectCache.PerfectCache({

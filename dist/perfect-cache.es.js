@@ -22,7 +22,8 @@ var __publicField = (obj, key, value) => {
   return value;
 };
 var defaultOpts = {
-  driver: "memory"
+  driver: "memory",
+  prefix: "cache:"
 };
 function mitt(n) {
   return { all: n = n || /* @__PURE__ */ new Map(), on: function(t, e) {
@@ -60,8 +61,15 @@ class BaseStore extends EventListener {
     __publicField(this, "opts");
     __publicField(this, "isAsync", false);
     __publicField(this, "isReady", false);
+    __publicField(this, "prefix", "cache:");
     this.opts = opts;
+    if (this.opts.prefix) {
+      this.prefix = this.opts.prefix;
+    }
     this.isReady = false;
+  }
+  __getRealKey(key) {
+    return `${this.prefix}${key}`;
   }
   existsKey() {
     throw new Error("please implement the existsKey method for this driver.");
@@ -100,23 +108,23 @@ class SyncStore extends BaseStore {
     throw new Error("please implement the existsKey method for this driver.");
   }
   get(key) {
-    const valueStr = this.keyValueGet(key);
-    if (valueStr) {
-      try {
-        const valueObj = JSON.parse(valueStr);
-        if (valueObj.expiredAt) {
-          if (valueObj.expiredAt > Date.now()) {
+    const valueObj = this.keyValueGet(key);
+    if (valueObj) {
+      if (valueObj.expiredAt) {
+        if (valueObj.expiredAt > Date.now()) {
+          if (valueObj.maxAge) {
+            valueObj.expiredAt = Date.now() + valueObj.maxAge;
+            this.keyValueSet(key, valueObj);
             return valueObj.value;
           } else {
-            this.$emit("cacheExpired", key);
-            return;
+            return valueObj.value;
           }
         } else {
-          return valueObj.value;
+          this.$emit("cacheExpired", key);
+          return;
         }
-      } catch (error) {
-        window.console.debug("get key json parse error", error);
-        return;
+      } else {
+        return valueObj.value;
       }
     } else {
       return;
@@ -126,10 +134,11 @@ class SyncStore extends BaseStore {
     const {
       expiredTime,
       expiredTimeAt,
+      maxAge,
       setOnlyNotExist = false,
       setOnlyExist = false
     } = options;
-    let expiredAt, maxAge;
+    let expiredAt;
     if (expiredTime && typeof expiredTime === "number" && expiredTime > 0) {
       expiredAt = Date.now() + expiredTime;
     }
@@ -137,7 +146,11 @@ class SyncStore extends BaseStore {
       expiredAt = expiredTimeAt;
     }
     if (expiredAt) {
-      maxAge = Math.max(expiredAt - Date.now(), 0);
+      expiredAt = Math.max(expiredAt, Date.now());
+    } else {
+      if (maxAge && typeof maxAge === "number" && maxAge > 0) {
+        expiredAt = Date.now() + maxAge;
+      }
     }
     if (setOnlyNotExist || setOnlyExist) {
       const existsKey = this.existsKey(key);
@@ -147,23 +160,32 @@ class SyncStore extends BaseStore {
       if (setOnlyExist && !existsKey) {
         return StoreResult.XX_SET_NOT_PERFORMED;
       }
-      this.keyValueSet(key, JSON.stringify({ value, expiredAt, maxAge }));
+      this.keyValueSet(key, { value, expiredAt, maxAge });
       return StoreResult.OK;
     } else {
-      this.keyValueSet(key, JSON.stringify({ value, expiredAt, maxAge }));
+      this.keyValueSet(key, { value, expiredAt, maxAge });
       return StoreResult.OK;
     }
   }
 }
 class LocalStorageStore extends SyncStore {
   keyValueGet(key) {
-    return localStorage.getItem(key);
+    const valueStr = localStorage.getItem(this.__getRealKey(key));
+    if (valueStr) {
+      try {
+        const valueObj = JSON.parse(valueStr);
+        return valueObj;
+      } catch (error) {
+        window.console.debug(`get key ${key} json parse error`, error);
+        return;
+      }
+    }
   }
   keyValueSet(key, value) {
-    localStorage.setItem(key, value);
+    localStorage.setItem(this.__getRealKey(key), JSON.stringify(value));
   }
   existsKey(key) {
-    if (localStorage.getItem(key)) {
+    if (localStorage.getItem(this.__getRealKey(key))) {
       return true;
     } else {
       return false;
@@ -177,13 +199,22 @@ class MemoryStore extends SyncStore {
     __publicField(this, "data", /* @__PURE__ */ new Map());
   }
   keyValueGet(key) {
-    return this.data.get(key);
+    const valueStr = this.data.get(this.__getRealKey(key));
+    if (valueStr) {
+      try {
+        const valueObj = JSON.parse(valueStr);
+        return valueObj;
+      } catch (error) {
+        window.console.debug(`get key ${key} json parse error`, error);
+        return;
+      }
+    }
   }
   keyValueSet(key, value) {
-    this.data.set(key, value);
+    this.data.set(this.__getRealKey(key), JSON.stringify(value));
   }
   existsKey(key) {
-    if (this.data.has(key)) {
+    if (this.data.has(this.__getRealKey(key))) {
       return true;
     } else {
       return false;
@@ -193,13 +224,22 @@ class MemoryStore extends SyncStore {
 __publicField(MemoryStore, "driver", "memory");
 class SessionStorageStore extends SyncStore {
   keyValueGet(key) {
-    return sessionStorage.getItem(key);
+    const valueStr = sessionStorage.getItem(this.__getRealKey(key));
+    if (valueStr) {
+      try {
+        const valueObj = JSON.parse(valueStr);
+        return valueObj;
+      } catch (error) {
+        window.console.debug(`get key ${key} json parse error`, error);
+        return;
+      }
+    }
   }
   keyValueSet(key, value) {
-    sessionStorage.setItem(key, value);
+    sessionStorage.setItem(this.__getRealKey(key), JSON.stringify(value));
   }
   existsKey(key) {
-    if (sessionStorage.getItem(key)) {
+    if (sessionStorage.getItem(this.__getRealKey(key))) {
       return true;
     } else {
       return false;
@@ -296,13 +336,22 @@ function init(converter, defaultAttributes) {
 var api = init(defaultConverter, { path: "/" });
 class CookieStore extends SyncStore {
   keyValueGet(key) {
-    return api.get(key);
+    const valueStr = api.get(this.__getRealKey(key));
+    if (valueStr) {
+      try {
+        const valueObj = JSON.parse(valueStr);
+        return valueObj;
+      } catch (error) {
+        window.console.debug(`get key ${key} json parse error`, error);
+        return;
+      }
+    }
   }
   keyValueSet(key, value) {
-    api.set(key, value);
+    api.set(this.__getRealKey(key), JSON.stringify(value));
   }
   existsKey(key) {
-    if (api.get(key)) {
+    if (api.get(this.__getRealKey(key))) {
       return true;
     } else {
       return false;
@@ -326,23 +375,26 @@ class AsyncStore extends BaseStore {
   }
   get(key) {
     return new Promise((resolve, reject) => {
-      this.keyValueGet(key).then((valueStr) => {
-        if (valueStr) {
-          try {
-            const valueObj = JSON.parse(valueStr);
-            if (valueObj.expiredAt) {
-              if (valueObj.expiredAt > Date.now()) {
-                resolve(valueObj.value);
+      this.keyValueGet(key).then((valueObj) => {
+        if (valueObj) {
+          if (valueObj.expiredAt) {
+            if (valueObj.expiredAt > Date.now()) {
+              if (valueObj.maxAge) {
+                valueObj.expiredAt = Date.now() + valueObj.maxAge;
+                this.keyValueSet(key, valueObj).then(() => {
+                  return resolve(valueObj.value);
+                }).catch((e) => {
+                  reject(e);
+                });
               } else {
-                this.$emit("cacheExpired", key);
-                resolve();
+                resolve(valueObj.value);
               }
             } else {
-              resolve(valueObj.value);
+              this.$emit("cacheExpired", key);
+              resolve();
             }
-          } catch (error) {
-            window.console.debug("get key json parse error", error);
-            resolve();
+          } else {
+            resolve(valueObj.value);
           }
         } else {
           resolve();
@@ -356,10 +408,11 @@ class AsyncStore extends BaseStore {
     const {
       expiredTime,
       expiredTimeAt,
+      maxAge,
       setOnlyNotExist = false,
       setOnlyExist = false
     } = options;
-    let expiredAt, maxAge;
+    let expiredAt;
     if (expiredTime && typeof expiredTime === "number" && expiredTime > 0) {
       expiredAt = Date.now() + expiredTime;
     }
@@ -367,7 +420,11 @@ class AsyncStore extends BaseStore {
       expiredAt = expiredTimeAt;
     }
     if (expiredAt) {
-      maxAge = Math.max(expiredAt - Date.now(), 0);
+      expiredAt = Math.max(expiredAt, Date.now());
+    } else {
+      if (maxAge && typeof maxAge === "number" && maxAge > 0) {
+        expiredAt = Date.now() + maxAge;
+      }
     }
     return new Promise((resolve, reject) => {
       if (setOnlyNotExist || setOnlyExist) {
@@ -378,7 +435,7 @@ class AsyncStore extends BaseStore {
           if (setOnlyExist && !existsKey) {
             return resolve(StoreResult.XX_SET_NOT_PERFORMED);
           }
-          this.keyValueSet(key, JSON.stringify({ value, expiredAt, maxAge })).then(() => {
+          this.keyValueSet(key, { value, expiredAt, maxAge }).then(() => {
             return resolve(StoreResult.OK);
           }).catch((e) => {
             reject(e);
@@ -387,7 +444,7 @@ class AsyncStore extends BaseStore {
           reject(e);
         });
       } else {
-        this.keyValueSet(key, JSON.stringify({ value, expiredAt, maxAge })).then(() => {
+        this.keyValueSet(key, { value, expiredAt, maxAge }).then(() => {
           return resolve(StoreResult.OK);
         }).catch((e) => {
           reject(e);
@@ -441,16 +498,23 @@ class IndexedDBStore extends AsyncStore {
     return new Promise((resolve, reject) => {
       if (this.dbConnection) {
         if (!this.dbConnection.objectStoreNames.contains(this.objectStoreName)) {
-          this.dbConnection.createObjectStore(this.objectStoreName, {
+          window.console.debug(`ObjectStore ${this.objectStoreName} is not exists, now creating it!`);
+          const objectStore = this.dbConnection.createObjectStore(this.objectStoreName, {
             keyPath: "key"
           });
+          objectStore.transaction.oncomplete = (event) => {
+            window.console.debug(`ObjectStore ${this.objectStoreName} is created now.`);
+            this.isReady = true;
+            this.$emit("ready");
+            resolve();
+          };
+        } else {
+          this.isReady = true;
+          this.$emit("ready");
+          resolve();
         }
-        this.isReady = true;
-        this.$emit("ready");
-        resolve();
       } else {
         const error = new Error(`Database ${this.dbName} connection is not initialised.`);
-        window.console.error(error);
         reject(error);
       }
     });
@@ -458,7 +522,7 @@ class IndexedDBStore extends AsyncStore {
   keyValueGet(key) {
     return new Promise((resolve, reject) => {
       if (this.dbConnection) {
-        const request = this.dbConnection.transaction([this.objectStoreName], "readonly").objectStore(this.objectStoreName).get(key);
+        const request = this.dbConnection.transaction([this.objectStoreName], "readonly").objectStore(this.objectStoreName).get(this.__getRealKey(key));
         request.onerror = () => {
           window.console.error("Database keyValueGet occurs error", request.result);
           reject(request.result);
@@ -469,7 +533,6 @@ class IndexedDBStore extends AsyncStore {
         };
       } else {
         const error = new Error(`Database ${this.dbName} connection is not initialised.`);
-        window.console.error(error);
         reject(error);
       }
     });
@@ -477,7 +540,7 @@ class IndexedDBStore extends AsyncStore {
   keyValueSet(key, value) {
     return new Promise((resolve, reject) => {
       if (this.dbConnection) {
-        const request = this.dbConnection.transaction([this.objectStoreName], "readwrite").objectStore(this.objectStoreName).put({ key, value });
+        const request = this.dbConnection.transaction([this.objectStoreName], "readwrite").objectStore(this.objectStoreName).put({ key: this.__getRealKey(key), value });
         request.onerror = () => {
           window.console.error("Database keyValueSet occurs error", request.result);
           reject(request.result);
@@ -488,7 +551,6 @@ class IndexedDBStore extends AsyncStore {
         };
       } else {
         const error = new Error(`Database ${this.dbName} connection is not initialised.`);
-        window.console.error(error);
         reject(error);
       }
     });
@@ -496,7 +558,7 @@ class IndexedDBStore extends AsyncStore {
   existsKey(key) {
     return new Promise((resolve, reject) => {
       if (this.dbConnection) {
-        const request = this.dbConnection.transaction([this.objectStoreName], "readonly").objectStore(this.objectStoreName).count(key);
+        const request = this.dbConnection.transaction([this.objectStoreName], "readonly").objectStore(this.objectStoreName).count(this.__getRealKey(key));
         request.onerror = () => {
           window.console.error("Database existsKey occurs error", request.result);
           reject(request.result);
@@ -506,7 +568,6 @@ class IndexedDBStore extends AsyncStore {
         };
       } else {
         const error = new Error(`Database ${this.dbName} connection is not initialised.`);
-        window.console.error(error);
         reject(error);
       }
     });
@@ -534,7 +595,6 @@ const registerStore = (store) => {
   }
 };
 const getSupportedDriverList = () => {
-  var _a;
   let supportedDriverList = ["memory"];
   if ((window == null ? void 0 : window.localStorage) && systemStores.localStorage) {
     supportedDriverList.push("localStorage");
@@ -542,7 +602,7 @@ const getSupportedDriverList = () => {
   if ((window == null ? void 0 : window.sessionStorage) && systemStores.sessionStorage) {
     supportedDriverList.push("sessionStorage");
   }
-  if (((_a = window == null ? void 0 : window.document) == null ? void 0 : _a.cookie) && systemStores.cookie) {
+  if ((window == null ? void 0 : window.document) && "cookie" in (window == null ? void 0 : window.document) && systemStores.cookie) {
     supportedDriverList.push("cookie");
   }
   if ((window == null ? void 0 : window.indexedDB) && systemStores.indexedDB) {
@@ -563,19 +623,19 @@ class PerfectCache extends EventListener {
     __publicField(this, "store");
     __publicField(this, "keyFallbacks", []);
     __publicField(this, "keyRegexFallbacks", []);
-    const suportedDriverList = getSupportedDriverList();
+    const supportedDriverList = getSupportedDriverList();
     if (!driver && !opts) {
       opts = __spreadValues({}, defaultOpts);
     } else {
       if (driver) {
-        if (suportedDriverList.includes(driver)) {
+        if (supportedDriverList.includes(driver)) {
           if (Object.prototype.toString.call(opts) === "[object Object]") {
             opts = __spreadValues(__spreadProps(__spreadValues({}, defaultOpts), { driver }), opts);
           } else {
             opts = __spreadProps(__spreadValues({}, defaultOpts), { driver });
           }
         } else {
-          if (Object.prototype.toString.call(driver) === "[object Object]" && suportedDriverList.includes(driver.driver)) {
+          if (Object.prototype.toString.call(driver) === "[object Object]" && supportedDriverList.includes(driver.driver)) {
             opts = __spreadValues(__spreadValues({}, defaultOpts), driver);
           } else {
             throw new Error("please input the correct driver param as the first param or in the opts params.");
@@ -593,8 +653,8 @@ class PerfectCache extends EventListener {
     }
   }
   initDriver() {
-    const suportedDriverList = getSupportedDriverList();
-    if (this.opts && this.opts.driver && suportedDriverList.includes(this.opts.driver)) {
+    const supportedDriverList = getSupportedDriverList();
+    if (this.opts && this.opts.driver && supportedDriverList.includes(this.opts.driver)) {
       this.__init = false;
       const StoreClass = getStoreClass(this.opts.driver);
       this.store = new StoreClass(this.opts);

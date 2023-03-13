@@ -1,3 +1,4 @@
 export default {
-  driver: 'memory',
+  driver: "memory",
+  prefix: "cache:",
 };

@@ -12,7 +12,7 @@ const getSupportedDriverList = () => {
   if (window?.sessionStorage && systemStores.sessionStorage) {
     supportedDriverList.push("sessionStorage");
   }
-  if (window?.document?.cookie && systemStores.cookie) {
+  if (window?.document && "cookie" in window?.document && systemStores.cookie) {
     supportedDriverList.push("cookie");
   }
   if (window?.indexedDB && systemStores.indexedDB) {

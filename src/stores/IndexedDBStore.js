@@ -49,18 +49,34 @@ export default class IndexedDBStore extends AsyncStore {
         if (
           !this.dbConnection.objectStoreNames.contains(this.objectStoreName)
         ) {
-          this.dbConnection.createObjectStore(this.objectStoreName, {
-            keyPath: "key",
-          });
+          window.console.debug(
+            `ObjectStore ${this.objectStoreName} is not exists, now creating it!`
+          );
+          const objectStore = this.dbConnection.createObjectStore(
+            this.objectStoreName,
+            {
+              keyPath: "key",
+            }
+          );
+          // Use transaction oncomplete to make sure the objectStore creation is
+          // finished before adding data into it.
+          objectStore.transaction.oncomplete = (event) => {
+            window.console.debug(
+              `ObjectStore ${this.objectStoreName} is created now.`
+            );
+            this.isReady = true;
+            this.$emit("ready");
+            resolve();
+          };
+        } else {
+          this.isReady = true;
+          this.$emit("ready");
+          resolve();
         }
-        this.isReady = true;
-        this.$emit("ready");
-        resolve();
       } else {
         const error = new Error(
           `Database ${this.dbName} connection is not initialised.`
         );
-        window.console.error(error);
         reject(error);
       }
     });
@@ -71,7 +87,7 @@ export default class IndexedDBStore extends AsyncStore {
         const request = this.dbConnection
           .transaction([this.objectStoreName], "readonly")
           .objectStore(this.objectStoreName)
-          .get(key);
+          .get(this.__getRealKey(key));
         request.onerror = () => {
           window.console.error(
             "Database keyValueGet occurs error",
@@ -86,7 +102,6 @@ export default class IndexedDBStore extends AsyncStore {
         const error = new Error(
           `Database ${this.dbName} connection is not initialised.`
         );
-        window.console.error(error);
         reject(error);
       }
     });
@@ -97,7 +112,7 @@ export default class IndexedDBStore extends AsyncStore {
         const request = this.dbConnection
           .transaction([this.objectStoreName], "readwrite")
           .objectStore(this.objectStoreName)
-          .put({ key, value });
+          .put({ key: this.__getRealKey(key), value });
         request.onerror = () => {
           window.console.error(
             "Database keyValueSet occurs error",
@@ -112,7 +127,6 @@ export default class IndexedDBStore extends AsyncStore {
         const error = new Error(
           `Database ${this.dbName} connection is not initialised.`
         );
-        window.console.error(error);
         reject(error);
       }
     });
@@ -123,7 +137,7 @@ export default class IndexedDBStore extends AsyncStore {
         const request = this.dbConnection
           .transaction([this.objectStoreName], "readonly")
           .objectStore(this.objectStoreName)
-          .count(key);
+          .count(this.__getRealKey(key));
         request.onerror = () => {
           window.console.error(
             "Database existsKey occurs error",
@@ -138,7 +152,6 @@ export default class IndexedDBStore extends AsyncStore {
         const error = new Error(
           `Database ${this.dbName} connection is not initialised.`
         );
-        window.console.error(error);
         reject(error);
       }
     });

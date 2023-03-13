@@ -20,23 +20,29 @@ export default class SyncStore extends BaseStore {
     throw new Error("please implement the existsKey method for this driver.");
   }
   get(key) {
-    const valueStr = this.keyValueGet(key);
-    if (valueStr) {
-      try {
-        const valueObj = JSON.parse(valueStr);
-        if (valueObj.expiredAt) {
-          if (valueObj.expiredAt > Date.now()) {
+    const valueObj = this.keyValueGet(key);
+    if (valueObj) {
+      // if expiredAt set
+      if (valueObj.expiredAt) {
+        // if not expired
+        if (valueObj.expiredAt > Date.now()) {
+          // if maxAge set
+          if (valueObj.maxAge) {
+            // refresh expiredAt
+            valueObj.expiredAt = Date.now() + valueObj.maxAge;
+            // update the expiredAt field and return value
+            this.keyValueSet(key, valueObj);
             return valueObj.value;
           } else {
-            this.$emit("cacheExpired", key);
-            return;
+            return valueObj.value;
           }
         } else {
-          return valueObj.value;
+          // if expired return undefined and emit the event
+          this.$emit("cacheExpired", key);
+          return;
         }
-      } catch (error) {
-        window.console.debug("get key json parse error", error);
-        return;
+      } else {
+        return valueObj.value;
       }
     } else {
       return;
@@ -48,12 +54,14 @@ export default class SyncStore extends BaseStore {
       expiredTime,
       // timestamp-seconds -- Set the specified Unix time at which the key will expire, in milliseconds.
       expiredTimeAt,
+      // exists max age, in milliseconds.
+      maxAge,
       // Only set the key if it does not already exist.
       setOnlyNotExist = false,
       // Only set the key if it already exist.
       setOnlyExist = false,
     } = options;
-    let expiredAt, maxAge;
+    let expiredAt;
     if (expiredTime && typeof expiredTime === "number" && expiredTime > 0) {
       expiredAt = Date.now() + expiredTime;
     }
@@ -65,7 +73,11 @@ export default class SyncStore extends BaseStore {
       expiredAt = expiredTimeAt;
     }
     if (expiredAt) {
-      maxAge = Math.max(expiredAt - Date.now(), 0);
+      expiredAt = Math.max(expiredAt, Date.now());
+    } else {
+      if (maxAge && typeof maxAge === "number" && maxAge > 0) {
+        expiredAt = Date.now() + maxAge;
+      }
     }
     if (setOnlyNotExist || setOnlyExist) {
       const existsKey = this.existsKey(key);
@@ -75,10 +87,10 @@ export default class SyncStore extends BaseStore {
       if (setOnlyExist && !existsKey) {
         return StoreResult.XX_SET_NOT_PERFORMED;
       }
-      this.keyValueSet(key, JSON.stringify({ value, expiredAt, maxAge }));
+      this.keyValueSet(key, { value, expiredAt, maxAge });
       return StoreResult.OK;
     } else {
-      this.keyValueSet(key, JSON.stringify({ value, expiredAt, maxAge }));
+      this.keyValueSet(key, { value, expiredAt, maxAge });
       return StoreResult.OK;
     }
   }

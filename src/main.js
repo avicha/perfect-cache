@@ -22,7 +22,7 @@ class PerfectCache extends EventListener {
    */
   constructor(driver, opts) {
     super();
-    const suportedDriverList = getSupportedDriverList();
+    const supportedDriverList = getSupportedDriverList();
     // driver and opts is null, then set the default opts
     if (!driver && !opts) {
       opts = { ...defaultOpts };
@@ -30,7 +30,7 @@ class PerfectCache extends EventListener {
       // driver is not null
       if (driver) {
         // driver is string and valid
-        if (suportedDriverList.includes(driver)) {
+        if (supportedDriverList.includes(driver)) {
           // opts is object config
           if (Object.prototype.toString.call(opts) === "[object Object]") {
             opts = { ...defaultOpts, driver, ...opts };
@@ -42,7 +42,7 @@ class PerfectCache extends EventListener {
           // driver is object opts
           if (
             Object.prototype.toString.call(driver) === "[object Object]" &&
-            suportedDriverList.includes(driver.driver)
+            supportedDriverList.includes(driver.driver)
           ) {
             opts = { ...defaultOpts, ...driver };
           } else {
@@ -68,11 +68,11 @@ class PerfectCache extends EventListener {
    * init the driver
    */
   initDriver() {
-    const suportedDriverList = getSupportedDriverList();
+    const supportedDriverList = getSupportedDriverList();
     if (
       this.opts &&
       this.opts.driver &&
-      suportedDriverList.includes(this.opts.driver)
+      supportedDriverList.includes(this.opts.driver)
     ) {
       // init false
       this.__init = false;

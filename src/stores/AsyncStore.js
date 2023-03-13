@@ -24,23 +24,35 @@ export default class AsyncStore extends BaseStore {
   get(key) {
     return new Promise((resolve, reject) => {
       this.keyValueGet(key)
-        .then((valueStr) => {
-          if (valueStr) {
-            try {
-              const valueObj = JSON.parse(valueStr);
-              if (valueObj.expiredAt) {
-                if (valueObj.expiredAt > Date.now()) {
-                  resolve(valueObj.value);
+        .then((valueObj) => {
+          if (valueObj) {
+            // if expiredAt set
+            if (valueObj.expiredAt) {
+              // if not expired
+              if (valueObj.expiredAt > Date.now()) {
+                // if maxAge set
+                if (valueObj.maxAge) {
+                  // refresh expiredAt
+                  valueObj.expiredAt = Date.now() + valueObj.maxAge;
+                  // update the expiredAt field and return value
+                  this.keyValueSet(key, valueObj)
+                    .then(() => {
+                      return resolve(valueObj.value);
+                    })
+                    .catch((e) => {
+                      reject(e);
+                    });
                 } else {
-                  this.$emit("cacheExpired", key);
-                  resolve();
+                  resolve(valueObj.value);
                 }
               } else {
-                resolve(valueObj.value);
+                // if expired return undefined and emit the event
+                this.$emit("cacheExpired", key);
+                resolve();
               }
-            } catch (error) {
-              window.console.debug("get key json parse error", error);
-              resolve();
+            } else {
+              // not set the expiredAt then return the value directly
+              resolve(valueObj.value);
             }
           } else {
             resolve();
@@ -57,12 +69,14 @@ export default class AsyncStore extends BaseStore {
       expiredTime,
       // timestamp-seconds -- Set the specified Unix time at which the key will expire, in milliseconds.
       expiredTimeAt,
+      // exists max age, in milliseconds.
+      maxAge,
       // Only set the key if it does not already exist.
       setOnlyNotExist = false,
       // Only set the key if it already exist.
       setOnlyExist = false,
     } = options;
-    let expiredAt, maxAge;
+    let expiredAt;
     if (expiredTime && typeof expiredTime === "number" && expiredTime > 0) {
       expiredAt = Date.now() + expiredTime;
     }
@@ -74,7 +88,11 @@ export default class AsyncStore extends BaseStore {
       expiredAt = expiredTimeAt;
     }
     if (expiredAt) {
-      maxAge = Math.max(expiredAt - Date.now(), 0);
+      expiredAt = Math.max(expiredAt, Date.now());
+    } else {
+      if (maxAge && typeof maxAge === "number" && maxAge > 0) {
+        expiredAt = Date.now() + maxAge;
+      }
     }
     return new Promise((resolve, reject) => {
       if (setOnlyNotExist || setOnlyExist) {
@@ -86,7 +104,7 @@ export default class AsyncStore extends BaseStore {
             if (setOnlyExist && !existsKey) {
               return resolve(StoreResult.XX_SET_NOT_PERFORMED);
             }
-            this.keyValueSet(key, JSON.stringify({ value, expiredAt, maxAge }))
+            this.keyValueSet(key, { value, expiredAt, maxAge })
               .then(() => {
                 return resolve(StoreResult.OK);
               })
@@ -98,7 +116,7 @@ export default class AsyncStore extends BaseStore {
             reject(e);
           });
       } else {
-        this.keyValueSet(key, JSON.stringify({ value, expiredAt, maxAge }))
+        this.keyValueSet(key, { value, expiredAt, maxAge })
           .then(() => {
             return resolve(StoreResult.OK);
           })
