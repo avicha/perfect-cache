@@ -1,4 +1,5 @@
 import PerfectCache from "./main";
+import EventListener from "./EventListener";
 import {
   BaseStore,
   SyncStore,
@@ -12,6 +13,7 @@ export {
   BaseStore,
   SyncStore,
   AsyncStore,
+  EventListener,
   StoreResult,
   registerStore,
 };

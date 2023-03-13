@@ -586,7 +586,7 @@ for (const store of [
 }
 const externalStores = {};
 const registerStore = (store) => {
-  if (Object.getPrototypeOf(store) === BaseStore) {
+  if (store instanceof BaseStore.constructor) {
     if (store.driver && typeof store.driver === "string") {
       externalStores[store.driver] = store;
     } else {
@@ -776,4 +776,4 @@ class PerfectCache extends EventListener {
     }
   }
 }
-export { AsyncStore, BaseStore, PerfectCache, StoreResult, SyncStore, registerStore };
+export { AsyncStore, BaseStore, EventListener, PerfectCache, StoreResult, SyncStore, registerStore };
