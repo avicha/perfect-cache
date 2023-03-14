@@ -55,11 +55,18 @@ class EventListener {
     return this.mitt.emit.apply(this, arguments);
   }
 }
+const StoreResult = {
+  OK: Symbol("OK"),
+  KEY_NOT_EXISTS: Symbol("KEY_NOT_EXISTS"),
+  KEY_EXPIRED: Symbol("KEY_EXPIRED"),
+  JSON_PARSE_ERROR: Symbol("JSON_PARSE_ERROR"),
+  NX_SET_NOT_PERFORMED: Symbol("NX_SET_NOT_PERFORMED"),
+  XX_SET_NOT_PERFORMED: Symbol("XX_SET_NOT_PERFORMED")
+};
 class BaseStore extends EventListener {
   constructor(opts = {}) {
     super();
     __publicField(this, "opts");
-    __publicField(this, "isAsync", false);
     __publicField(this, "isReady", false);
     __publicField(this, "prefix", "cache:");
     this.opts = opts;
@@ -71,32 +78,9 @@ class BaseStore extends EventListener {
   __getRealKey(key) {
     return `${this.prefix}${key}`;
   }
-  existsKey() {
-    throw new Error("please implement the existsKey method for this driver.");
-  }
-  get() {
-    throw new Error("please implement the get method for this driver.");
-  }
-  set() {
-    throw new Error("please implement the set method for this driver.");
-  }
-}
-const StoreResult = {
-  OK: Symbol("OK"),
-  KEY_NOT_EXISTS: Symbol("KEY_NOT_EXISTS"),
-  KEY_EXPIRED: Symbol("KEY_EXPIRED"),
-  JSON_PARSE_ERROR: Symbol("JSON_PARSE_ERROR"),
-  NX_SET_NOT_PERFORMED: Symbol("NX_SET_NOT_PERFORMED"),
-  XX_SET_NOT_PERFORMED: Symbol("XX_SET_NOT_PERFORMED")
-};
-class SyncStore extends BaseStore {
-  constructor(opts) {
-    super(opts);
-    this.isAsync = false;
-    setTimeout(() => {
-      this.isReady = true;
-      this.$emit("ready");
-    }, 0);
+  ready() {
+    this.isReady = true;
+    this.$emit("ready");
   }
   keyValueGet() {
     throw new Error("please implement the keyValueGet method for this driver.");
@@ -107,30 +91,38 @@ class SyncStore extends BaseStore {
   existsKey() {
     throw new Error("please implement the existsKey method for this driver.");
   }
-  get(key) {
-    const valueObj = this.keyValueGet(key);
-    if (valueObj) {
-      if (valueObj.expiredAt) {
-        if (valueObj.expiredAt > Date.now()) {
-          if (valueObj.maxAge) {
-            valueObj.expiredAt = Date.now() + valueObj.maxAge;
-            this.keyValueSet(key, valueObj);
-            return valueObj.value;
+  getItem(key) {
+    return new Promise((resolve, reject) => {
+      this.keyValueGet(key).then((valueObj) => {
+        if (valueObj) {
+          if (valueObj.expiredTimeAt) {
+            if (valueObj.expiredTimeAt > Date.now()) {
+              if (valueObj.maxAge) {
+                valueObj.expiredTimeAt = Date.now() + valueObj.maxAge;
+                this.keyValueSet(key, valueObj).then(() => {
+                  return resolve(valueObj.value);
+                }).catch((e) => {
+                  reject(e);
+                });
+              } else {
+                resolve(valueObj.value);
+              }
+            } else {
+              this.$emit("cacheExpired", key);
+              resolve();
+            }
           } else {
-            return valueObj.value;
+            resolve(valueObj.value);
           }
         } else {
-          this.$emit("cacheExpired", key);
-          return;
+          resolve();
         }
-      } else {
-        return valueObj.value;
-      }
-    } else {
-      return;
-    }
+      }).catch((e) => {
+        reject(e);
+      });
+    });
   }
-  set(key, value, options = {}) {
+  setItem(key, value, options = {}) {
     const {
       expiredTime,
       expiredTimeAt,
@@ -138,111 +130,161 @@ class SyncStore extends BaseStore {
       setOnlyNotExist = false,
       setOnlyExist = false
     } = options;
-    let expiredAt;
+    let localExpiredTimeAt, localMaxAge;
     if (expiredTime && typeof expiredTime === "number" && expiredTime > 0) {
-      expiredAt = Date.now() + expiredTime;
+      localExpiredTimeAt = Date.now() + expiredTime;
     }
     if (expiredTimeAt && typeof expiredTimeAt === "number" && expiredTimeAt > 0) {
-      expiredAt = expiredTimeAt;
+      localExpiredTimeAt = expiredTimeAt;
     }
-    if (expiredAt) {
-      expiredAt = Math.max(expiredAt, Date.now());
+    if (localExpiredTimeAt) {
+      localExpiredTimeAt = Math.max(localExpiredTimeAt, Date.now());
     } else {
       if (maxAge && typeof maxAge === "number" && maxAge > 0) {
-        expiredAt = Date.now() + maxAge;
+        localExpiredTimeAt = Date.now() + maxAge;
+        localMaxAge = maxAge;
       }
     }
-    if (setOnlyNotExist || setOnlyExist) {
-      const existsKey = this.existsKey(key);
-      if (setOnlyNotExist && existsKey) {
-        return StoreResult.NX_SET_NOT_PERFORMED;
+    return new Promise((resolve, reject) => {
+      if (setOnlyNotExist || setOnlyExist) {
+        this.existsKey(key).then((existsKey) => {
+          if (setOnlyNotExist && existsKey) {
+            return resolve(StoreResult.NX_SET_NOT_PERFORMED);
+          }
+          if (setOnlyExist && !existsKey) {
+            return resolve(StoreResult.XX_SET_NOT_PERFORMED);
+          }
+          this.keyValueSet(key, {
+            value,
+            expiredTimeAt: localExpiredTimeAt,
+            maxAge: localMaxAge
+          }).then(() => {
+            return resolve(StoreResult.OK);
+          }).catch((e) => {
+            reject(e);
+          });
+        }).catch((e) => {
+          reject(e);
+        });
+      } else {
+        this.keyValueSet(key, {
+          value,
+          expiredTimeAt: localExpiredTimeAt,
+          maxAge: localMaxAge
+        }).then(() => {
+          return resolve(StoreResult.OK);
+        }).catch((e) => {
+          reject(e);
+        });
       }
-      if (setOnlyExist && !existsKey) {
-        return StoreResult.XX_SET_NOT_PERFORMED;
-      }
-      this.keyValueSet(key, { value, expiredAt, maxAge });
-      return StoreResult.OK;
-    } else {
-      this.keyValueSet(key, { value, expiredAt, maxAge });
-      return StoreResult.OK;
-    }
+    });
   }
 }
-class LocalStorageStore extends SyncStore {
+class LocalStorageStore extends BaseStore {
+  constructor(opts) {
+    super(opts);
+    setTimeout(() => {
+      this.ready();
+    }, 0);
+  }
   keyValueGet(key) {
     const valueStr = localStorage.getItem(this.__getRealKey(key));
-    if (valueStr) {
-      try {
-        const valueObj = JSON.parse(valueStr);
-        return valueObj;
-      } catch (error) {
-        window.console.debug(`get key ${key} json parse error`, error);
-        return;
+    return new Promise((resolve) => {
+      if (valueStr) {
+        try {
+          const valueObj = JSON.parse(valueStr);
+          resolve(valueObj);
+        } catch (error) {
+          window.console.debug(`get key ${key} json parse error`, valueStr);
+          resolve();
+        }
+      } else {
+        resolve();
       }
-    }
+    });
   }
   keyValueSet(key, value) {
     localStorage.setItem(this.__getRealKey(key), JSON.stringify(value));
+    return Promise.resolve();
   }
   existsKey(key) {
     if (localStorage.getItem(this.__getRealKey(key))) {
-      return true;
+      return Promise.resolve(true);
     } else {
-      return false;
+      return Promise.resolve(false);
     }
   }
 }
 __publicField(LocalStorageStore, "driver", "localStorage");
-class MemoryStore extends SyncStore {
-  constructor() {
-    super(...arguments);
+class MemoryStore extends BaseStore {
+  constructor(opts) {
+    super(opts);
     __publicField(this, "data", /* @__PURE__ */ new Map());
+    setTimeout(() => {
+      this.ready();
+    }, 0);
   }
   keyValueGet(key) {
     const valueStr = this.data.get(this.__getRealKey(key));
-    if (valueStr) {
-      try {
-        const valueObj = JSON.parse(valueStr);
-        return valueObj;
-      } catch (error) {
-        window.console.debug(`get key ${key} json parse error`, error);
-        return;
+    return new Promise((resolve) => {
+      if (valueStr) {
+        try {
+          const valueObj = JSON.parse(valueStr);
+          resolve(valueObj);
+        } catch (error) {
+          window.console.debug(`get key ${key} json parse error`, valueStr);
+          resolve();
+        }
+      } else {
+        resolve();
       }
-    }
+    });
   }
   keyValueSet(key, value) {
     this.data.set(this.__getRealKey(key), JSON.stringify(value));
+    return Promise.resolve();
   }
   existsKey(key) {
     if (this.data.has(this.__getRealKey(key))) {
-      return true;
+      return Promise.resolve(true);
     } else {
-      return false;
+      return Promise.resolve(false);
     }
   }
 }
 __publicField(MemoryStore, "driver", "memory");
-class SessionStorageStore extends SyncStore {
+class SessionStorageStore extends BaseStore {
+  constructor(opts) {
+    super(opts);
+    setTimeout(() => {
+      this.ready();
+    }, 0);
+  }
   keyValueGet(key) {
     const valueStr = sessionStorage.getItem(this.__getRealKey(key));
-    if (valueStr) {
-      try {
-        const valueObj = JSON.parse(valueStr);
-        return valueObj;
-      } catch (error) {
-        window.console.debug(`get key ${key} json parse error`, error);
-        return;
+    return new Promise((resolve) => {
+      if (valueStr) {
+        try {
+          const valueObj = JSON.parse(valueStr);
+          resolve(valueObj);
+        } catch (error) {
+          window.console.debug(`get key ${key} json parse error`, valueStr);
+          resolve();
+        }
+      } else {
+        resolve();
       }
-    }
+    });
   }
   keyValueSet(key, value) {
     sessionStorage.setItem(this.__getRealKey(key), JSON.stringify(value));
+    return Promise.resolve();
   }
   existsKey(key) {
     if (sessionStorage.getItem(this.__getRealKey(key))) {
-      return true;
+      return Promise.resolve(true);
     } else {
-      return false;
+      return Promise.resolve(false);
     }
   }
 }
@@ -334,126 +376,43 @@ function init(converter, defaultAttributes) {
   });
 }
 var api = init(defaultConverter, { path: "/" });
-class CookieStore extends SyncStore {
+class CookieStore extends BaseStore {
+  constructor(opts) {
+    super(opts);
+    setTimeout(() => {
+      this.ready();
+    }, 0);
+  }
   keyValueGet(key) {
     const valueStr = api.get(this.__getRealKey(key));
-    if (valueStr) {
-      try {
-        const valueObj = JSON.parse(valueStr);
-        return valueObj;
-      } catch (error) {
-        window.console.debug(`get key ${key} json parse error`, error);
-        return;
+    return new Promise((resolve) => {
+      if (valueStr) {
+        try {
+          const valueObj = JSON.parse(valueStr);
+          resolve(valueObj);
+        } catch (error) {
+          window.console.debug(`get key ${key} json parse error`, valueStr);
+          resolve();
+        }
+      } else {
+        resolve();
       }
-    }
+    });
   }
   keyValueSet(key, value) {
     api.set(this.__getRealKey(key), JSON.stringify(value));
+    return Promise.resolve();
   }
   existsKey(key) {
     if (api.get(this.__getRealKey(key))) {
-      return true;
+      return Promise.resolve(true);
     } else {
-      return false;
+      return Promise.resolve(false);
     }
   }
 }
 __publicField(CookieStore, "driver", "cookie");
-class AsyncStore extends BaseStore {
-  constructor(opts) {
-    super(opts);
-    this.isAsync = true;
-  }
-  keyValueGet() {
-    return Promise.reject(new Error("please implement the keyValueGet method for this driver."));
-  }
-  keyValueSet() {
-    return Promise.reject(new Error("please implement the keyValueSet method for this driver."));
-  }
-  existsKey() {
-    return Promise.reject(new Error("please implement the existsKey method for this driver."));
-  }
-  get(key) {
-    return new Promise((resolve, reject) => {
-      this.keyValueGet(key).then((valueObj) => {
-        if (valueObj) {
-          if (valueObj.expiredAt) {
-            if (valueObj.expiredAt > Date.now()) {
-              if (valueObj.maxAge) {
-                valueObj.expiredAt = Date.now() + valueObj.maxAge;
-                this.keyValueSet(key, valueObj).then(() => {
-                  return resolve(valueObj.value);
-                }).catch((e) => {
-                  reject(e);
-                });
-              } else {
-                resolve(valueObj.value);
-              }
-            } else {
-              this.$emit("cacheExpired", key);
-              resolve();
-            }
-          } else {
-            resolve(valueObj.value);
-          }
-        } else {
-          resolve();
-        }
-      }).catch((e) => {
-        reject(e);
-      });
-    });
-  }
-  set(key, value, options = {}) {
-    const {
-      expiredTime,
-      expiredTimeAt,
-      maxAge,
-      setOnlyNotExist = false,
-      setOnlyExist = false
-    } = options;
-    let expiredAt;
-    if (expiredTime && typeof expiredTime === "number" && expiredTime > 0) {
-      expiredAt = Date.now() + expiredTime;
-    }
-    if (expiredTimeAt && typeof expiredTimeAt === "number" && expiredTimeAt > 0) {
-      expiredAt = expiredTimeAt;
-    }
-    if (expiredAt) {
-      expiredAt = Math.max(expiredAt, Date.now());
-    } else {
-      if (maxAge && typeof maxAge === "number" && maxAge > 0) {
-        expiredAt = Date.now() + maxAge;
-      }
-    }
-    return new Promise((resolve, reject) => {
-      if (setOnlyNotExist || setOnlyExist) {
-        this.existsKey(key).then((existsKey) => {
-          if (setOnlyNotExist && existsKey) {
-            return resolve(StoreResult.NX_SET_NOT_PERFORMED);
-          }
-          if (setOnlyExist && !existsKey) {
-            return resolve(StoreResult.XX_SET_NOT_PERFORMED);
-          }
-          this.keyValueSet(key, { value, expiredAt, maxAge }).then(() => {
-            return resolve(StoreResult.OK);
-          }).catch((e) => {
-            reject(e);
-          });
-        }).catch((e) => {
-          reject(e);
-        });
-      } else {
-        this.keyValueSet(key, { value, expiredAt, maxAge }).then(() => {
-          return resolve(StoreResult.OK);
-        }).catch((e) => {
-          reject(e);
-        });
-      }
-    });
-  }
-}
-class IndexedDBStore extends AsyncStore {
+class IndexedDBStore extends BaseStore {
   constructor(opts) {
     var _a, _b, _c;
     super(opts);
@@ -461,7 +420,6 @@ class IndexedDBStore extends AsyncStore {
     __publicField(this, "objectStoreName", "perfect-cache");
     __publicField(this, "dbVersion", 1);
     __publicField(this, "dbConnection");
-    this.isReady = false;
     if ((_a = this.opts) == null ? void 0 : _a.dbName) {
       this.dbName = this.opts.dbName;
     }
@@ -504,13 +462,11 @@ class IndexedDBStore extends AsyncStore {
           });
           objectStore.transaction.oncomplete = (event) => {
             window.console.debug(`ObjectStore ${this.objectStoreName} is created now.`);
-            this.isReady = true;
-            this.$emit("ready");
+            this.ready();
             resolve();
           };
         } else {
-          this.isReady = true;
-          this.$emit("ready");
+          this.ready();
           resolve();
         }
       } else {
@@ -675,68 +631,33 @@ class PerfectCache extends EventListener {
   existsKey() {
     return this.store.existsKey.apply(this.store, arguments);
   }
-  get(key, opts = {}) {
+  getItem(key, opts = {}) {
     const { defaultVal, withFallback = true, refreshCache = true } = opts;
-    if (this.store.isAsync) {
-      return new Promise(async (resolve, reject) => {
-        const result = await this.store.get(key);
-        const isResultInvalid = result === void 0 || result === null || result === "";
-        if (isResultInvalid && withFallback) {
-          const res = this.__getFallbackByKey(key);
-          if (res) {
-            const fallbackResult = await res.fallback(key);
-            const isFallbackResultInvalid = fallbackResult === void 0 || fallbackResult === null || fallbackResult === "";
-            if (refreshCache) {
-              await this.store.set(key, fallbackResult, {
-                expiredTime: res.expiredTime
-              });
-            }
-            resolve(isFallbackResultInvalid && defaultVal !== void 0 ? defaultVal : fallbackResult);
-          } else {
-            resolve(defaultVal === void 0 ? result : defaultVal);
-          }
-        } else {
-          resolve(isResultInvalid && defaultVal !== void 0 ? defaultVal : result);
-        }
-      });
-    } else {
-      const result = this.store.get(key);
+    return new Promise(async (resolve, reject) => {
+      const result = await this.store.getItem(key);
       const isResultInvalid = result === void 0 || result === null || result === "";
       if (isResultInvalid && withFallback) {
         const res = this.__getFallbackByKey(key);
         if (res) {
-          const fallbackReturn = res.fallback(key);
-          let fallbackResult;
-          if (fallbackReturn instanceof Promise) {
-            return fallbackReturn().then((fallbackResult2) => {
-              const isFallbackResultInvalid = fallbackResult2 === void 0 || fallbackResult2 === null || fallbackResult2 === "";
-              if (refreshCache) {
-                this.store.set(key, fallbackResult2, {
-                  expiredTime: res.expiredTime
-                });
-              }
-              return isFallbackResultInvalid && defaultVal !== void 0 ? defaultVal : fallbackResult2;
+          const fallbackResult = await res.fallback(key);
+          const isFallbackResultInvalid = fallbackResult === void 0 || fallbackResult === null || fallbackResult === "";
+          if (refreshCache) {
+            await this.store.setItem(key, fallbackResult, {
+              expiredTime: res.expiredTime,
+              maxAge: res.maxAge
             });
-          } else {
-            fallbackResult = fallbackReturn;
-            const isFallbackResultInvalid = fallbackResult === void 0 || fallbackResult === null || fallbackResult === "";
-            if (refreshCache) {
-              this.store.set(key, fallbackResult, {
-                expiredTime: res.expiredTime
-              });
-            }
-            return isFallbackResultInvalid && defaultVal !== void 0 ? defaultVal : fallbackResult;
           }
+          resolve(isFallbackResultInvalid && defaultVal !== void 0 ? defaultVal : fallbackResult);
         } else {
-          return defaultVal === void 0 ? result : defaultVal;
+          resolve(defaultVal === void 0 ? result : defaultVal);
         }
       } else {
-        return isResultInvalid && defaultVal !== void 0 ? defaultVal : result;
+        resolve(isResultInvalid && defaultVal !== void 0 ? defaultVal : result);
       }
-    }
+    });
   }
-  set() {
-    return this.store.set.apply(this.store, arguments);
+  setItem() {
+    return this.store.setItem.apply(this.store, arguments);
   }
   fallbackKey(key, expiredTime, fallback) {
     if (!fallback && expiredTime instanceof Function) {
@@ -776,4 +697,4 @@ class PerfectCache extends EventListener {
     }
   }
 }
-export { AsyncStore, BaseStore, EventListener, PerfectCache, StoreResult, SyncStore, registerStore };
+export { BaseStore, EventListener, PerfectCache, StoreResult, registerStore };

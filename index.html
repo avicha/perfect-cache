@@ -9,36 +9,40 @@
   <body>
     <script src="./dist/perfect-cache.umd.js"></script>
     <script>
-      const PerfectCacheInstance = new PerfectCache.PerfectCache({
-        driver: 'cookie',
-      });
-      window.console.log(PerfectCacheInstance);
-      const result1 = PerfectCacheInstance.set(
-        'key1',
-        { a: 1, b: 2 },
-        { expiredTime: 2000, setOnlyNotExist: true }
-      );
-      window.console.log(result1, PerfectCacheInstance.get('key1'));
-      const result2 = PerfectCacheInstance.set(
-        'key1',
-        { a: 3, b: 4 },
-        { expiredTime: 2000, setOnlyExist: true}
-      );
-      window.console.log(result2, PerfectCacheInstance.get('key1'));
-      const PerfectCacheAsyncInstance = new PerfectCache.PerfectCache({
-        driver: 'indexedDB',
-      });
-      PerfectCacheAsyncInstance.$on('ready', () => {
-        window.console.log('indexedDB ready.');
-        PerfectCacheAsyncInstance.get('key1').then((value) => {
-          window.console.log('key1 get success', value);
-          PerfectCacheAsyncInstance
-            .set('key1', { a: 3, b: 2, c: 1 })
-            .then(() => {
-              window.console.log('key1 set success');
-            });
+      (async () => {
+        const PerfectCacheInstance = new PerfectCache.PerfectCache({
+          driver: "cookie",
         });
-      });
+        window.console.log(PerfectCacheInstance);
+        const result1 = await PerfectCacheInstance.setItem(
+          "key1",
+          { a: 1, b: 2 },
+          { expiredTime: 2000, setOnlyNotExist: true }
+        );
+        window.console.log(result1, await PerfectCacheInstance.getItem("key1"));
+        const result2 = await PerfectCacheInstance.setItem(
+          "key1",
+          { a: 3, b: 4 },
+          { expiredTime: 2000, setOnlyExist: true }
+        );
+        window.console.log(result2, await PerfectCacheInstance.getItem("key1"));
+        const PerfectCacheAsyncInstance = new PerfectCache.PerfectCache({
+          driver: "indexedDB",
+        });
+        PerfectCacheAsyncInstance.$on("ready", () => {
+          window.console.log("indexedDB ready.");
+          PerfectCacheAsyncInstance.getItem("key1").then((value) => {
+            window.console.log("key1 get success", value);
+            PerfectCacheAsyncInstance.setItem("key1", {
+              a: 3,
+              b: 2,
+              c: 1,
+            }).then(() => {
+              window.console.log("key1 set success");
+            });
+          });
+        });
+      })();
     </script>
   </body>
 </html>

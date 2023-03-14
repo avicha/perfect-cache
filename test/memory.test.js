@@ -4,8 +4,8 @@ describe("memory cache should be correct", () => {
   beforeAll(() => {
     PerfectCacheInstance = new PerfectCache();
   });
-  test("key not exists", () => {
-    const value = PerfectCacheInstance.get("key");
+  test("key not exists", async () => {
+    const value = await PerfectCacheInstance.getItem("key");
     expect(value).toBeUndefined();
   });
 });

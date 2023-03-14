@@ -5,8 +5,6 @@ import SessionStorageStore from "./SessionStorageStore";
 import CookieStore from "./CookieStore";
 import IndexedDBStore from "./IndexedDBStore";
 import StoreResult from "./StoreResult";
-import SyncStore from "./SyncStore";
-import AsyncStore from "./AsyncStore";
 
 const systemStores = {};
 for (const store of [
@@ -28,12 +26,4 @@ const registerStore = (store) => {
     }
   }
 };
-export {
-  systemStores,
-  externalStores,
-  BaseStore,
-  SyncStore,
-  AsyncStore,
-  StoreResult,
-  registerStore,
-};
+export { systemStores, externalStores, BaseStore, StoreResult, registerStore };

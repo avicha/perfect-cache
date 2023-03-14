@@ -116,53 +116,11 @@ class PerfectCache extends EventListener {
    * @param {Boolean} opts.refreshCache if refresh the cache result when use the fallback
    * @returns
    */
-  get(key, opts = {}) {
+  getItem(key, opts = {}) {
     const { defaultVal, withFallback = true, refreshCache = true } = opts;
-    if (this.store.isAsync) {
-      return new Promise(async (resolve, reject) => {
-        // get the cache value
-        const result = await this.store.get(key);
-        // is the result null
-        const isResultInvalid =
-          result === undefined || result === null || result === "";
-        // if the result is invalid and use fallback function
-        if (isResultInvalid && withFallback) {
-          // get the fallback config
-          const res = this.__getFallbackByKey(key);
-          if (res) {
-            // get the fallback result
-            const fallbackResult = await res.fallback(key);
-            // is fallback result invalid
-            const isFallbackResultInvalid =
-              fallbackResult === undefined ||
-              fallbackResult === null ||
-              fallbackResult === "";
-            // if need refresh cache, then set the fallback result as the cache value
-            if (refreshCache) {
-              await this.store.set(key, fallbackResult, {
-                expiredTime: res.expiredTime,
-              });
-            }
-            // return the default value or the fallback result
-            resolve(
-              isFallbackResultInvalid && defaultVal !== undefined
-                ? defaultVal
-                : fallbackResult
-            );
-          } else {
-            // have not the fallback config then return the default value or the origin result
-            resolve(defaultVal === undefined ? result : defaultVal);
-          }
-        } else {
-          // if the result is valid or does not use fallback function,then return the default value or the origin result
-          resolve(
-            isResultInvalid && defaultVal !== undefined ? defaultVal : result
-          );
-        }
-      });
-    } else {
+    return new Promise(async (resolve, reject) => {
       // get the cache value
-      const result = this.store.get(key);
+      const result = await this.store.getItem(key);
       // is the result null
       const isResultInvalid =
         result === undefined || result === null || result === "";
@@ -172,55 +130,36 @@ class PerfectCache extends EventListener {
         const res = this.__getFallbackByKey(key);
         if (res) {
           // get the fallback result
-          const fallbackReturn = res.fallback(key);
-          let fallbackResult;
-          if (fallbackReturn instanceof Promise) {
-            return fallbackReturn().then((fallbackResult) => {
-              // is fallback result invalid
-              const isFallbackResultInvalid =
-                fallbackResult === undefined ||
-                fallbackResult === null ||
-                fallbackResult === "";
-              // if need refresh cache, then set the fallback result as the cache value
-              if (refreshCache) {
-                this.store.set(key, fallbackResult, {
-                  expiredTime: res.expiredTime,
-                });
-              }
-              // return the default value or the fallback result
-              return isFallbackResultInvalid && defaultVal !== undefined
-                ? defaultVal
-                : fallbackResult;
+          const fallbackResult = await res.fallback(key);
+          // is fallback result invalid
+          const isFallbackResultInvalid =
+            fallbackResult === undefined ||
+            fallbackResult === null ||
+            fallbackResult === "";
+          // if need refresh cache, then set the fallback result as the cache value
+          if (refreshCache) {
+            await this.store.setItem(key, fallbackResult, {
+              expiredTime: res.expiredTime,
+              maxAge: res.maxAge,
             });
-          } else {
-            fallbackResult = fallbackReturn;
-            // is fallback result invalid
-            const isFallbackResultInvalid =
-              fallbackResult === undefined ||
-              fallbackResult === null ||
-              fallbackResult === "";
-            // if need refresh cache, then set the fallback result as the cache value
-            if (refreshCache) {
-              this.store.set(key, fallbackResult, {
-                expiredTime: res.expiredTime,
-              });
-            }
-            // return the default value or the fallback result
-            return isFallbackResultInvalid && defaultVal !== undefined
-              ? defaultVal
-              : fallbackResult;
           }
+          // return the default value or the fallback result
+          resolve(
+            isFallbackResultInvalid && defaultVal !== undefined
+              ? defaultVal
+              : fallbackResult
+          );
         } else {
           // have not the fallback config then return the default value or the origin result
-          return defaultVal === undefined ? result : defaultVal;
+          resolve(defaultVal === undefined ? result : defaultVal);
         }
       } else {
         // if the result is valid or does not use fallback function,then return the default value or the origin result
-        return isResultInvalid && defaultVal !== undefined
-          ? defaultVal
-          : result;
+        resolve(
+          isResultInvalid && defaultVal !== undefined ? defaultVal : result
+        );
       }
-    }
+    });
   }
   /**
    * @param {String} key the cache key
@@ -228,49 +167,37 @@ class PerfectCache extends EventListener {
    * @param {Object} options the cache options
    * @returns {StoreResult}
    */
-  set() {
-    return this.store.set.apply(this.store, arguments);
+  setItem() {
+    return this.store.setItem.apply(this.store, arguments);
   }
   /**
    *
    * @param {String/Regex} key the extra key or the key pattern
-   * @param {Number} expiredTime the seconds which the key expired
    * @param {Function} fallback the fallback function when the key is not exists
+   * @param {Object} options the setItem operation options when the cache is updated
    * @returns
    */
-  fallbackKey(key, expiredTime, fallback) {
-    if (!fallback && expiredTime instanceof Function) {
-      fallback = expiredTime;
-      expiredTime = null;
-    }
+  fallbackKey(key, fallback, options = {}) {
+    const { expiredTime, maxAge } = options;
     //the extra key
     if (typeof key === "string") {
-      if (
-        fallback instanceof Function &&
-        (!expiredTime || typeof expiredTime === "number")
-      ) {
-        return this.keyFallbacks.push({ key, expiredTime, fallback });
+      if (fallback instanceof Function) {
+        return this.keyFallbacks.push({ key, expiredTime, maxAge, fallback });
       } else {
-        throw new Error(
-          "please input the expiredTime as type [number] and fallback as type [Function]"
-        );
+        throw new Error("please input the fallback as type [Function]");
       }
     }
     // the key pattern
     if (key instanceof RegExp) {
-      if (
-        fallback instanceof Function &&
-        (!expiredTime || typeof expiredTime === "number")
-      ) {
+      if (fallback instanceof Function) {
         return this.keyRegexFallbacks.push({
           regex: key,
           expiredTime,
+          maxAge,
           fallback,
         });
       } else {
-        throw new Error(
-          "please input the expiredTime as type [number] and fallback as type [Function]"
-        );
+        throw new Error("please input the fallback as type [Function]");
       }
     }
   }

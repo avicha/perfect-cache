@@ -1,5 +1,6 @@
-import AsyncStore from "./AsyncStore";
-export default class IndexedDBStore extends AsyncStore {
+import BaseStore from "./BaseStore";
+
+export default class IndexedDBStore extends BaseStore {
   static driver = "indexedDB";
   dbName = "perfect-cache";
   objectStoreName = "perfect-cache";
@@ -7,7 +8,6 @@ export default class IndexedDBStore extends AsyncStore {
   dbConnection;
   constructor(opts) {
     super(opts);
-    this.isReady = false;
     if (this.opts?.dbName) {
       this.dbName = this.opts.dbName;
     }
@@ -64,13 +64,11 @@ export default class IndexedDBStore extends AsyncStore {
             window.console.debug(
               `ObjectStore ${this.objectStoreName} is created now.`
             );
-            this.isReady = true;
-            this.$emit("ready");
+            this.ready();
             resolve();
           };
         } else {
-          this.isReady = true;
-          this.$emit("ready");
+          this.ready();
           resolve();
         }
       } else {
