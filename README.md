@@ -24,7 +24,7 @@ const perfectCacheInstance = new PerfectCache(driver, opts);
 - 获取 key 对应的缓存值
 
 ```javascript
-cocnst value = await getItem(key, opts)
+cocnst value = await perfectCacheInstance.getItem(key, opts)
 ```
 
 参数说明
@@ -40,7 +40,7 @@ cocnst value = await getItem(key, opts)
 - 设置 key 对应的缓存值
 
 ```javascript
-const result = await setItem(key, value, options);
+const result = await perfectCacheInstance.setItem(key, value, options);
 ```
 
 参数说明，说明一下，在没有设置 expiredTime 和 expiredTimeAt 参数的情况下，maxAge 参数可以每次 getItem 获取完 key 的值，都会延迟过期时间自动续期，而设置 expiredTime 则不会自动续期
@@ -83,7 +83,7 @@ switch (result) {
 - 返回 key 是否存在
 
 ```javascript
-const isKeyExists = await existsKey(key);
+const isKeyExists = await perfectCacheInstance.existsKey(key);
 ```
 
 参数说明
@@ -91,6 +91,36 @@ const isKeyExists = await existsKey(key);
 | 名称 | 意义       | 类型   | 默认值 | 是否必填 |
 | ---- | ---------- | ------ | ------ | -------- |
 | key  | 缓存的 key | String | -      | 必填     |
+
+- 删除 key 对应的缓存值
+
+```javascript
+await perfectCacheInstance.removeItem(key);
+```
+
+参数说明
+
+| 名称 | 意义       | 类型   | 默认值 | 是否必填 |
+| ---- | ---------- | ------ | ------ | -------- |
+| key  | 缓存的 key | String | -      | 必填     |
+
+- 清除所有缓存值
+
+```javascript
+await perfectCacheInstance.clear();
+```
+
+- 获取所有缓存 key
+
+```javascript
+const keys = await perfectCacheInstance.keys();
+```
+
+- 获取所有缓存 key 的数量
+
+```javascript
+const keysCount = await perfectCacheInstance.length();
+```
 
 - 设置获取的 key 找不到缓存值时的退路函数
 
@@ -204,6 +234,33 @@ class MyStore extends BaseStore {
     } else {
       return Promise.resolve(false);
     }
+  }
+  // 重载removeItem方法，删除key对应的缓存值
+  removeItem(key) {
+    return new Promise((resolve, reject) => {
+      try {
+        delete this.data[this.__getRealKey(key)];
+        resolve();
+      } catch (error) {
+        reject(error);
+      }
+    });
+  }
+  // 重载keys方法，获取缓存所有key
+  keys() {
+    const keys = Object.keys(this.data).map((key) =>
+      key.replace(this.prefix, "")
+    );
+    return Promise.resolve(keys);
+  }
+  // 重载clear方法，清空缓存值
+  clear() {
+    this.data = {};
+    return Promise.resolve();
+  }
+  // 重载length方法，获取keys的长度
+  length() {
+    return Promise.resolve(Object.keys(this.data).length);
   }
 }
 registerStore(MyStore);

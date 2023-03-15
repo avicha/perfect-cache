@@ -34,4 +34,27 @@ export default class MemoryStore extends BaseStore {
       return Promise.resolve(false);
     }
   }
+  removeItem(key) {
+    return new Promise((resolve, reject) => {
+      try {
+        this.data.delete(this.__getRealKey(key));
+        resolve();
+      } catch (error) {
+        reject(error);
+      }
+    });
+  }
+  keys() {
+    const keys = Array.from(this.data.keys()).map((key) =>
+      key.replace(this.prefix, "")
+    );
+    return Promise.resolve(keys);
+  }
+  clear() {
+    this.data.clear();
+    return Promise.resolve();
+  }
+  length() {
+    return Promise.resolve(this.data.size);
+  }
 }

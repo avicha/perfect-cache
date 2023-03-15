@@ -171,6 +171,31 @@ class PerfectCache extends EventListener {
     return this.store.setItem.apply(this.store, arguments);
   }
   /**
+   * @param {String} key the cache key
+   * @returns {Null}
+   */
+  removeItem() {
+    return this.store.removeItem.apply(this.store, arguments);
+  }
+  /**
+   * @returns {Null}
+   */
+  clear() {
+    return this.store.clear.apply(this.store, arguments);
+  }
+  /**
+   * @returns {Array} the cache keys
+   */
+  keys() {
+    return this.store.keys.apply(this.store, arguments);
+  }
+  /**
+   * @returns {Number} the cache keys count
+   */
+  length() {
+    return this.store.length.apply(this.store, arguments);
+  }
+  /**
    *
    * @param {String/Regex} key the extra key or the key pattern
    * @param {Function} fallback the fallback function when the key is not exists

@@ -96,6 +96,28 @@ class BaseStore extends EventListener {
   existsKey() {
     throw new Error("please implement the existsKey method for this driver.");
   }
+  removeItem() {
+    throw new Error("please implement the removeItem method for this driver.");
+  }
+  async clear() {
+    const keys = await this.keys();
+    for (const key of keys) {
+      await this.removeItem(key);
+    }
+    return Promise.resolve();
+  }
+  keys() {
+    throw new Error("please implement the keys method for this driver.");
+  }
+  length() {
+    return new Promise((resolve, reject) => {
+      this.keys().then((keys) => {
+        resolve(keys.length);
+      }).catch((error) => {
+        reject(error);
+      });
+    });
+  }
   getItem(key) {
     return new Promise((resolve, reject) => {
       this.keyValueGet(key).then((valueObj) => {
@@ -223,6 +245,25 @@ class LocalStorageStore extends BaseStore {
       return Promise.resolve(false);
     }
   }
+  removeItem(key) {
+    return new Promise((resolve, reject) => {
+      try {
+        localStorage.removeItem(this.__getRealKey(key));
+        resolve();
+      } catch (error) {
+        reject(error);
+      }
+    });
+  }
+  keys() {
+    const keys = [];
+    for (const key of Object.keys(localStorage)) {
+      if (key.startsWith(this.prefix)) {
+        keys.push(key.replace(this.prefix, ""));
+      }
+    }
+    return Promise.resolve(keys);
+  }
 }
 __publicField(LocalStorageStore, "driver", "localStorage");
 class MemoryStore extends BaseStore {
@@ -257,6 +298,27 @@ class MemoryStore extends BaseStore {
     } else {
       return Promise.resolve(false);
     }
+  }
+  removeItem(key) {
+    return new Promise((resolve, reject) => {
+      try {
+        this.data.delete(this.__getRealKey(key));
+        resolve();
+      } catch (error) {
+        reject(error);
+      }
+    });
+  }
+  keys() {
+    const keys = Array.from(this.data.keys()).map((key) => key.replace(this.prefix, ""));
+    return Promise.resolve(keys);
+  }
+  clear() {
+    this.data.clear();
+    return Promise.resolve();
+  }
+  length() {
+    return Promise.resolve(this.data.size);
   }
 }
 __publicField(MemoryStore, "driver", "memory");
@@ -297,6 +359,25 @@ class SessionStorageStore extends BaseStore {
     } else {
       return Promise.resolve(false);
     }
+  }
+  removeItem(key) {
+    return new Promise((resolve, reject) => {
+      try {
+        sessionStorage.removeItem(this.__getRealKey(key));
+        resolve();
+      } catch (error) {
+        reject(error);
+      }
+    });
+  }
+  keys() {
+    const keys = [];
+    for (const key of Object.keys(sessionStorage)) {
+      if (key.startsWith(this.prefix)) {
+        keys.push(key.replace(this.prefix, ""));
+      }
+    }
+    return Promise.resolve(keys);
   }
 }
 __publicField(SessionStorageStore, "driver", "sessionStorage");
@@ -425,6 +506,26 @@ class CookieStore extends BaseStore {
       return Promise.resolve(false);
     }
   }
+  removeItem(key) {
+    return new Promise((resolve, reject) => {
+      try {
+        api.remove(this.__getRealKey(key));
+        resolve();
+      } catch (error) {
+        reject(error);
+      }
+    });
+  }
+  keys() {
+    const cookies = api.get();
+    const keys = [];
+    for (const key of Object.keys(cookies)) {
+      if (key.startsWith(this.prefix)) {
+        keys.push(key.replace(this.prefix, ""));
+      }
+    }
+    return Promise.resolve(keys);
+  }
 }
 __publicField(CookieStore, "driver", "cookie");
 class IndexedDBStore extends BaseStore {
@@ -493,7 +594,7 @@ class IndexedDBStore extends BaseStore {
       if (this.dbConnection) {
         const request = this.dbConnection.transaction([this.objectStoreName], "readonly").objectStore(this.objectStoreName).get(this.__getRealKey(key));
         request.onerror = () => {
-          window.console.error("Database keyValueGet occurs error", request.result);
+          window.console.error("Database get occurs error", request.result);
           reject(request.result);
         };
         request.onsuccess = () => {
@@ -511,7 +612,7 @@ class IndexedDBStore extends BaseStore {
       if (this.dbConnection) {
         const request = this.dbConnection.transaction([this.objectStoreName], "readwrite").objectStore(this.objectStoreName).put({ key: this.__getRealKey(key), value });
         request.onerror = () => {
-          window.console.error("Database keyValueSet occurs error", request.result);
+          window.console.error("Database put occurs error", request.result);
           reject(request.result);
         };
         request.onsuccess = () => {
@@ -529,11 +630,54 @@ class IndexedDBStore extends BaseStore {
       if (this.dbConnection) {
         const request = this.dbConnection.transaction([this.objectStoreName], "readonly").objectStore(this.objectStoreName).count(this.__getRealKey(key));
         request.onerror = () => {
-          window.console.error("Database existsKey occurs error", request.result);
+          window.console.error("Database count occurs error", request.result);
           reject(request.result);
         };
         request.onsuccess = () => {
           resolve(!!request.result);
+        };
+      } else {
+        const error = new Error(`Database ${this.dbName} connection is not initialised.`);
+        reject(error);
+      }
+    });
+  }
+  removeItem(key) {
+    return new Promise((resolve, reject) => {
+      if (this.dbConnection) {
+        const request = this.dbConnection.transaction([this.objectStoreName], "readwrite").objectStore(this.objectStoreName).delete(this.__getRealKey(key));
+        request.onerror = () => {
+          window.console.error("Database delete occurs error", request.result);
+          reject(request.result);
+        };
+        request.onsuccess = () => {
+          resolve();
+        };
+      } else {
+        const error = new Error(`Database ${this.dbName} connection is not initialised.`);
+        reject(error);
+      }
+    });
+  }
+  keys() {
+    const keys = [];
+    return new Promise((resolve, reject) => {
+      if (this.dbConnection) {
+        const request = this.dbConnection.transaction([this.objectStoreName], "readonly").objectStore(this.objectStoreName).openCursor();
+        request.onerror = () => {
+          window.console.error("Database openCursor occurs error", request.result);
+          reject(request.result);
+        };
+        request.onsuccess = (e) => {
+          var cursor = e.target.result;
+          if (cursor) {
+            if (cursor.key.startsWith(this.prefix)) {
+              keys.push(cursor.key.replace(this.prefix, ""));
+            }
+            cursor.continue();
+          } else {
+            resolve(keys);
+          }
         };
       } else {
         const error = new Error(`Database ${this.dbName} connection is not initialised.`);
@@ -673,6 +817,18 @@ class PerfectCache extends EventListener {
   }
   setItem() {
     return this.store.setItem.apply(this.store, arguments);
+  }
+  removeItem() {
+    return this.store.removeItem.apply(this.store, arguments);
+  }
+  clear() {
+    return this.store.clear.apply(this.store, arguments);
+  }
+  keys() {
+    return this.store.keys.apply(this.store, arguments);
+  }
+  length() {
+    return this.store.length.apply(this.store, arguments);
   }
   fallbackKey(key, fallback, options = {}) {
     const { expiredTime, maxAge } = options;

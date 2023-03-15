@@ -26,6 +26,8 @@
           { expiredTime: 2000, setOnlyExist: true }
         );
         window.console.log(result2, await PerfectCacheInstance.getItem("key1"));
+        window.console.log("keys", await PerfectCacheInstance.keys());
+        window.console.log("length", await PerfectCacheInstance.length());
         const PerfectCacheAsyncInstance = new PerfectCache.PerfectCache({
           driver: "indexedDB",
         });
@@ -37,8 +39,16 @@
               a: 3,
               b: 2,
               c: 1,
-            }).then(() => {
+            }).then(async () => {
               window.console.log("key1 set success");
+              window.console.log(
+                "keys",
+                await PerfectCacheAsyncInstance.keys()
+              );
+              window.console.log(
+                "length",
+                await PerfectCacheAsyncInstance.length()
+              );
             });
           });
         });

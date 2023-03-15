@@ -85,10 +85,7 @@ export default class IndexedDBStore extends BaseStore {
           .objectStore(this.objectStoreName)
           .get(this.__getRealKey(key));
         request.onerror = () => {
-          window.console.error(
-            "Database keyValueGet occurs error",
-            request.result
-          );
+          window.console.error("Database get occurs error", request.result);
           reject(request.result);
         };
         request.onsuccess = () => {
@@ -110,10 +107,7 @@ export default class IndexedDBStore extends BaseStore {
           .objectStore(this.objectStoreName)
           .put({ key: this.__getRealKey(key), value });
         request.onerror = () => {
-          window.console.error(
-            "Database keyValueSet occurs error",
-            request.result
-          );
+          window.console.error("Database put occurs error", request.result);
           reject(request.result);
         };
         request.onsuccess = () => {
@@ -135,14 +129,67 @@ export default class IndexedDBStore extends BaseStore {
           .objectStore(this.objectStoreName)
           .count(this.__getRealKey(key));
         request.onerror = () => {
-          window.console.error(
-            "Database existsKey occurs error",
-            request.result
-          );
+          window.console.error("Database count occurs error", request.result);
           reject(request.result);
         };
         request.onsuccess = () => {
           resolve(!!request.result);
+        };
+      } else {
+        const error = new Error(
+          `Database ${this.dbName} connection is not initialised.`
+        );
+        reject(error);
+      }
+    });
+  }
+  removeItem(key) {
+    return new Promise((resolve, reject) => {
+      if (this.dbConnection) {
+        const request = this.dbConnection
+          .transaction([this.objectStoreName], "readwrite")
+          .objectStore(this.objectStoreName)
+          .delete(this.__getRealKey(key));
+        request.onerror = () => {
+          window.console.error("Database delete occurs error", request.result);
+          reject(request.result);
+        };
+        request.onsuccess = () => {
+          resolve();
+        };
+      } else {
+        const error = new Error(
+          `Database ${this.dbName} connection is not initialised.`
+        );
+        reject(error);
+      }
+    });
+  }
+  keys() {
+    const keys = [];
+    return new Promise((resolve, reject) => {
+      if (this.dbConnection) {
+        const request = this.dbConnection
+          .transaction([this.objectStoreName], "readonly")
+          .objectStore(this.objectStoreName)
+          .openCursor();
+        request.onerror = () => {
+          window.console.error(
+            "Database openCursor occurs error",
+            request.result
+          );
+          reject(request.result);
+        };
+        request.onsuccess = (e) => {
+          var cursor = e.target.result;
+          if (cursor) {
+            if (cursor.key.startsWith(this.prefix)) {
+              keys.push(cursor.key.replace(this.prefix, ""));
+            }
+            cursor.continue();
+          } else {
+            resolve(keys);
+          }
         };
       } else {
         const error = new Error(

@@ -34,6 +34,30 @@ export default class BaseStore extends EventListener {
   existsKey() {
     throw new Error("please implement the existsKey method for this driver.");
   }
+  removeItem() {
+    throw new Error("please implement the removeItem method for this driver.");
+  }
+  async clear() {
+    const keys = await this.keys();
+    for (const key of keys) {
+      await this.removeItem(key);
+    }
+    return Promise.resolve();
+  }
+  keys() {
+    throw new Error("please implement the keys method for this driver.");
+  }
+  length() {
+    return new Promise((resolve, reject) => {
+      this.keys()
+        .then((keys) => {
+          resolve(keys.length);
+        })
+        .catch((error) => {
+          reject(error);
+        });
+    });
+  }
   getItem(key) {
     return new Promise((resolve, reject) => {
       this.keyValueGet(key)

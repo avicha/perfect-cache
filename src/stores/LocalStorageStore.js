@@ -39,4 +39,23 @@ export default class LocalStorageStore extends BaseStore {
       return Promise.resolve(false);
     }
   }
+  removeItem(key) {
+    return new Promise((resolve, reject) => {
+      try {
+        localStorage.removeItem(this.__getRealKey(key));
+        resolve();
+      } catch (error) {
+        reject(error);
+      }
+    });
+  }
+  keys() {
+    const keys = [];
+    for (const key of Object.keys(localStorage)) {
+      if (key.startsWith(this.prefix)) {
+        keys.push(key.replace(this.prefix, ""));
+      }
+    }
+    return Promise.resolve(keys);
+  }
 }
