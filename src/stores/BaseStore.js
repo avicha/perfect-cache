@@ -16,10 +16,13 @@ export default class BaseStore extends EventListener {
   __getRealKey(key) {
     return `${this.prefix}${key}`;
   }
-  ready() {
+  ready(callback) {
     setTimeout(() => {
       this.isReady = true;
       this.$emit("ready");
+      if (callback && typeof callback === "function") {
+        callback();
+      }
     }, 0);
   }
   keyValueGet() {

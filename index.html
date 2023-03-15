@@ -42,6 +42,65 @@
             });
           });
         });
+        class MyStore extends PerfectCache.BaseStore {
+          // 驱动名称
+          static driver = "myStore";
+          data = {};
+          constructor(opts) {
+            super(opts);
+            // 告诉缓存系统已经准备好了，如果是异步的就在准备好的时候调用ready函数告知系统
+            this.ready();
+          }
+          // 重载keyValueGet方法，告知引擎底层怎样获取一个key对应的缓存值
+          // 必须返回Promise对象，同时resolve的对象结构为
+          // { value:'xxx', expiredTimeAt: 12345678910, maxAge: 3600000}
+          keyValueGet(key) {
+            const valueStr = this.data[this.__getRealKey(key)];
+            return new Promise((resolve) => {
+              if (valueStr) {
+                try {
+                  const valueObj = JSON.parse(valueStr);
+                  resolve(valueObj);
+                } catch (error) {
+                  window.console.debug(
+                    `get key ${key} json parse error`,
+                    valueStr
+                  );
+                  resolve();
+                }
+              } else {
+                resolve();
+              }
+            });
+          }
+          // 重载keyValueSet方法，告知引擎底层怎样设置一个key对应的缓存值
+          // 必须返回Promise对象
+          // value的数据结构为{ value:'xxx', expiredTimeAt: 12345678910, maxAge: 3600000}
+          keyValueSet(key, value) {
+            this.data[this.__getRealKey(key)] = JSON.stringify(value);
+            return Promise.resolve();
+          }
+          // 重载existsKey方法，告知引擎底层一个key是否存在
+          // 必须返回Promise对象
+          existsKey(key) {
+            const realKey = this.__getRealKey(key);
+            if (realKey in this.data) {
+              return Promise.resolve(true);
+            } else {
+              return Promise.resolve(false);
+            }
+          }
+        }
+        PerfectCache.registerStore(MyStore);
+        const myCache = new PerfectCache.PerfectCache({
+          driver: "myStore",
+        });
+        const result3 = await myCache.setItem(
+          "key1",
+          { a: 1, b: 2 },
+          { expiredTimeAt: Date.now() + 10000 }
+        );
+        window.console.log("myStore", result3, await myCache.getItem("key1"));
       })();
     </script>
   </body>

@@ -78,9 +78,14 @@ class BaseStore extends EventListener {
   __getRealKey(key) {
     return `${this.prefix}${key}`;
   }
-  ready() {
-    this.isReady = true;
-    this.$emit("ready");
+  ready(callback) {
+    setTimeout(() => {
+      this.isReady = true;
+      this.$emit("ready");
+      if (callback && typeof callback === "function") {
+        callback();
+      }
+    }, 0);
   }
   keyValueGet() {
     throw new Error("please implement the keyValueGet method for this driver.");
@@ -183,9 +188,7 @@ class BaseStore extends EventListener {
 class LocalStorageStore extends BaseStore {
   constructor(opts) {
     super(opts);
-    setTimeout(() => {
-      this.ready();
-    }, 0);
+    this.ready();
   }
   keyValueGet(key) {
     const valueStr = localStorage.getItem(this.__getRealKey(key));
@@ -204,8 +207,14 @@ class LocalStorageStore extends BaseStore {
     });
   }
   keyValueSet(key, value) {
-    localStorage.setItem(this.__getRealKey(key), JSON.stringify(value));
-    return Promise.resolve();
+    return new Promise((resolve, reject) => {
+      try {
+        localStorage.setItem(this.__getRealKey(key), JSON.stringify(value));
+        resolve();
+      } catch (error) {
+        reject(error);
+      }
+    });
   }
   existsKey(key) {
     if (localStorage.getItem(this.__getRealKey(key))) {
@@ -220,9 +229,7 @@ class MemoryStore extends BaseStore {
   constructor(opts) {
     super(opts);
     __publicField(this, "data", /* @__PURE__ */ new Map());
-    setTimeout(() => {
-      this.ready();
-    }, 0);
+    this.ready();
   }
   keyValueGet(key) {
     const valueStr = this.data.get(this.__getRealKey(key));
@@ -256,9 +263,7 @@ __publicField(MemoryStore, "driver", "memory");
 class SessionStorageStore extends BaseStore {
   constructor(opts) {
     super(opts);
-    setTimeout(() => {
-      this.ready();
-    }, 0);
+    this.ready();
   }
   keyValueGet(key) {
     const valueStr = sessionStorage.getItem(this.__getRealKey(key));
@@ -277,8 +282,14 @@ class SessionStorageStore extends BaseStore {
     });
   }
   keyValueSet(key, value) {
-    sessionStorage.setItem(this.__getRealKey(key), JSON.stringify(value));
-    return Promise.resolve();
+    return new Promise((resolve, reject) => {
+      try {
+        sessionStorage.setItem(this.__getRealKey(key), JSON.stringify(value));
+        resolve();
+      } catch (error) {
+        reject(error);
+      }
+    });
   }
   existsKey(key) {
     if (sessionStorage.getItem(this.__getRealKey(key))) {
@@ -379,9 +390,7 @@ var api = init(defaultConverter, { path: "/" });
 class CookieStore extends BaseStore {
   constructor(opts) {
     super(opts);
-    setTimeout(() => {
-      this.ready();
-    }, 0);
+    this.ready();
   }
   keyValueGet(key) {
     const valueStr = api.get(this.__getRealKey(key));
@@ -400,8 +409,14 @@ class CookieStore extends BaseStore {
     });
   }
   keyValueSet(key, value) {
-    api.set(this.__getRealKey(key), JSON.stringify(value));
-    return Promise.resolve();
+    return new Promise((resolve, reject) => {
+      try {
+        api.set(this.__getRealKey(key), JSON.stringify(value));
+        resolve();
+      } catch (error) {
+        reject(error);
+      }
+    });
   }
   existsKey(key) {
     if (api.get(this.__getRealKey(key))) {
@@ -462,12 +477,10 @@ class IndexedDBStore extends BaseStore {
           });
           objectStore.transaction.oncomplete = (event) => {
             window.console.debug(`ObjectStore ${this.objectStoreName} is created now.`);
-            this.ready();
-            resolve();
+            this.ready(resolve);
           };
         } else {
-          this.ready();
-          resolve();
+          this.ready(resolve);
         }
       } else {
         const error = new Error(`Database ${this.dbName} connection is not initialised.`);
@@ -548,6 +561,8 @@ const registerStore = (store) => {
     } else {
       throw new Error("please input the driver name.");
     }
+  } else {
+    throw new Error("the store driver class must be subclass of BaseStore.");
   }
 };
 const getSupportedDriverList = () => {
@@ -641,7 +656,7 @@ class PerfectCache extends EventListener {
         if (res) {
           const fallbackResult = await res.fallback(key);
           const isFallbackResultInvalid = fallbackResult === void 0 || fallbackResult === null || fallbackResult === "";
-          if (refreshCache) {
+          if (refreshCache && !isFallbackResultInvalid) {
             await this.store.setItem(key, fallbackResult, {
               expiredTime: res.expiredTime,
               maxAge: res.maxAge
@@ -659,42 +674,40 @@ class PerfectCache extends EventListener {
   setItem() {
     return this.store.setItem.apply(this.store, arguments);
   }
-  fallbackKey(key, expiredTime, fallback) {
-    if (!fallback && expiredTime instanceof Function) {
-      fallback = expiredTime;
-      expiredTime = null;
-    }
+  fallbackKey(key, fallback, options = {}) {
+    const { expiredTime, maxAge } = options;
     if (typeof key === "string") {
-      if (fallback instanceof Function && (!expiredTime || typeof expiredTime === "number")) {
-        return this.keyFallbacks.push({ key, expiredTime, fallback });
+      if (fallback instanceof Function) {
+        return this.keyFallbacks.push({ key, expiredTime, maxAge, fallback });
       } else {
-        throw new Error("please input the expiredTime as type [number] and fallback as type [Function]");
+        throw new Error("please input the fallback as type [Function]");
       }
     }
     if (key instanceof RegExp) {
-      if (fallback instanceof Function && (!expiredTime || typeof expiredTime === "number")) {
+      if (fallback instanceof Function) {
         return this.keyRegexFallbacks.push({
           regex: key,
           expiredTime,
+          maxAge,
           fallback
         });
       } else {
-        throw new Error("please input the expiredTime as type [number] and fallback as type [Function]");
+        throw new Error("please input the fallback as type [Function]");
       }
     }
   }
   __getFallbackByKey(key) {
-    let fallback = this.keyFallbacks.find((obj) => {
-      return obj.key === key && obj.fallback instanceof Function;
+    let res = this.keyFallbacks.find((obj) => {
+      return obj.key === key;
     });
-    if (fallback) {
-      return fallback;
+    if (res) {
+      return res;
     } else {
-      fallback = this.keyRegexFallbacks.find((obj) => {
-        return obj.regex.test(key) && obj.fallback instanceof Function;
+      res = this.keyRegexFallbacks.find((obj) => {
+        return obj.regex.test(key);
       });
-      return fallback;
+      return res;
     }
   }
 }
-export { BaseStore, EventListener, PerfectCache, StoreResult, registerStore };
+export { BaseStore, EventListener, PerfectCache, StoreResult, getSupportedDriverList, registerStore };

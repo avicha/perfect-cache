@@ -23,8 +23,14 @@ export default class LocalStorageStore extends BaseStore {
     });
   }
   keyValueSet(key, value) {
-    localStorage.setItem(this.__getRealKey(key), JSON.stringify(value));
-    return Promise.resolve();
+    return new Promise((resolve, reject) => {
+      try {
+        localStorage.setItem(this.__getRealKey(key), JSON.stringify(value));
+        resolve();
+      } catch (error) {
+        reject(error);
+      }
+    });
   }
   existsKey(key) {
     if (localStorage.getItem(this.__getRealKey(key))) {

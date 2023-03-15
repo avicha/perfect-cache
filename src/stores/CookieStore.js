@@ -24,8 +24,14 @@ export default class CookieStore extends BaseStore {
     });
   }
   keyValueSet(key, value) {
-    jsCookie.set(this.__getRealKey(key), JSON.stringify(value));
-    return Promise.resolve();
+    return new Promise((resolve, reject) => {
+      try {
+        jsCookie.set(this.__getRealKey(key), JSON.stringify(value));
+        resolve();
+      } catch (error) {
+        reject(error);
+      }
+    });
   }
   existsKey(key) {
     if (jsCookie.get(this.__getRealKey(key))) {

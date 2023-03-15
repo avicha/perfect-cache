@@ -64,12 +64,10 @@ export default class IndexedDBStore extends BaseStore {
             window.console.debug(
               `ObjectStore ${this.objectStoreName} is created now.`
             );
-            this.ready();
-            resolve();
+            this.ready(resolve);
           };
         } else {
-          this.ready();
-          resolve();
+          this.ready(resolve);
         }
       } else {
         const error = new Error(

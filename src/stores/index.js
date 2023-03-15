@@ -24,6 +24,8 @@ const registerStore = (store) => {
     } else {
       throw new Error("please input the driver name.");
     }
+  } else {
+    throw new Error("the store driver class must be subclass of BaseStore.");
   }
 };
 export { systemStores, externalStores, BaseStore, StoreResult, registerStore };

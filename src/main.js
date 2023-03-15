@@ -137,7 +137,7 @@ class PerfectCache extends EventListener {
             fallbackResult === null ||
             fallbackResult === "";
           // if need refresh cache, then set the fallback result as the cache value
-          if (refreshCache) {
+          if (refreshCache && !isFallbackResultInvalid) {
             await this.store.setItem(key, fallbackResult, {
               expiredTime: res.expiredTime,
               maxAge: res.maxAge,
@@ -208,19 +208,19 @@ class PerfectCache extends EventListener {
    */
   __getFallbackByKey(key) {
     // find the exact key matches the config first
-    let fallback = this.keyFallbacks.find((obj) => {
-      return obj.key === key && obj.fallback instanceof Function;
+    let res = this.keyFallbacks.find((obj) => {
+      return obj.key === key;
     });
     // if found the config then return
-    if (fallback) {
-      return fallback;
+    if (res) {
+      return res;
     } else {
       // else find the regex key matches and return
-      fallback = this.keyRegexFallbacks.find((obj) => {
-        return obj.regex.test(key) && obj.fallback instanceof Function;
+      res = this.keyRegexFallbacks.find((obj) => {
+        return obj.regex.test(key);
       });
       // return the found fallback config and undefined otherwise
-      return fallback;
+      return res;
     }
   }
 }

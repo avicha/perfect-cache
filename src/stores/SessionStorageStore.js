@@ -22,8 +22,14 @@ export default class SessionStorageStore extends BaseStore {
     });
   }
   keyValueSet(key, value) {
-    sessionStorage.setItem(this.__getRealKey(key), JSON.stringify(value));
-    return Promise.resolve();
+    return new Promise((resolve, reject) => {
+      try {
+        sessionStorage.setItem(this.__getRealKey(key), JSON.stringify(value));
+        resolve();
+      } catch (error) {
+        reject(error);
+      }
+    });
   }
   existsKey(key) {
     if (sessionStorage.getItem(this.__getRealKey(key))) {
