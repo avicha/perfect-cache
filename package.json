@@ -1,6 +1,6 @@
 {
   "name": "perfect-cache",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "browser cache lib",
   "scripts": {
     "build": "vite build",
@@ -23,11 +23,21 @@
     "dist"
   ],
   "main": "./dist/perfect-cache.umd.js",
-  "module": "./dist/perfect-cache.es.js",
+  "module": "src/index.js",
   "exports": {
     ".": {
-      "import": "./dist/perfect-cache.es.js",
+      "import": "./src/index.js",
       "require": "./dist/perfect-cache.umd.js"
+    }
+  },
+  "publishConfig": {
+    "main": "./dist/perfect-cache.umd.js",
+    "module": "./dist/perfect-cache.es.js",
+    "exports": {
+      ".": {
+        "import": "./dist/perfect-cache.es.js",
+        "require": "./dist/perfect-cache.umd.js"
+      }
     }
   },
   "homepage": "https://github.com/avicha/perfect-cache#readme",

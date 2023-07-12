@@ -534,7 +534,7 @@ class IndexedDBStore extends BaseStore {
     super(opts);
     __publicField(this, "dbName", "perfect-cache");
     __publicField(this, "objectStoreName", "perfect-cache");
-    __publicField(this, "dbVersion", 1);
+    __publicField(this, "dbVersion");
     __publicField(this, "dbConnection");
     if ((_a = this.opts) == null ? void 0 : _a.dbName) {
       this.dbName = this.opts.dbName;
@@ -545,25 +545,54 @@ class IndexedDBStore extends BaseStore {
     if ((_c = this.opts) == null ? void 0 : _c.dbVersion) {
       this.dbVersion = this.opts.dbVersion;
     }
-    this.connectDB().then(() => {
-      this.initObjectStore();
+    this.init().catch(() => {
+      if (this.dbConnection) {
+        this.upgradeToVersion(this.dbConnection.version + 1);
+      } else {
+        this.upgradeToVersion();
+      }
+    });
+  }
+  init() {
+    return this.connectDB().then(() => {
+      return this.initObjectStore();
+    });
+  }
+  upgradeToVersion(newVersion) {
+    if (this.dbConnection) {
+      this.dbConnection.close();
+      this.dbVersion = newVersion;
+    } else {
+      this.dbVersion = void 0;
+    }
+    window.console.debug(`Database ${this.dbName} store ${this.objectStoreName} is upgrading to version ${this.dbVersion}...`);
+    this.init().then(() => {
+      window.console.debug(`Database ${this.dbName} store ${this.objectStoreName} version upgraded to ${this.dbVersion} success.`);
+    }).catch((err) => {
+      window.console.error(`Database ${this.dbName} store ${this.objectStoreName} version upgraded to ${this.dbVersion} failed.`, err);
     });
   }
   connectDB() {
     return new Promise((resolve, reject) => {
       const request = window.indexedDB.open(this.dbName, this.dbVersion);
-      request.onerror = () => {
-        window.console.error(`Database ${this.dbName} init occurs error`, request.result);
-        reject(request.result);
+      request.onerror = (e) => {
+        window.console.error(`Database ${this.dbName} store ${this.objectStoreName} init version ${this.dbVersion} occurs error`, e);
+        reject(e);
       };
       request.onsuccess = () => {
         this.dbConnection = request.result;
-        window.console.debug(`Database ${this.dbName} initialised.`);
+        this.dbVersion = this.dbConnection.version;
+        window.console.debug(`Database ${this.dbName} store ${this.objectStoreName} version ${this.dbConnection.version} initialised.`);
+        this.dbConnection.onversionchange = (event) => {
+          window.console.debug(`The version of this database ${this.dbName} store ${this.objectStoreName} has changed from ${event.oldVersion} to ${event.newVersion}`);
+          this.upgradeToVersion(event.newVersion);
+        };
         resolve(this.dbConnection);
       };
       request.onupgradeneeded = (event) => {
         this.dbConnection = event.target.result;
-        window.console.debug("Database version upgraded success.");
+        this.dbVersion = this.dbConnection.version;
+        window.console.debug(`Database ${this.dbName} store ${this.objectStoreName} upgrade needed as oldVersion is ${event.oldVersion} and newVersion is ${event.newVersion}.`);
         resolve(this.dbConnection);
       };
     });
