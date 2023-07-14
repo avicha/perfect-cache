@@ -1,5 +1,7 @@
 import { systemStores, externalStores } from "./stores";
-
+import debug from "debug";
+const cacheDebugger = debug("perfect-cache");
+const indexedDBDebugger = cacheDebugger.extend("indexedDB");
 /**
  *
  * @return {Array} the supported driver list
@@ -31,4 +33,38 @@ const getStoreClass = (driver) => {
   return systemStores[driver] || externalStores[driver];
 };
 
-export { getSupportedDriverList, getStoreClass };
+const connectToIndexedDB = (dbName, dbVersion) => {
+  return new Promise((resolve, reject) => {
+    const request = window.indexedDB.open(dbName, dbVersion);
+    request.onerror = (e) => {
+      window.console.error(
+        `Database ${dbName} version ${dbVersion} initialised error.`,
+        e
+      );
+      reject(e);
+    };
+    request.onsuccess = () => {
+      const dbConnection = request.result;
+      const dbVersion = dbConnection.version;
+      indexedDBDebugger(
+        `Database ${dbName} version ${dbVersion} initialised success.`
+      );
+      resolve(dbConnection);
+    };
+    request.onupgradeneeded = (event) => {
+      const dbConnection = event.target.result;
+      indexedDBDebugger(
+        `Database ${dbName} upgrade needed as oldVersion is ${event.oldVersion} and newVersion is ${event.newVersion}.`
+      );
+      resolve(dbConnection);
+    };
+  });
+};
+
+export {
+  getSupportedDriverList,
+  getStoreClass,
+  connectToIndexedDB,
+  cacheDebugger,
+  indexedDBDebugger,
+};

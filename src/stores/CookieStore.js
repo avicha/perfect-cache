@@ -1,5 +1,6 @@
 import jsCookie from "js-cookie";
 import BaseStore from "./BaseStore";
+import { cacheDebugger } from "../utils";
 
 export default class CookieStore extends BaseStore {
   static driver = "cookie";
@@ -15,7 +16,7 @@ export default class CookieStore extends BaseStore {
           const valueObj = JSON.parse(valueStr);
           resolve(valueObj);
         } catch (error) {
-          window.console.debug(`get key ${key} json parse error`, valueStr);
+          cacheDebugger(`get key ${key} json parse error`, valueStr);
           resolve();
         }
       } else {

@@ -1,4 +1,6 @@
 import BaseStore from "./BaseStore";
+import { cacheDebugger } from "../utils";
+
 export default class SessionStorageStore extends BaseStore {
   static driver = "sessionStorage";
   constructor(opts) {
@@ -13,7 +15,7 @@ export default class SessionStorageStore extends BaseStore {
           const valueObj = JSON.parse(valueStr);
           resolve(valueObj);
         } catch (error) {
-          window.console.debug(`get key ${key} json parse error`, valueStr);
+          cacheDebugger(`get key ${key} json parse error`, valueStr);
           resolve();
         }
       } else {

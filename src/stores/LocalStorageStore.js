@@ -1,4 +1,5 @@
 import BaseStore from "./BaseStore";
+import { cacheDebugger } from "../utils";
 
 export default class LocalStorageStore extends BaseStore {
   static driver = "localStorage";
@@ -14,7 +15,7 @@ export default class LocalStorageStore extends BaseStore {
           const valueObj = JSON.parse(valueStr);
           resolve(valueObj);
         } catch (error) {
-          window.console.debug(`get key ${key} json parse error`, valueStr);
+          cacheDebugger(`get key ${key} json parse error`, valueStr);
           resolve();
         }
       } else {

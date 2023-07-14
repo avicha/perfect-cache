@@ -1,4 +1,5 @@
 import BaseStore from "./BaseStore";
+import { cacheDebugger } from "../utils";
 
 export default class MemoryStore extends BaseStore {
   static driver = "memory";
@@ -15,7 +16,7 @@ export default class MemoryStore extends BaseStore {
           const valueObj = JSON.parse(valueStr);
           resolve(valueObj);
         } catch (error) {
-          window.console.debug(`get key ${key} json parse error`, valueStr);
+          cacheDebugger(`get key ${key} json parse error`, valueStr);
           resolve();
         }
       } else {
