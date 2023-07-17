@@ -12,12 +12,16 @@ const perfectCacheInstance = new PerfectCache(driver, opts);
 
 参数说明
 
-| 名称        | 意义                | 类型   | 默认值 | 是否必填 |
-| ----------- | ------------------- | ------ | ------ | -------- |
-| driver      | 使用的存储引擎      | String | memory | 非必填   |
-| opts        | 缓存配置            | Object | -      | 非必填   |
-| opts.driver | 缓存使用的存储引擎  | String | memory | 非必填   |
-| opts.prefix | 缓存 key 使用的前缀 | String | cache: | 非必填   |
+| 名称                 | 意义                           | 类型        | 默认值          | 是否必填 |
+| -------------------- | ------------------------------ | ----------- | --------------- | -------- |
+| driver               | 使用的存储引擎                 | String      | memory          | 非必填   |
+| opts                 | 缓存配置                       | Object      | -               | 非必填   |
+| opts.driver          | 缓存使用的存储引擎             | String      | memory          | 非必填   |
+| opts.prefix          | 缓存 key 使用的前缀            | String      | cache:          | 非必填   |
+| opts.dbName          | indexdb 名称                   | string      | 'perfect-cache' | 非必填   |
+| opts.objectStoreName | indexdb 的 store 名称          | string      | 'perfect-cache' | 非必填   |
+| opts.dbVersion       | indexdb 连接版本，默认最新     | number      | -               | 非必填   |
+| opts.dbConnection    | indexdb 连接，用于公用现有连接 | IDBDatabase | -               | 非必填   |
 
 #### 实例方法
 
@@ -31,11 +35,44 @@ cocnst value = await perfectCacheInstance.getItem(key, opts)
 
 | 名称              | 意义                           | 类型    | 默认值 | 是否必填 |
 | ----------------- | ------------------------------ | ------- | ------ | -------- |
-| key               | 获取的 key                     | String  | -      | 必填     |
+| key               | 缓存的 key                     | String  | -      | 必填     |
 | opts              | 获取选项                       | Object  | -      | 非必填   |
 | opts.defaultVal   | 获取不到时返回的默认值         | any     | -      | 非必填   |
 | opts.withFallback | 获取不到时是否使用退路         | Boolean | true   | 非必填   |
 | opts.refreshCache | 使用退路获取到值时是否更新缓存 | Boolean | true   | 非必填   |
+
+- 批量获取 keys 对应的缓存值
+
+```javascript
+/**
+ * itemListMap = {
+ *   'key_a': 'valueA',
+ *   'key_b': undefined,
+ *   'otherKey_c': 'valueC'
+ * }
+ */
+const itemListMap = await perfectCacheInstance.getItemList(
+  ["key_a", "key_b", "otherKey_c"],
+  opts
+);
+/**
+ * itemListMap = {
+ *   'key_a': 'valueA',
+ *   'key_b': undefined,
+ * }
+ */
+const itemListMap = await perfectCacheInstance.getItemList(/^key_.*$/, opts);
+```
+
+参数说明
+
+| 名称              | 意义                                    | 类型                    | 默认值 | 是否必填 |
+| ----------------- | --------------------------------------- | ----------------------- | ------ | -------- |
+| keys              | 缓存的 keys 数组或者 key 正则匹配表达式 | Array\<String\>\|RegExp | -      | 必填     |
+| opts              | 获取选项                                | Object                  | -      | 非必填   |
+| opts.defaultVal   | 获取不到时返回的默认值                  | any                     | -      | 非必填   |
+| opts.withFallback | 获取不到时是否使用退路                  | Boolean                 | true   | 非必填   |
+| opts.refreshCache | 使用退路获取到值时是否更新缓存          | Boolean                 | true   | 非必填   |
 
 - 设置 key 对应的缓存值
 
@@ -104,6 +141,19 @@ await perfectCacheInstance.removeItem(key);
 | ---- | ---------- | ------ | ------ | -------- |
 | key  | 缓存的 key | String | -      | 必填     |
 
+- 批量删除 keys 对应的缓存值
+
+```javascript
+await perfectCacheInstance.removeItemList(["key_a", "key_b", "otherKey_c"]);
+await perfectCacheInstance.removeItemList(/^key_.*$/);
+```
+
+参数说明
+
+| 名称 | 意义                                    | 类型                    | 默认值 | 是否必填 |
+| ---- | --------------------------------------- | ----------------------- | ------ | -------- |
+| keys | 缓存的 keys 数组或者 key 正则匹配表达式 | Array\<String\>\|RegExp | -      | 必填     |
+
 - 清除所有缓存值
 
 ```javascript
@@ -141,14 +191,14 @@ perfectCacheInstance.fallbackKey(
   },
   { expiredTime: 7200 * 1000 }
 );
-// 当获取key匹配tenantInfo_找不到时，则调用fallback退路函数来获取tenantInfo，通过Promise返回新的缓存值，并设置生命存活期2小时
+// 当获取key匹配page_找不到时，则调用fallback退路函数来获取pageInfo，通过Promise返回新的缓存值，并设置生命存活期2小时
 perfectCacheInstance.fallbackKey(
-  /^tenantInfo_(\w+)$/i,
+  /^page_(\w+)$/i,
   (key) => {
     return new Promise((resolve) => {
-      const tenantCode = key.match(/^tenantInfo_(\w+)$/i)[1];
-      api.getTenantInfo(tenantCode).then((tenantInfo) => {
-        resolve(tenantInfo);
+      const pageCode = key.match(/^page_(\w+)$/i)[1];
+      api.getPageInfo(pageCode).then((pageInfo) => {
+        resolve(pageInfo);
       });
     });
   },

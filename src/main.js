@@ -196,6 +196,50 @@ class PerfectCache extends EventListener {
     return this.store.length.apply(this.store, arguments);
   }
   /**
+   * @returns {Array} the cache values
+   */
+  async getItemList(keys, opts) {
+    let storeKeys;
+    const itemListMap = {};
+    if (Array.isArray(keys)) {
+      storeKeys = keys;
+    } else {
+      if (keys instanceof RegExp) {
+        storeKeys = (await this.keys()).filter((key) => {
+          return keys.test(key);
+        });
+      } else {
+        storeKeys = [];
+      }
+    }
+    for (const key of storeKeys) {
+      const item = await this.getItem(key, opts);
+      itemListMap[key] = item;
+    }
+    return itemListMap;
+  }
+  /**
+   * @returns {Null}
+   */
+  async removeItemList(keys) {
+    let storeKeys;
+    if (Array.isArray(keys)) {
+      storeKeys = keys;
+    } else {
+      if (keys instanceof RegExp) {
+        storeKeys = (await this.keys()).filter((key) => {
+          return keys.test(key);
+        });
+      } else {
+        storeKeys = [];
+      }
+    }
+    for (const key of storeKeys) {
+      await this.removeItem(key);
+    }
+    return void 0;
+  }
+  /**
    *
    * @param {String/Regex} key the extra key or the key pattern
    * @param {Function} fallback the fallback function when the key is not exists
