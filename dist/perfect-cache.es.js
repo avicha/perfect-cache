@@ -1334,6 +1334,44 @@ class PerfectCache extends EventListener {
   length() {
     return this.store.length.apply(this.store, arguments);
   }
+  async getItemList(keys, opts) {
+    let storeKeys;
+    const itemListMap = {};
+    if (Array.isArray(keys)) {
+      storeKeys = keys;
+    } else {
+      if (keys instanceof RegExp) {
+        storeKeys = (await this.keys()).filter((key) => {
+          return keys.test(key);
+        });
+      } else {
+        storeKeys = [];
+      }
+    }
+    for (const key of storeKeys) {
+      const item = await this.getItem(key, opts);
+      itemListMap[key] = item;
+    }
+    return itemListMap;
+  }
+  async removeItemList(keys) {
+    let storeKeys;
+    if (Array.isArray(keys)) {
+      storeKeys = keys;
+    } else {
+      if (keys instanceof RegExp) {
+        storeKeys = (await this.keys()).filter((key) => {
+          return keys.test(key);
+        });
+      } else {
+        storeKeys = [];
+      }
+    }
+    for (const key of storeKeys) {
+      await this.removeItem(key);
+    }
+    return void 0;
+  }
   fallbackKey(key, fallback, options = {}) {
     const { expiredTime, maxAge } = options;
     if (typeof key === "string") {
