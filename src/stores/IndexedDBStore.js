@@ -22,20 +22,7 @@ export default class IndexedDBStore extends BaseStore {
       this.dbConnection = this.opts.dbConnection;
     }
     if (!this.dbConnection) {
-      // init the database connecttion and ensure the store table exists.
-      this.init()
-        .then(() => {
-          this.ready();
-        })
-        .catch(() => {
-          // get the database connection failed, maybe the version is not match, so we need to upgrade it.
-          if (this.dbConnection) {
-            this.upgradeToVersion(this.dbConnection.version + 1);
-          } else {
-            // maybe the given database version to connect is not the latest, so we need to reconnect to the latest one without the exact version.
-            this.upgradeToVersion();
-          }
-        });
+      this.connectToVersion(this.dbVersion);
     } else {
       this.dbVersion = this.dbConnection.version;
       this.ready();
@@ -47,23 +34,46 @@ export default class IndexedDBStore extends BaseStore {
       return this.initObjectStore();
     });
   }
-  upgradeToVersion(newVersion) {
-    this.dbVersion = newVersion;
+  connectToVersion(dbVersion) {
+    this.dbVersion = dbVersion;
     indexedDBDebugger(
-      `Database ${this.dbName} store ${this.objectStoreName} is upgrading to version ${this.dbVersion}...`
+      `Database ${this.dbName} is connecting to version ${
+        this.dbVersion || "latest"
+      } and store ${this.objectStoreName} will be created if not exists.`
     );
     this.init()
       .then(() => {
         indexedDBDebugger(
-          `Database ${this.dbName} store ${this.objectStoreName} version upgraded to ${this.dbVersion} success.`
+          `Database ${this.dbName} is connected to ${this.dbVersion} success and store ${this.objectStoreName} is ready.`
         );
         this.ready();
       })
       .catch((err) => {
-        window.console.error(
-          `Database ${this.dbName} store ${this.objectStoreName} version upgraded to ${this.dbVersion} failed.`,
-          err
-        );
+        // get the database connection failed, maybe the version is not match, so we need to upgrade it.
+        if (this.dbConnection) {
+          window.console.error(
+            `Database ${this.dbName} is connected to ${
+              this.dbConnection.version
+            } success but store ${
+              this.objectStoreName
+            } init failed because of the outdated version. now reconnect to the next version ${
+              this.dbConnection.version + 1
+            }`,
+            err
+          );
+          this.connectToVersion(this.dbConnection.version + 1);
+        } else {
+          window.console.error(
+            `Database ${this.dbName} is connected to ${
+              this.dbVersion || "latest"
+            } failed and store ${
+              this.objectStoreName
+            } is not ready because of the outdated version. now reconnect to the latest version`,
+            err
+          );
+          // maybe the given database version to connect is not the latest, so we need to reconnect to the latest one without the exact version.
+          this.connectToVersion();
+        }
       });
   }
   waitForConnectionReady(
@@ -73,7 +83,7 @@ export default class IndexedDBStore extends BaseStore {
     if (this.isReady && this.dbConnection) {
       if (readyLog) {
         indexedDBDebugger(
-          `Database connection ${this.dbName} store ${this.objectStoreName} is ready.(^v^)`
+          `Database connection ${this.dbName} is connected and store ${this.objectStoreName} is ready.(^v^)`
         );
       }
       if (callback && typeof callback === "function") {
@@ -117,7 +127,7 @@ export default class IndexedDBStore extends BaseStore {
           indexedDBDebugger(
             `The version of this database ${this.dbName} store ${this.objectStoreName} has changed from ${event.oldVersion} to ${event.newVersion}`
           );
-          this.upgradeToVersion(event.newVersion);
+          this.connectToVersion(event.newVersion);
         };
       }
     );

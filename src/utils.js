@@ -38,7 +38,9 @@ const connectToIndexedDB = (dbName, dbVersion) => {
     const request = window.indexedDB.open(dbName, dbVersion);
     request.onerror = (e) => {
       window.console.error(
-        `Database ${dbName} version ${dbVersion} initialised error.`,
+        `Database ${dbName} version ${
+          dbVersion || "latest"
+        } initialised error.`,
         e
       );
       reject(e);
