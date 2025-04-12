@@ -6,8 +6,8 @@
         "build": "vite build",
         "test": "jest test",
         "pre": "pnpm setup && pnpm root -g && pnpm install && husky init",
-        "eslint": "eslint --fix ./src",
-        "stylelint": "stylelint --fix \"./**/*.{less,scss,css,vue}\"",
+        "eslint": "eslint --fix --no-warn-ignored --no-error-on-unmatched-pattern ./src",
+        "stylelint": "stylelint --fix --allow-empty-input \"./**/*.{less,scss,css,vue}\"",
         "typecheck": "tsc --noEmit -p tsconfig.json --composite false",
         "prettier": "prettier --no-error-on-unmatched-pattern ./ --write"
     },
@@ -52,6 +52,7 @@
         "@commitlint/cli": "^19.8.0",
         "@commitlint/config-conventional": "^19.8.0",
         "@easy-ui/ci-configs": "^1.0.0",
+        "@easy-ui/stylelint-config": "^1.0.0",
         "@types/jest": "^29.5.14",
         "babel-jest": "^29.7.0",
         "eslint": "^9.24.0",
@@ -60,6 +61,7 @@
         "jest-environment-jsdom": "^29.7.0",
         "lint-staged": "^15.5.1",
         "prettier": "^3.5.3",
+        "stylelint": "^16.18.0",
         "ts-jest": "^29.3.1",
         "typescript": "^5.8.3",
         "vite": "^6.2.6"
