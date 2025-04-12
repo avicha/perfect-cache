@@ -1,117 +1,110 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Perfect Cache</title>
-  </head>
-  <body>
-    <script src="./dist/perfect-cache.umd.js"></script>
-    <script>
-      (async () => {
-        const PerfectCacheInstance = new PerfectCache.PerfectCache({
-          driver: "cookie",
-        });
-        window.console.log(PerfectCacheInstance);
-        const result1 = await PerfectCacheInstance.setItem(
-          "key1",
-          { a: 1, b: 2 },
-          { expiredTime: 2000, setOnlyNotExist: true }
-        );
-        window.console.log(result1, await PerfectCacheInstance.getItem("key1"));
-        const result2 = await PerfectCacheInstance.setItem(
-          "key1",
-          { a: 3, b: 4 },
-          { expiredTime: 2000, setOnlyExist: true }
-        );
-        window.console.log(result2, await PerfectCacheInstance.getItem("key1"));
-        window.console.log("keys", await PerfectCacheInstance.keys());
-        window.console.log("length", await PerfectCacheInstance.length());
-        const PerfectCacheAsyncInstance = new PerfectCache.PerfectCache({
-          driver: "indexedDB",
-        });
-        PerfectCacheAsyncInstance.$on("ready", () => {
-          window.console.log("indexedDB ready.");
-          PerfectCacheAsyncInstance.getItem("key1").then((value) => {
-            window.console.log("key1 get success", value);
-            PerfectCacheAsyncInstance.setItem("key1", {
-              a: 3,
-              b: 2,
-              c: 1,
-            }).then(async () => {
-              window.console.log("key1 set success");
-              window.console.log(
-                "keys",
-                await PerfectCacheAsyncInstance.keys()
-              );
-              window.console.log(
-                "length",
-                await PerfectCacheAsyncInstance.length()
-              );
-            });
-          });
-        });
-        class MyStore extends PerfectCache.BaseStore {
-          // 驱动名称
-          static driver = "myStore";
-          data = {};
-          constructor(opts) {
-            super(opts);
-            // 告诉缓存系统已经准备好了，如果是异步的就在准备好的时候调用ready函数告知系统
-            this.ready();
-          }
-          // 重载keyValueGet方法，告知引擎底层怎样获取一个key对应的缓存值
-          // 必须返回Promise对象，同时resolve的对象结构为
-          // { value:'xxx', expiredTimeAt: 12345678910, maxAge: 3600000}
-          keyValueGet(key) {
-            const valueStr = this.data[this.__getRealKey(key)];
-            return new Promise((resolve) => {
-              if (valueStr) {
-                try {
-                  const valueObj = JSON.parse(valueStr);
-                  resolve(valueObj);
-                } catch (error) {
-                  window.console.debug(
-                    `get key ${key} json parse error`,
-                    valueStr
-                  );
-                  resolve();
+    <head>
+        <meta charset="UTF-8" />
+        <meta
+            http-equiv="X-UA-Compatible"
+            content="IE=edge"
+        />
+        <meta
+            name="viewport"
+            content="width=device-width, initial-scale=1.0"
+        />
+        <title>Perfect Cache</title>
+    </head>
+    <body>
+        <script src="./dist/perfect-cache.umd.js"></script>
+        <script>
+            (async () => {
+                const PerfectCacheInstance = new PerfectCache.PerfectCache({
+                    driver: 'cookie',
+                });
+                window.console.log(PerfectCacheInstance);
+                const result1 = await PerfectCacheInstance.setItem(
+                    'key1',
+                    { a: 1, b: 2 },
+                    { expiredTime: 2000, setOnlyNotExist: true }
+                );
+                window.console.log(result1, await PerfectCacheInstance.getItem('key1'));
+                const result2 = await PerfectCacheInstance.setItem(
+                    'key1',
+                    { a: 3, b: 4 },
+                    { expiredTime: 2000, setOnlyExist: true }
+                );
+                window.console.log(result2, await PerfectCacheInstance.getItem('key1'));
+                window.console.log('keys', await PerfectCacheInstance.keys());
+                window.console.log('length', await PerfectCacheInstance.length());
+                const PerfectCacheAsyncInstance = new PerfectCache.PerfectCache({
+                    driver: 'indexedDB',
+                });
+                PerfectCacheAsyncInstance.$on('ready', () => {
+                    window.console.log('indexedDB ready.');
+                    PerfectCacheAsyncInstance.getItem('key1').then((value) => {
+                        window.console.log('key1 get success', value);
+                        PerfectCacheAsyncInstance.setItem('key1', {
+                            a: 3,
+                            b: 2,
+                            c: 1,
+                        }).then(async () => {
+                            window.console.log('key1 set success');
+                            window.console.log('keys', await PerfectCacheAsyncInstance.keys());
+                            window.console.log('length', await PerfectCacheAsyncInstance.length());
+                        });
+                    });
+                });
+                class MyStore extends PerfectCache.BaseStore {
+                    // 驱动名称
+                    static driver = 'myStore';
+                    data = {};
+                    constructor(opts) {
+                        super(opts);
+                        // 告诉缓存系统已经准备好了，如果是异步的就在准备好的时候调用ready函数告知系统
+                        this.ready();
+                    }
+                    // 重载keyValueGet方法，告知引擎底层怎样获取一个key对应的缓存值
+                    // 必须返回Promise对象，同时resolve的对象结构为
+                    // { value:'xxx', expiredTimeAt: 12345678910, maxAge: 3600000}
+                    keyValueGet(key) {
+                        const valueStr = this.data[this.__getRealKey(key)];
+                        return new Promise((resolve) => {
+                            if (valueStr) {
+                                try {
+                                    const valueObj = JSON.parse(valueStr);
+                                    resolve(valueObj);
+                                } catch (error) {
+                                    window.console.debug(`get key ${key} json parse error`, valueStr);
+                                    resolve();
+                                }
+                            } else {
+                                resolve();
+                            }
+                        });
+                    }
+                    // 重载keyValueSet方法，告知引擎底层怎样设置一个key对应的缓存值
+                    // 必须返回Promise对象
+                    // value的数据结构为{ value:'xxx', expiredTimeAt: 12345678910, maxAge: 3600000}
+                    keyValueSet(key, value) {
+                        this.data[this.__getRealKey(key)] = JSON.stringify(value);
+                        return Promise.resolve();
+                    }
+                    // 重载existsKey方法，告知引擎底层一个key是否存在
+                    // 必须返回Promise对象
+                    existsKey(key) {
+                        const realKey = this.__getRealKey(key);
+                        if (realKey in this.data) {
+                            return Promise.resolve(true);
+                        } else {
+                            return Promise.resolve(false);
+                        }
+                    }
                 }
-              } else {
-                resolve();
-              }
-            });
-          }
-          // 重载keyValueSet方法，告知引擎底层怎样设置一个key对应的缓存值
-          // 必须返回Promise对象
-          // value的数据结构为{ value:'xxx', expiredTimeAt: 12345678910, maxAge: 3600000}
-          keyValueSet(key, value) {
-            this.data[this.__getRealKey(key)] = JSON.stringify(value);
-            return Promise.resolve();
-          }
-          // 重载existsKey方法，告知引擎底层一个key是否存在
-          // 必须返回Promise对象
-          existsKey(key) {
-            const realKey = this.__getRealKey(key);
-            if (realKey in this.data) {
-              return Promise.resolve(true);
-            } else {
-              return Promise.resolve(false);
-            }
-          }
-        }
-        PerfectCache.registerStore(MyStore);
-        const myCache = new PerfectCache.PerfectCache({
-          driver: "myStore",
-        });
-        const result3 = await myCache.setItem(
-          "key1",
-          { a: 1, b: 2 },
-          { expiredTimeAt: Date.now() + 10000 }
-        );
-        window.console.log("myStore", result3, await myCache.getItem("key1"));
-      })();
-    </script>
-  </body>
+                PerfectCache.registerStore(MyStore);
+                const myCache = new PerfectCache.PerfectCache({
+                    driver: 'myStore',
+                });
+                const result3 = await myCache.setItem('key1', { a: 1, b: 2 }, { expiredTimeAt: Date.now() + 10000 });
+                window.console.log('myStore', result3, await myCache.getItem('key1'));
+            })();
+        </script>
+    </body>
 </html>

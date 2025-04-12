@@ -1,0 +1,10 @@
+{
+    "recommendations": [
+        "stylelint.vscode-stylelint",
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode",
+        "Vue.volar",
+        "eamodio.gitlens",
+        "lokalise.i18n-ally"
+    ]
+}
