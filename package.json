@@ -4,7 +4,12 @@
     "description": "browser cache lib",
     "scripts": {
         "build": "vite build",
-        "test": "jest test"
+        "test": "jest test",
+        "pre": "pnpm setup && pnpm root -g && pnpm install && husky init",
+        "eslint": "eslint --fix ./src",
+        "stylelint": "stylelint --fix \"./**/*.{less,scss,css,vue}\"",
+        "typecheck": "tsc --noEmit -p tsconfig.json --composite false",
+        "prettier": "prettier --no-error-on-unmatched-pattern ./ --write"
     },
     "repository": {
         "type": "git",
