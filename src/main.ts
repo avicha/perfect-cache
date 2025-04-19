@@ -10,7 +10,7 @@ import type {
     KeyFallbackConfig,
     KeyRegexFallbackConfig,
 } from './types';
-import { BaseStore } from 'stores';
+import { BaseStore } from './stores';
 class PerfectCache<StoreOptions extends BaseStoreOptions, Store extends BaseStore<StoreOptions>> extends EventListener {
     // cache options
     opts: CacheOptions;

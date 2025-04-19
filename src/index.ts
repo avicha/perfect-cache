@@ -1,6 +1,17 @@
 import PerfectCache from './main';
 import EventListener from './EventListener';
-import { BaseStore, StoreResult, registerStore } from './stores';
+import {
+    systemStores,
+    externalStores,
+    BaseStore,
+    LocalStorageStore,
+    MemoryStore,
+    SessionStorageStore,
+    CookieStore,
+    IndexedDBStore,
+    StoreResult,
+    registerStore,
+} from './stores';
 import { getSupportedDriverList, connectToIndexedDB, cacheDebugger, indexedDBDebugger } from './utils';
 import type {
     SupportedDriver,
@@ -25,6 +36,13 @@ export {
     PerfectCache,
     BaseStore,
     EventListener,
+    systemStores,
+    externalStores,
+    LocalStorageStore,
+    MemoryStore,
+    SessionStorageStore,
+    CookieStore,
+    IndexedDBStore,
     StoreResult,
     registerStore,
     getSupportedDriverList,

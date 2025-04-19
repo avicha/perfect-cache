@@ -1,6 +1,8 @@
-import { PerfectCache } from '../src';
+import { PerfectCache, MemoryStore } from '../src';
+import type { BaseStoreOptions } from '../src/types';
+
 describe('memory cache should be correct', () => {
-    let PerfectCacheInstance;
+    let PerfectCacheInstance: PerfectCache<BaseStoreOptions, MemoryStore>;
     beforeAll(() => {
         PerfectCacheInstance = new PerfectCache();
     });

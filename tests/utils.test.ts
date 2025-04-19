@@ -6,7 +6,7 @@ import CookieStore from '../src/stores/CookieStore';
 import IndexedDBStore from '../src/stores/IndexedDBStore';
 
 describe('getSupportedDriverList should be correct', () => {
-    let supportedDriverList;
+    let supportedDriverList: string[];
     beforeAll(() => {
         supportedDriverList = getSupportedDriverList();
     });

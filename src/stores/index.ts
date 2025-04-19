@@ -37,4 +37,15 @@ function registerStore<StoreOptions extends BaseStoreOptions, T extends { driver
         throw new Error('the store driver class must be subclass of BaseStore.');
     }
 }
-export { systemStores, externalStores, BaseStore, StoreResult, registerStore };
+export {
+    systemStores,
+    externalStores,
+    BaseStore,
+    LocalStorageStore,
+    MemoryStore,
+    SessionStorageStore,
+    CookieStore,
+    IndexedDBStore,
+    StoreResult,
+    registerStore,
+};
