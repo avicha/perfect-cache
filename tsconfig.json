@@ -1,0 +1,17 @@
+{
+    "include": ["src/**/*"],
+    "compilerOptions": {
+        "types": ["./node_modules/@easy-fe/types"],
+        "target": "ESNext",
+        "module": "ESNext",
+        "moduleResolution": "Bundler",
+        "resolveJsonModule": true,
+        "strict": true,
+        "esModuleInterop": true,
+        "skipLibCheck": true,
+        "forceConsistentCasingInFileNames": true,
+        "baseUrl": "./src",
+        "paths": {},
+        "lib": ["ES2020", "DOM", "DOM.Iterable"]
+    }
+}

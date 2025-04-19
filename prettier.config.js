@@ -1,3 +1,3 @@
-const prettierConfig = require('@easy-ui/ci-configs/prettier/prettier.config.js');
+const prettierConfig = require('@easy-fe/ci-configs/prettier/prettier.config.js');
 
 module.exports = prettierConfig;

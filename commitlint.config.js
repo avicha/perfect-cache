@@ -1,3 +1,3 @@
-const commitlintConfig = require('@easy-ui/ci-configs/git/commitlint.config.js');
+const commitlintConfig = require('@easy-fe/ci-configs/git/commitlint.config.js');
 
 module.exports = commitlintConfig;

@@ -1,50 +1,63 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import defaultOpts from './defaultOpts';
 import EventListener from './EventListener';
 import { getSupportedDriverList, getStoreClass } from './utils';
-
-class PerfectCache extends EventListener {
+import type {
+    CacheOptions,
+    BaseStoreOptions,
+    SetItemOption,
+    GetItemOption,
+    KeyFallbackConfig,
+    KeyRegexFallbackConfig,
+} from './types';
+import { BaseStore } from 'stores';
+class PerfectCache<StoreOptions extends BaseStoreOptions, Store extends BaseStore<StoreOptions>> extends EventListener {
     // cache options
-    opts;
+    opts: CacheOptions;
     // driver is init
     __init = false;
     // the driver string
-    driver;
+    driver?: string;
     // the store object
-    store;
+    store?: Store;
     // the extra key and fallback config
-    keyFallbacks = [];
+    keyFallbacks: KeyFallbackConfig[] = [];
     // the key pattern and fallback config
-    keyRegexFallbacks = [];
+    keyRegexFallbacks: KeyRegexFallbackConfig[] = [];
     /**
      *
      * @param {String} driver the driver string
      * @param {Object} opts the store options
      */
-    constructor(driver, opts) {
+    constructor(driver?: CacheOptions);
+    constructor(driver?: string, opts?: StoreOptions);
+    constructor(driver?: string | CacheOptions, opts?: StoreOptions) {
         super();
         const supportedDriverList = getSupportedDriverList();
+        let cacheOptions: CacheOptions;
         // driver and opts is null, then set the default opts
         if (!driver && !opts) {
-            opts = { ...defaultOpts };
+            cacheOptions = { ...defaultOpts };
         } else {
             // driver is not null
             if (driver) {
                 // driver is string and valid
-                if (supportedDriverList.includes(driver)) {
+                if (typeof driver === 'string' && supportedDriverList.includes(driver)) {
                     // opts is object config
                     if (Object.prototype.toString.call(opts) === '[object Object]') {
-                        opts = { ...defaultOpts, driver, ...opts };
+                        cacheOptions = { ...defaultOpts, driver, ...opts };
                     } else {
                         // opts is not object, then discard.
-                        opts = { ...defaultOpts, driver };
+                        cacheOptions = { ...defaultOpts, driver };
                     }
                 } else {
                     // driver is object opts
                     if (
+                        typeof driver !== 'string' &&
                         Object.prototype.toString.call(driver) === '[object Object]' &&
                         supportedDriverList.includes(driver.driver)
                     ) {
-                        opts = { ...defaultOpts, ...driver };
+                        cacheOptions = { ...defaultOpts, ...driver };
                     } else {
                         // driver is invalid
                         throw new Error(
@@ -57,8 +70,8 @@ class PerfectCache extends EventListener {
                 throw new Error('please input the driver as first param.');
             }
         }
-        if (opts && opts.driver) {
-            this.opts = opts;
+        if (cacheOptions && cacheOptions.driver) {
+            this.opts = cacheOptions;
             this.initDriver();
         } else {
             throw new Error('please input the driver as first param.');
@@ -73,9 +86,9 @@ class PerfectCache extends EventListener {
             // init false
             this.__init = false;
             // get the store class
-            const StoreClass = getStoreClass(this.opts.driver);
+            const StoreClass: new (opts: StoreOptions) => Store = getStoreClass(this.opts.driver);
             // the store instance object
-            this.store = new StoreClass(this.opts);
+            this.store = new StoreClass(this.opts as unknown as StoreOptions);
             // the store like database maybe async,so listen the ready event to be ready
             this.store.$on('ready', () => {
                 this.__init = true;
@@ -92,7 +105,7 @@ class PerfectCache extends EventListener {
      *
      * @param {String} driver the driver string
      */
-    setDriver(driver) {
+    setDriver(driver: string) {
         this.opts.driver = driver;
         this.initDriver();
     }
@@ -100,8 +113,8 @@ class PerfectCache extends EventListener {
      * @param {String} key the cache key
      * @returns {Boolean}  is the key exists
      */
-    existsKey() {
-        return this.store.existsKey.apply(this.store, arguments);
+    existsKey(...args: [string]) {
+        return this.store!.existsKey(...args);
     }
     /**
      *
@@ -112,10 +125,10 @@ class PerfectCache extends EventListener {
      * @param {Boolean} opts.refreshCache if refresh the cache result when use the fallback
      * @returns
      */
-    async getItem(key, opts = {}) {
+    async getItem(key: string, opts: GetItemOption = {}) {
         const { defaultVal, withFallback = true, refreshCache = true } = opts;
         // get the cache value
-        const result = await this.store.getItem(key);
+        const result = await this.store!.getItem(key);
         // is the result null
         const isResultInvalid = result === undefined || result === null || result === '';
         // if the result is invalid and use fallback function
@@ -130,7 +143,7 @@ class PerfectCache extends EventListener {
                     fallbackResult === undefined || fallbackResult === null || fallbackResult === '';
                 // if need refresh cache, then set the fallback result as the cache value
                 if (refreshCache && !isFallbackResultInvalid) {
-                    await this.store.setItem(key, fallbackResult, {
+                    await this.store!.setItem(key, fallbackResult, {
                         expiredTime: res.expiredTime,
                         maxAge: res.maxAge,
                     });
@@ -152,40 +165,40 @@ class PerfectCache extends EventListener {
      * @param {Object} options the cache options
      * @returns {StoreResult}
      */
-    setItem() {
-        return this.store.setItem.apply(this.store, arguments);
+    setItem(...args: [string, any, SetItemOption]) {
+        return this.store!.setItem(...args);
     }
     /**
      * @param {String} key the cache key
      * @returns {Null}
      */
-    removeItem() {
-        return this.store.removeItem.apply(this.store, arguments);
+    removeItem(...args: [string]) {
+        return this.store!.removeItem(...args);
     }
     /**
      * @returns {Null}
      */
     clear() {
-        return this.store.clear.apply(this.store, arguments);
+        return this.store!.clear();
     }
     /**
      * @returns {Array} the cache keys
      */
     keys() {
-        return this.store.keys.apply(this.store, arguments);
+        return this.store!.keys();
     }
     /**
      * @returns {Number} the cache keys count
      */
     length() {
-        return this.store.length.apply(this.store, arguments);
+        return this.store!.length();
     }
     /**
      * @returns {Array} the cache values
      */
-    async getItemList(keys, opts) {
-        let storeKeys;
-        const itemListMap = {};
+    async getItemList(keys?: string[] | RegExp, opts?: GetItemOption) {
+        let storeKeys: string[] = [];
+        const itemListMap: { [key: string]: any } = {};
         if (Array.isArray(keys)) {
             storeKeys = keys;
         } else {
@@ -206,8 +219,8 @@ class PerfectCache extends EventListener {
     /**
      * @returns {Null}
      */
-    async removeItemList(keys) {
-        let storeKeys;
+    async removeItemList(keys?: string[] | RegExp) {
+        let storeKeys: string[] = [];
         if (Array.isArray(keys)) {
             storeKeys = keys;
         } else {
@@ -231,7 +244,11 @@ class PerfectCache extends EventListener {
      * @param {Object} options the setItem operation options when the cache is updated
      * @returns
      */
-    fallbackKey(key, fallback, options = {}) {
+    fallbackKey(
+        key: string | RegExp,
+        fallback: KeyFallbackConfig['fallback'],
+        options: { expiredTime?: number; maxAge?: number } = {}
+    ) {
         const { expiredTime, maxAge } = options;
         //the extra key
         if (typeof key === 'string') {
@@ -260,9 +277,10 @@ class PerfectCache extends EventListener {
      * @param {String} key the cache key
      * @returns {Object} the fallback config object if exists, undefined otherwise.
      */
-    __getFallbackByKey(key) {
+    __getFallbackByKey(key: string): KeyFallbackConfig | KeyRegexFallbackConfig | undefined {
+        let res: KeyFallbackConfig | KeyRegexFallbackConfig | undefined;
         // find the exact key matches the config first
-        let res = this.keyFallbacks.find((obj) => {
+        res = this.keyFallbacks.find((obj) => {
             return obj.key === key;
         });
         // if found the config then return

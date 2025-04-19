@@ -1,61 +1,42 @@
-var __defProp = Object.defineProperty;
-var __defProps = Object.defineProperties;
-var __getOwnPropDescs = Object.getOwnPropertyDescriptors;
-var __getOwnPropSymbols = Object.getOwnPropertySymbols;
-var __hasOwnProp = Object.prototype.hasOwnProperty;
-var __propIsEnum = Object.prototype.propertyIsEnumerable;
-var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
-var __spreadValues = (a, b) => {
-  for (var prop in b || (b = {}))
-    if (__hasOwnProp.call(b, prop))
-      __defNormalProp(a, prop, b[prop]);
-  if (__getOwnPropSymbols)
-    for (var prop of __getOwnPropSymbols(b)) {
-      if (__propIsEnum.call(b, prop))
-        __defNormalProp(a, prop, b[prop]);
-    }
-  return a;
-};
-var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
-var __publicField = (obj, key, value) => {
-  __defNormalProp(obj, typeof key !== "symbol" ? key + "" : key, value);
-  return value;
-};
-var defaultOpts = {
+var Y = Object.defineProperty;
+var Z = (o, s, e) => s in o ? Y(o, s, { enumerable: !0, configurable: !0, writable: !0, value: e }) : o[s] = e;
+var p = (o, s, e) => Z(o, typeof s != "symbol" ? s + "" : s, e);
+const E = {
   driver: "memory",
   prefix: "cache:"
 };
-function mitt(n) {
-  return { all: n = n || /* @__PURE__ */ new Map(), on: function(t, e) {
-    var i = n.get(t);
-    i ? i.push(e) : n.set(t, [e]);
-  }, off: function(t, e) {
-    var i = n.get(t);
-    i && (e ? i.splice(i.indexOf(e) >>> 0, 1) : n.set(t, []));
-  }, emit: function(t, e) {
-    var i = n.get(t);
-    i && i.slice().map(function(n2) {
-      n2(e);
-    }), (i = n.get("*")) && i.slice().map(function(n2) {
-      n2(t, e);
+function H(o) {
+  return { all: o = o || /* @__PURE__ */ new Map(), on: function(s, e) {
+    var t = o.get(s);
+    t ? t.push(e) : o.set(s, [e]);
+  }, off: function(s, e) {
+    var t = o.get(s);
+    t && (e ? t.splice(t.indexOf(e) >>> 0, 1) : o.set(s, []));
+  }, emit: function(s, e) {
+    var t = o.get(s);
+    t && t.slice().map(function(r) {
+      r(e);
+    }), (t = o.get("*")) && t.slice().map(function(r) {
+      r(s, e);
     });
   } };
 }
-class EventListener {
+class B {
   constructor() {
-    __publicField(this, "mitt", new mitt());
+    p(this, "mitt");
+    this.mitt = H();
   }
-  $on() {
-    return this.mitt.on.apply(this, arguments);
+  $on(s, e) {
+    return this.mitt.on(s, e);
   }
-  $off() {
-    return this.mitt.off.apply(this, arguments);
+  $off(s, e) {
+    return this.mitt.off(s, e);
   }
-  $emit() {
-    return this.mitt.emit.apply(this, arguments);
+  $emit(s, e) {
+    return this.mitt.emit(s, e);
   }
 }
-const StoreResult = {
+const k = {
   OK: Symbol("OK"),
   KEY_NOT_EXISTS: Symbol("KEY_NOT_EXISTS"),
   KEY_EXPIRED: Symbol("KEY_EXPIRED"),
@@ -63,1347 +44,1031 @@ const StoreResult = {
   NX_SET_NOT_PERFORMED: Symbol("NX_SET_NOT_PERFORMED"),
   XX_SET_NOT_PERFORMED: Symbol("XX_SET_NOT_PERFORMED")
 };
-class BaseStore extends EventListener {
-  constructor(opts = {}) {
+class F extends B {
+  constructor(e) {
     super();
-    __publicField(this, "opts");
-    __publicField(this, "isReady", false);
-    __publicField(this, "prefix", "cache:");
-    this.opts = opts;
-    if (this.opts.prefix) {
-      this.prefix = this.opts.prefix;
-    }
-    this.isReady = false;
+    p(this, "opts");
+    p(this, "isReady", !1);
+    p(this, "prefix", "cache:");
+    this.opts = e, this.opts.prefix && (this.prefix = this.opts.prefix), this.isReady = !1;
   }
-  __getRealKey(key) {
-    return `${this.prefix}${key}`;
+  __getRealKey(e) {
+    return `${this.prefix}${e}`;
   }
-  ready(callback) {
+  ready(e) {
     setTimeout(() => {
-      this.isReady = true;
-      this.$emit("ready");
-      if (callback && typeof callback === "function") {
-        callback();
-      }
+      this.isReady = !0, this.$emit("ready"), e && typeof e == "function" && e();
     }, 0);
   }
-  keyValueGet() {
-    throw new Error("please implement the keyValueGet method for this driver.");
-  }
-  keyValueSet() {
-    throw new Error("please implement the keyValueSet method for this driver.");
-  }
-  existsKey() {
-    throw new Error("please implement the existsKey method for this driver.");
-  }
-  removeItem() {
-    throw new Error("please implement the removeItem method for this driver.");
-  }
   async clear() {
-    const keys = await this.keys();
-    for (const key of keys) {
-      await this.removeItem(key);
-    }
-    return Promise.resolve();
-  }
-  keys() {
-    throw new Error("please implement the keys method for this driver.");
+    const e = await this.keys();
+    for (const t of e)
+      await this.removeItem(t);
+    return Promise.resolve(e.length);
   }
   length() {
-    return new Promise((resolve, reject) => {
-      this.keys().then((keys) => {
-        resolve(keys.length);
-      }).catch((error) => {
-        reject(error);
+    return new Promise((e, t) => {
+      this.keys().then((r) => {
+        e(r.length);
+      }).catch((r) => {
+        t(r);
       });
     });
   }
-  getItem(key) {
-    return new Promise((resolve, reject) => {
-      this.keyValueGet(key).then((valueObj) => {
-        if (valueObj) {
-          if (valueObj.expiredTimeAt) {
-            if (valueObj.expiredTimeAt > Date.now()) {
-              if (valueObj.maxAge) {
-                valueObj.expiredTimeAt = Date.now() + valueObj.maxAge;
-                this.keyValueSet(key, valueObj).then(() => {
-                  return resolve(valueObj.value);
-                }).catch((e) => {
-                  reject(e);
-                });
-              } else {
-                resolve(valueObj.value);
-              }
-            } else {
-              this.$emit("cacheExpired", key);
-              resolve();
-            }
-          } else {
-            resolve(valueObj.value);
-          }
-        } else {
-          resolve();
-        }
-      }).catch((e) => {
-        reject(e);
+  getItem(e) {
+    return new Promise((t, r) => {
+      this.keyValueGet(e).then((n) => {
+        n ? n.expiredTimeAt ? n.expiredTimeAt > Date.now() ? n.maxAge ? (n.expiredTimeAt = Date.now() + n.maxAge, this.keyValueSet(e, n).then(() => t(n.value)).catch((i) => {
+          r(i);
+        })) : t(n.value) : (this.$emit("cacheExpired", e), t(void 0)) : t(n.value) : t(void 0);
+      }).catch((n) => {
+        r(n);
       });
     });
   }
-  setItem(key, value, options = {}) {
+  setItem(e, t, r = {}) {
     const {
-      expiredTime,
-      expiredTimeAt,
-      maxAge,
-      setOnlyNotExist = false,
-      setOnlyExist = false
-    } = options;
-    let localExpiredTimeAt, localMaxAge;
-    if (expiredTime && typeof expiredTime === "number" && expiredTime > 0) {
-      localExpiredTimeAt = Date.now() + expiredTime;
-    }
-    if (expiredTimeAt && typeof expiredTimeAt === "number" && expiredTimeAt > 0) {
-      localExpiredTimeAt = expiredTimeAt;
-    }
-    if (localExpiredTimeAt) {
-      localExpiredTimeAt = Math.max(localExpiredTimeAt, Date.now());
-    } else {
-      if (maxAge && typeof maxAge === "number" && maxAge > 0) {
-        localExpiredTimeAt = Date.now() + maxAge;
-        localMaxAge = maxAge;
-      }
-    }
-    return new Promise((resolve, reject) => {
-      if (setOnlyNotExist || setOnlyExist) {
-        this.existsKey(key).then((existsKey) => {
-          if (setOnlyNotExist && existsKey) {
-            return resolve(StoreResult.NX_SET_NOT_PERFORMED);
-          }
-          if (setOnlyExist && !existsKey) {
-            return resolve(StoreResult.XX_SET_NOT_PERFORMED);
-          }
-          this.keyValueSet(key, {
-            value,
-            expiredTimeAt: localExpiredTimeAt,
-            maxAge: localMaxAge
-          }).then(() => {
-            return resolve(StoreResult.OK);
-          }).catch((e) => {
-            reject(e);
-          });
-        }).catch((e) => {
-          reject(e);
+      // seconds -- Set the specified expire time, in milliseconds.
+      expiredTime: n,
+      // timestamp-seconds -- Set the specified Unix time at which the key will expire, in milliseconds.
+      expiredTimeAt: i,
+      // exists max age, in milliseconds.
+      maxAge: d,
+      // Only set the key if it does not already exist.
+      setOnlyNotExist: l = !1,
+      // Only set the key if it already exist.
+      setOnlyExist: m = !1
+    } = r;
+    let c, a;
+    return n && typeof n == "number" && n > 0 && (c = Date.now() + n), i && typeof i == "number" && i > 0 && (c = i), c ? c = Math.max(c, Date.now()) : d && typeof d == "number" && d > 0 && (c = Date.now() + d, a = d), new Promise((u, h) => {
+      l || m ? this.existsKey(e).then((f) => {
+        if (l && f)
+          return u(k.NX_SET_NOT_PERFORMED);
+        if (m && !f)
+          return u(k.XX_SET_NOT_PERFORMED);
+        this.keyValueSet(e, {
+          value: t,
+          expiredTimeAt: c,
+          maxAge: a
+        }).then(() => u(k.OK)).catch((b) => {
+          h(b);
         });
-      } else {
-        this.keyValueSet(key, {
-          value,
-          expiredTimeAt: localExpiredTimeAt,
-          maxAge: localMaxAge
-        }).then(() => {
-          return resolve(StoreResult.OK);
-        }).catch((e) => {
-          reject(e);
-        });
-      }
+      }).catch((f) => {
+        h(f);
+      }) : this.keyValueSet(e, {
+        value: t,
+        expiredTimeAt: c,
+        maxAge: a
+      }).then(() => u(k.OK)).catch((f) => {
+        h(f);
+      });
     });
   }
 }
-class LocalStorageStore extends BaseStore {
-  constructor(opts) {
-    super(opts);
-    this.ready();
+p(F, "driver");
+class L extends F {
+  constructor(s) {
+    super(s), this.ready();
   }
-  keyValueGet(key) {
-    const valueStr = localStorage.getItem(this.__getRealKey(key));
-    return new Promise((resolve) => {
-      if (valueStr) {
-        try {
-          const valueObj = JSON.parse(valueStr);
-          resolve(valueObj);
-        } catch (error) {
-          cacheDebugger(`get key ${key} json parse error`, valueStr);
-          resolve();
-        }
-      } else {
-        resolve();
-      }
-    });
-  }
-  keyValueSet(key, value) {
-    return new Promise((resolve, reject) => {
+  keyValueGet(s) {
+    const e = localStorage.getItem(this.__getRealKey(s));
+    if (e)
       try {
-        localStorage.setItem(this.__getRealKey(key), JSON.stringify(value));
-        resolve();
-      } catch (error) {
-        reject(error);
+        const t = JSON.parse(e);
+        return Promise.resolve(t);
+      } catch {
+        return w(`get key ${s} json parse error`, e), Promise.resolve(void 0);
       }
-    });
+    else
+      return Promise.resolve(void 0);
   }
-  existsKey(key) {
-    if (localStorage.getItem(this.__getRealKey(key))) {
-      return Promise.resolve(true);
-    } else {
-      return Promise.resolve(false);
+  keyValueSet(s, e) {
+    try {
+      return localStorage.setItem(this.__getRealKey(s), JSON.stringify(e)), Promise.resolve();
+    } catch (t) {
+      return w(`set key ${s} json stringify error`, t), Promise.reject(t);
     }
   }
-  removeItem(key) {
-    return new Promise((resolve, reject) => {
-      try {
-        localStorage.removeItem(this.__getRealKey(key));
-        resolve();
-      } catch (error) {
-        reject(error);
-      }
-    });
+  existsKey(s) {
+    return localStorage.getItem(this.__getRealKey(s)) ? Promise.resolve(!0) : Promise.resolve(!1);
+  }
+  removeItem(s) {
+    return localStorage.removeItem(this.__getRealKey(s)), Promise.resolve();
   }
   keys() {
-    const keys = [];
-    for (const key of Object.keys(localStorage)) {
-      if (key.startsWith(this.prefix)) {
-        keys.push(key.replace(this.prefix, ""));
-      }
-    }
-    return Promise.resolve(keys);
+    const s = [];
+    for (const e of Object.keys(localStorage))
+      e.startsWith(this.prefix) && s.push(e.replace(this.prefix, ""));
+    return Promise.resolve(s);
   }
 }
-__publicField(LocalStorageStore, "driver", "localStorage");
-class MemoryStore extends BaseStore {
-  constructor(opts) {
-    super(opts);
-    __publicField(this, "data", /* @__PURE__ */ new Map());
+p(L, "driver", "localStorage");
+class J extends F {
+  constructor(e) {
+    super(e);
+    p(this, "data", /* @__PURE__ */ new Map());
     this.ready();
   }
-  keyValueGet(key) {
-    const valueStr = this.data.get(this.__getRealKey(key));
-    return new Promise((resolve) => {
-      if (valueStr) {
-        try {
-          const valueObj = JSON.parse(valueStr);
-          resolve(valueObj);
-        } catch (error) {
-          cacheDebugger(`get key ${key} json parse error`, valueStr);
-          resolve();
-        }
-      } else {
-        resolve();
+  keyValueGet(e) {
+    const t = this.data.get(this.__getRealKey(e));
+    if (t)
+      try {
+        const r = JSON.parse(t);
+        return Promise.resolve(r);
+      } catch {
+        return w(`get key ${e} json parse error`, t), Promise.resolve(void 0);
       }
-    });
+    else
+      return Promise.resolve(void 0);
   }
-  keyValueSet(key, value) {
-    this.data.set(this.__getRealKey(key), JSON.stringify(value));
-    return Promise.resolve();
-  }
-  existsKey(key) {
-    if (this.data.has(this.__getRealKey(key))) {
-      return Promise.resolve(true);
-    } else {
-      return Promise.resolve(false);
+  keyValueSet(e, t) {
+    try {
+      return this.data.set(this.__getRealKey(e), JSON.stringify(t)), Promise.resolve();
+    } catch (r) {
+      return w(`set key ${e} json stringify error`, r), Promise.reject(r);
     }
   }
-  removeItem(key) {
-    return new Promise((resolve, reject) => {
-      try {
-        this.data.delete(this.__getRealKey(key));
-        resolve();
-      } catch (error) {
-        reject(error);
-      }
-    });
+  existsKey(e) {
+    return this.data.has(this.__getRealKey(e)) ? Promise.resolve(!0) : Promise.resolve(!1);
+  }
+  removeItem(e) {
+    return this.data.delete(this.__getRealKey(e)), Promise.resolve();
   }
   keys() {
-    const keys = Array.from(this.data.keys()).map((key) => key.replace(this.prefix, ""));
-    return Promise.resolve(keys);
+    const e = Array.from(this.data.keys()).map((t) => t.replace(this.prefix, ""));
+    return Promise.resolve(e);
   }
   clear() {
-    this.data.clear();
-    return Promise.resolve();
+    const e = this.data.size;
+    return this.data.clear(), Promise.resolve(e);
   }
   length() {
     return Promise.resolve(this.data.size);
   }
 }
-__publicField(MemoryStore, "driver", "memory");
-class SessionStorageStore extends BaseStore {
-  constructor(opts) {
-    super(opts);
-    this.ready();
+p(J, "driver", "memory");
+class X extends F {
+  constructor(s) {
+    super(s), this.ready();
   }
-  keyValueGet(key) {
-    const valueStr = sessionStorage.getItem(this.__getRealKey(key));
-    return new Promise((resolve) => {
-      if (valueStr) {
+  keyValueGet(s) {
+    const e = sessionStorage.getItem(this.__getRealKey(s));
+    return new Promise((t) => {
+      if (e)
         try {
-          const valueObj = JSON.parse(valueStr);
-          resolve(valueObj);
-        } catch (error) {
-          cacheDebugger(`get key ${key} json parse error`, valueStr);
-          resolve();
+          const r = JSON.parse(e);
+          t(r);
+        } catch {
+          w(`get key ${s} json parse error`, e), t(void 0);
         }
-      } else {
-        resolve();
-      }
+      else
+        t(void 0);
     });
   }
-  keyValueSet(key, value) {
-    return new Promise((resolve, reject) => {
+  keyValueSet(s, e) {
+    return new Promise((t, r) => {
       try {
-        sessionStorage.setItem(this.__getRealKey(key), JSON.stringify(value));
-        resolve();
-      } catch (error) {
-        reject(error);
+        sessionStorage.setItem(this.__getRealKey(s), JSON.stringify(e)), t();
+      } catch (n) {
+        w(`set key ${s} json stringify error`, n), r(n);
       }
     });
   }
-  existsKey(key) {
-    if (sessionStorage.getItem(this.__getRealKey(key))) {
-      return Promise.resolve(true);
-    } else {
-      return Promise.resolve(false);
-    }
+  existsKey(s) {
+    return sessionStorage.getItem(this.__getRealKey(s)) ? Promise.resolve(!0) : Promise.resolve(!1);
   }
-  removeItem(key) {
-    return new Promise((resolve, reject) => {
-      try {
-        sessionStorage.removeItem(this.__getRealKey(key));
-        resolve();
-      } catch (error) {
-        reject(error);
-      }
-    });
+  removeItem(s) {
+    return sessionStorage.removeItem(this.__getRealKey(s)), Promise.resolve();
   }
   keys() {
-    const keys = [];
-    for (const key of Object.keys(sessionStorage)) {
-      if (key.startsWith(this.prefix)) {
-        keys.push(key.replace(this.prefix, ""));
-      }
-    }
-    return Promise.resolve(keys);
+    const s = [];
+    for (const e of Object.keys(sessionStorage))
+      e.startsWith(this.prefix) && s.push(e.replace(this.prefix, ""));
+    return Promise.resolve(s);
   }
 }
-__publicField(SessionStorageStore, "driver", "sessionStorage");
-/*! js-cookie v3.0.1 | MIT */
-function assign(target) {
-  for (var i = 1; i < arguments.length; i++) {
-    var source = arguments[i];
-    for (var key in source) {
-      target[key] = source[key];
-    }
+p(X, "driver", "sessionStorage");
+/*! js-cookie v3.0.5 | MIT */
+function N(o) {
+  for (var s = 1; s < arguments.length; s++) {
+    var e = arguments[s];
+    for (var t in e)
+      o[t] = e[t];
   }
-  return target;
+  return o;
 }
-var defaultConverter = {
-  read: function(value) {
-    if (value[0] === '"') {
-      value = value.slice(1, -1);
-    }
-    return value.replace(/(%[\dA-F]{2})+/gi, decodeURIComponent);
+var Q = {
+  read: function(o) {
+    return o[0] === '"' && (o = o.slice(1, -1)), o.replace(/(%[\dA-F]{2})+/gi, decodeURIComponent);
   },
-  write: function(value) {
-    return encodeURIComponent(value).replace(/%(2[346BF]|3[AC-F]|40|5[BDE]|60|7[BCD])/g, decodeURIComponent);
+  write: function(o) {
+    return encodeURIComponent(o).replace(
+      /%(2[346BF]|3[AC-F]|40|5[BDE]|60|7[BCD])/g,
+      decodeURIComponent
+    );
   }
 };
-function init(converter, defaultAttributes) {
-  function set(key, value, attributes) {
-    if (typeof document === "undefined") {
-      return;
+function $(o, s) {
+  function e(r, n, i) {
+    if (!(typeof document > "u")) {
+      i = N({}, s, i), typeof i.expires == "number" && (i.expires = new Date(Date.now() + i.expires * 864e5)), i.expires && (i.expires = i.expires.toUTCString()), r = encodeURIComponent(r).replace(/%(2[346B]|5E|60|7C)/g, decodeURIComponent).replace(/[()]/g, escape);
+      var d = "";
+      for (var l in i)
+        i[l] && (d += "; " + l, i[l] !== !0 && (d += "=" + i[l].split(";")[0]));
+      return document.cookie = r + "=" + o.write(n, r) + d;
     }
-    attributes = assign({}, defaultAttributes, attributes);
-    if (typeof attributes.expires === "number") {
-      attributes.expires = new Date(Date.now() + attributes.expires * 864e5);
-    }
-    if (attributes.expires) {
-      attributes.expires = attributes.expires.toUTCString();
-    }
-    key = encodeURIComponent(key).replace(/%(2[346B]|5E|60|7C)/g, decodeURIComponent).replace(/[()]/g, escape);
-    var stringifiedAttributes = "";
-    for (var attributeName in attributes) {
-      if (!attributes[attributeName]) {
-        continue;
-      }
-      stringifiedAttributes += "; " + attributeName;
-      if (attributes[attributeName] === true) {
-        continue;
-      }
-      stringifiedAttributes += "=" + attributes[attributeName].split(";")[0];
-    }
-    return document.cookie = key + "=" + converter.write(value, key) + stringifiedAttributes;
   }
-  function get(key) {
-    if (typeof document === "undefined" || arguments.length && !key) {
-      return;
-    }
-    var cookies = document.cookie ? document.cookie.split("; ") : [];
-    var jar = {};
-    for (var i = 0; i < cookies.length; i++) {
-      var parts = cookies[i].split("=");
-      var value = parts.slice(1).join("=");
-      try {
-        var foundKey = decodeURIComponent(parts[0]);
-        jar[foundKey] = converter.read(value, foundKey);
-        if (key === foundKey) {
-          break;
-        }
-      } catch (e) {
-      }
-    }
-    return key ? jar[key] : jar;
-  }
-  return Object.create({
-    set,
-    get,
-    remove: function(key, attributes) {
-      set(key, "", assign({}, attributes, {
-        expires: -1
-      }));
-    },
-    withAttributes: function(attributes) {
-      return init(this.converter, assign({}, this.attributes, attributes));
-    },
-    withConverter: function(converter2) {
-      return init(assign({}, this.converter, converter2), this.attributes);
-    }
-  }, {
-    attributes: { value: Object.freeze(defaultAttributes) },
-    converter: { value: Object.freeze(converter) }
-  });
-}
-var api = init(defaultConverter, { path: "/" });
-class CookieStore extends BaseStore {
-  constructor(opts) {
-    super(opts);
-    this.ready();
-  }
-  keyValueGet(key) {
-    const valueStr = api.get(this.__getRealKey(key));
-    return new Promise((resolve) => {
-      if (valueStr) {
+  function t(r) {
+    if (!(typeof document > "u" || arguments.length && !r)) {
+      for (var n = document.cookie ? document.cookie.split("; ") : [], i = {}, d = 0; d < n.length; d++) {
+        var l = n[d].split("="), m = l.slice(1).join("=");
         try {
-          const valueObj = JSON.parse(valueStr);
-          resolve(valueObj);
-        } catch (error) {
-          cacheDebugger(`get key ${key} json parse error`, valueStr);
-          resolve();
+          var c = decodeURIComponent(l[0]);
+          if (i[c] = o.read(m, c), r === c)
+            break;
+        } catch {
         }
-      } else {
-        resolve();
       }
-    });
-  }
-  keyValueSet(key, value) {
-    return new Promise((resolve, reject) => {
-      try {
-        api.set(this.__getRealKey(key), JSON.stringify(value));
-        resolve();
-      } catch (error) {
-        reject(error);
-      }
-    });
-  }
-  existsKey(key) {
-    if (api.get(this.__getRealKey(key))) {
-      return Promise.resolve(true);
-    } else {
-      return Promise.resolve(false);
+      return r ? i[r] : i;
     }
   }
-  removeItem(key) {
-    return new Promise((resolve, reject) => {
+  return Object.create(
+    {
+      set: e,
+      get: t,
+      remove: function(r, n) {
+        e(
+          r,
+          "",
+          N({}, n, {
+            expires: -1
+          })
+        );
+      },
+      withAttributes: function(r) {
+        return $(this.converter, N({}, this.attributes, r));
+      },
+      withConverter: function(r) {
+        return $(N({}, this.converter, r), this.attributes);
+      }
+    },
+    {
+      attributes: { value: Object.freeze(s) },
+      converter: { value: Object.freeze(o) }
+    }
+  );
+}
+var x = $(Q, { path: "/" });
+class q extends F {
+  constructor(s) {
+    super(s), this.ready();
+  }
+  keyValueGet(s) {
+    const e = x.get(this.__getRealKey(s));
+    return new Promise((t) => {
+      if (e)
+        try {
+          const r = JSON.parse(e);
+          t(r);
+        } catch {
+          w(`get key ${s} json parse error`, e), t(void 0);
+        }
+      else
+        t(void 0);
+    });
+  }
+  keyValueSet(s, e) {
+    return new Promise((t, r) => {
       try {
-        api.remove(this.__getRealKey(key));
-        resolve();
-      } catch (error) {
-        reject(error);
+        x.set(this.__getRealKey(s), JSON.stringify(e)), t();
+      } catch (n) {
+        r(n);
+      }
+    });
+  }
+  existsKey(s) {
+    return x.get(this.__getRealKey(s)) ? Promise.resolve(!0) : Promise.resolve(!1);
+  }
+  removeItem(s) {
+    return new Promise((e, t) => {
+      try {
+        x.remove(this.__getRealKey(s)), e();
+      } catch (r) {
+        t(r);
       }
     });
   }
   keys() {
-    const cookies = api.get();
-    const keys = [];
-    for (const key of Object.keys(cookies)) {
-      if (key.startsWith(this.prefix)) {
-        keys.push(key.replace(this.prefix, ""));
-      }
-    }
-    return Promise.resolve(keys);
+    const s = x.get(), e = [];
+    for (const t of Object.keys(s))
+      t.startsWith(this.prefix) && e.push(t.replace(this.prefix, ""));
+    return Promise.resolve(e);
   }
 }
-__publicField(CookieStore, "driver", "cookie");
-class IndexedDBStore extends BaseStore {
-  constructor(opts) {
-    var _a, _b, _c, _d;
-    super(opts);
-    __publicField(this, "dbName", "perfect-cache");
-    __publicField(this, "objectStoreName", "perfect-cache");
-    __publicField(this, "dbVersion");
-    __publicField(this, "dbConnection");
-    if ((_a = this.opts) == null ? void 0 : _a.dbName) {
-      this.dbName = this.opts.dbName;
-    }
-    if ((_b = this.opts) == null ? void 0 : _b.objectStoreName) {
-      this.objectStoreName = this.opts.objectStoreName;
-    }
-    if ((_c = this.opts) == null ? void 0 : _c.dbVersion) {
-      this.dbVersion = this.opts.dbVersion;
-    }
-    if ((_d = this.opts) == null ? void 0 : _d.dbConnection) {
-      this.dbConnection = this.opts.dbConnection;
-    }
-    if (!this.dbConnection) {
-      this.connectToVersion(this.dbVersion);
-    } else {
-      this.dbVersion = this.dbConnection.version;
-      this.ready();
-    }
+p(q, "driver", "cookie");
+class z extends F {
+  constructor(e) {
+    var t, r, n, i;
+    super(e);
+    p(this, "dbName", "perfect-cache");
+    p(this, "objectStoreName", "perfect-cache");
+    p(this, "dbVersion");
+    p(this, "dbConnection");
+    (t = this.opts) != null && t.dbName && (this.dbName = this.opts.dbName), (r = this.opts) != null && r.objectStoreName && (this.objectStoreName = this.opts.objectStoreName), (n = this.opts) != null && n.dbVersion && (this.dbVersion = this.opts.dbVersion), (i = this.opts) != null && i.dbConnection && (this.dbConnection = this.opts.dbConnection), this.dbConnection ? (this.dbVersion = this.dbConnection.version, this.ready()) : this.connectToVersion(this.dbVersion);
   }
   init() {
-    return this.connectDB().then(() => {
-      return this.initObjectStore();
+    return this.connectDB().then(() => this.initObjectStore());
+  }
+  connectToVersion(e) {
+    this.dbVersion = e, C(
+      `Database ${this.dbName} is connecting to version ${this.dbVersion || "latest"} and store ${this.objectStoreName} will be created if not exists.`
+    ), this.init().then(() => {
+      C(
+        `Database ${this.dbName} is connected to ${this.dbVersion} success and store ${this.objectStoreName} is ready.`
+      ), this.ready();
+    }).catch((t) => {
+      this.dbConnection ? (window.console.error(
+        `Database ${this.dbName} is connected to ${this.dbConnection.version} success but store ${this.objectStoreName} init failed because of the outdated version. now reconnect to the next version ${this.dbConnection.version + 1}`,
+        t
+      ), this.connectToVersion(this.dbConnection.version + 1)) : (window.console.error(
+        `Database ${this.dbName} is connected to ${this.dbVersion || "latest"} failed and store ${this.objectStoreName} is not ready because of the outdated version. now reconnect to the latest version`,
+        t
+      ), this.connectToVersion());
     });
   }
-  connectToVersion(dbVersion) {
-    this.dbVersion = dbVersion;
-    indexedDBDebugger(`Database ${this.dbName} is connecting to version ${this.dbVersion || "latest"} and store ${this.objectStoreName} will be created if not exists.`);
-    this.init().then(() => {
-      indexedDBDebugger(`Database ${this.dbName} is connected to ${this.dbVersion} success and store ${this.objectStoreName} is ready.`);
-      this.ready();
-    }).catch((err) => {
-      if (this.dbConnection) {
-        window.console.error(`Database ${this.dbName} is connected to ${this.dbConnection.version} success but store ${this.objectStoreName} init failed because of the outdated version. now reconnect to the next version ${this.dbConnection.version + 1}`, err);
-        this.connectToVersion(this.dbConnection.version + 1);
-      } else {
-        window.console.error(`Database ${this.dbName} is connected to ${this.dbVersion || "latest"} failed and store ${this.objectStoreName} is not ready because of the outdated version. now reconnect to the latest version`, err);
-        this.connectToVersion();
-      }
-    });
-  }
-  waitForConnectionReady(callback, { timeout = void 0, interval = 100, readyLog = false } = {}) {
-    if (this.isReady && this.dbConnection) {
-      if (readyLog) {
-        indexedDBDebugger(`Database connection ${this.dbName} is connected and store ${this.objectStoreName} is ready.(^v^)`);
-      }
-      if (callback && typeof callback === "function") {
-        callback();
-      }
-    } else {
-      indexedDBDebugger(`Waiting for the database connection ${this.dbName} store ${this.objectStoreName} ready...`);
-      if (timeout > 0 || timeout === void 0) {
-        setTimeout(() => {
-          this.waitForConnectionReady(callback, {
-            timeout: timeout ? timeout - interval : void 0,
-            interval,
-            readyLog: true
-          });
-        }, interval);
-      } else {
-        if (callback && typeof callback === "function") {
-          callback(new Error(`Waiting for the database connection ${this.dbName} store ${this.objectStoreName} ready timeout.`));
-        }
-      }
-    }
+  waitForConnectionReady(e, t = {}) {
+    const { timeout: r, interval: n = 100, readyLog: i = !1 } = t;
+    this.isReady && this.dbConnection ? (i && C(
+      `Database connection ${this.dbName} is connected and store ${this.objectStoreName} is ready.(^v^)`
+    ), e && typeof e == "function" && e()) : (C(
+      `Waiting for the database connection ${this.dbName} store ${this.objectStoreName} ready...`
+    ), r && r > 0 || r === void 0 ? window.setTimeout(() => {
+      this.waitForConnectionReady(e, {
+        timeout: r ? r - n : void 0,
+        interval: n,
+        readyLog: !0
+      });
+    }, n) : e && typeof e == "function" && e(
+      new Error(
+        `Waiting for the database connection ${this.dbName} store ${this.objectStoreName} ready timeout.`
+      )
+    ));
   }
   connectDB() {
-    if (this.dbConnection) {
-      this.dbConnection.close();
-      this.dbConnection.onversionchange = null;
-      this.dbConnection = null;
-      this.isReady = false;
-    }
-    return connectToIndexedDB(this.dbName, this.dbVersion).then((dbConnection) => {
-      this.dbConnection = dbConnection;
-      this.dbVersion = dbConnection.version;
-      dbConnection.onversionchange = (event) => {
-        indexedDBDebugger(`The version of this database ${this.dbName} store ${this.objectStoreName} has changed from ${event.oldVersion} to ${event.newVersion}`);
-        this.connectToVersion(event.newVersion);
+    return this.dbConnection && (this.dbConnection.close(), this.dbConnection.onversionchange = null, this.dbConnection = void 0, this.isReady = !1), ae(this.dbName, this.dbVersion).then((e) => {
+      this.dbConnection = e, this.dbVersion = e.version, e.onversionchange = (t) => {
+        C(
+          `The version of this database ${this.dbName} store ${this.objectStoreName} has changed from ${t.oldVersion} to ${t.newVersion}`
+        ), this.connectToVersion(t.newVersion || void 0);
       };
     });
   }
   initObjectStore() {
-    return new Promise((resolve, reject) => {
-      if (this.dbConnection) {
-        if (!this.dbConnection.objectStoreNames.contains(this.objectStoreName)) {
-          indexedDBDebugger(`ObjectStore ${this.objectStoreName} is not exists, now creating it!`);
-          const objectStore = this.dbConnection.createObjectStore(this.objectStoreName, {
+    return new Promise((e, t) => {
+      if (this.dbConnection)
+        if (this.dbConnection.objectStoreNames.contains(this.objectStoreName))
+          e(void 0);
+        else {
+          C(`ObjectStore ${this.objectStoreName} is not exists, now creating it!`);
+          const r = this.dbConnection.createObjectStore(this.objectStoreName, {
             keyPath: "key"
           });
-          objectStore.transaction.oncomplete = (event) => {
-            indexedDBDebugger(`ObjectStore ${this.objectStoreName} is created now.`);
-            resolve();
+          r.transaction.oncomplete = (n) => {
+            C(`ObjectStore ${this.objectStoreName} is created now.`), e(r);
           };
-        } else {
-          resolve();
         }
-      } else {
-        const error = new Error(`Database ${this.dbName} connection is not initialised.`);
-        reject(error);
+      else {
+        const r = new Error(`Database ${this.dbName} connection is not initialised.`);
+        t(r);
       }
     });
   }
-  keyValueGet(key) {
-    return new Promise((resolve, reject) => {
-      this.waitForConnectionReady((error) => {
-        if (error) {
-          reject(error);
-        } else {
-          const request = this.dbConnection.transaction([this.objectStoreName], "readonly").objectStore(this.objectStoreName).get(this.__getRealKey(key));
-          request.onerror = () => {
-            window.console.error("Database get occurs error", request.result);
-            reject(request.result);
-          };
-          request.onsuccess = () => {
-            var _a;
-            resolve((_a = request.result) == null ? void 0 : _a.value);
+  keyValueGet(e) {
+    return new Promise((t, r) => {
+      this.waitForConnectionReady((n) => {
+        if (n)
+          r(n);
+        else {
+          const i = this.dbConnection.transaction([this.objectStoreName], "readonly").objectStore(this.objectStoreName).get(this.__getRealKey(e));
+          i.onerror = () => {
+            window.console.error("Database get occurs error", i.result), r(i.result);
+          }, i.onsuccess = () => {
+            var d;
+            t((d = i.result) == null ? void 0 : d.value);
           };
         }
       });
     });
   }
-  keyValueSet(key, value) {
-    return new Promise((resolve, reject) => {
-      this.waitForConnectionReady((error) => {
-        if (error) {
-          reject(error);
-        } else {
-          const request = this.dbConnection.transaction([this.objectStoreName], "readwrite").objectStore(this.objectStoreName).put({ key: this.__getRealKey(key), value });
-          request.onerror = () => {
-            window.console.error("Database put occurs error", request.result);
-            reject(request.result);
-          };
-          request.onsuccess = () => {
-            var _a;
-            resolve((_a = request.result) == null ? void 0 : _a.value);
+  keyValueSet(e, t) {
+    return new Promise((r, n) => {
+      this.waitForConnectionReady((i) => {
+        if (i)
+          n(i);
+        else {
+          const d = this.dbConnection.transaction([this.objectStoreName], "readwrite").objectStore(this.objectStoreName).put({ key: this.__getRealKey(e), value: t });
+          d.onerror = () => {
+            window.console.error("Database put occurs error", d.result), n(d.result);
+          }, d.onsuccess = () => {
+            r();
           };
         }
       });
     });
   }
-  existsKey(key) {
-    return new Promise((resolve, reject) => {
-      this.waitForConnectionReady((error) => {
-        if (error) {
-          reject(error);
-        } else {
-          const request = this.dbConnection.transaction([this.objectStoreName], "readonly").objectStore(this.objectStoreName).count(this.__getRealKey(key));
-          request.onerror = () => {
-            window.console.error("Database count occurs error", request.result);
-            reject(request.result);
-          };
-          request.onsuccess = () => {
-            resolve(!!request.result);
+  existsKey(e) {
+    return new Promise((t, r) => {
+      this.waitForConnectionReady((n) => {
+        if (n)
+          r(n);
+        else {
+          const i = this.dbConnection.transaction([this.objectStoreName], "readonly").objectStore(this.objectStoreName).count(this.__getRealKey(e));
+          i.onerror = () => {
+            window.console.error("Database count occurs error", i.result), r(i.result);
+          }, i.onsuccess = () => {
+            t(!!i.result);
           };
         }
       });
     });
   }
-  removeItem(key) {
-    return new Promise((resolve, reject) => {
-      this.waitForConnectionReady((error) => {
-        if (error) {
-          reject(error);
-        } else {
-          const request = this.dbConnection.transaction([this.objectStoreName], "readwrite").objectStore(this.objectStoreName).delete(this.__getRealKey(key));
-          request.onerror = () => {
-            window.console.error("Database delete occurs error", request.result);
-            reject(request.result);
-          };
-          request.onsuccess = () => {
-            resolve();
+  removeItem(e) {
+    return new Promise((t, r) => {
+      this.waitForConnectionReady((n) => {
+        if (n)
+          r(n);
+        else {
+          const i = this.dbConnection.transaction([this.objectStoreName], "readwrite").objectStore(this.objectStoreName).delete(this.__getRealKey(e));
+          i.onerror = () => {
+            window.console.error("Database delete occurs error", i.result), r(i.result);
+          }, i.onsuccess = () => {
+            t();
           };
         }
       });
     });
   }
   keys() {
-    const keys = [];
-    return new Promise((resolve, reject) => {
-      this.waitForConnectionReady((error) => {
-        if (error) {
-          reject(error);
-        } else {
-          const request = this.dbConnection.transaction([this.objectStoreName], "readonly").objectStore(this.objectStoreName).openCursor();
-          request.onerror = () => {
-            window.console.error("Database openCursor occurs error", request.result);
-            reject(request.result);
-          };
-          request.onsuccess = (e) => {
-            var cursor = e.target.result;
-            if (cursor) {
-              if (cursor.key.startsWith(this.prefix)) {
-                keys.push(cursor.key.replace(this.prefix, ""));
-              }
-              cursor.continue();
-            } else {
-              resolve(keys);
-            }
+    const e = [];
+    return new Promise((t, r) => {
+      this.waitForConnectionReady((n) => {
+        if (n)
+          r(n);
+        else {
+          const i = this.dbConnection.transaction([this.objectStoreName], "readonly").objectStore(this.objectStoreName).openCursor();
+          i.onerror = () => {
+            window.console.error("Database openCursor occurs error", i.result), r(i.result);
+          }, i.onsuccess = (d) => {
+            const l = i.result;
+            l ? (l.key.startsWith(this.prefix) && e.push(l.key.replace(this.prefix, "")), l.continue()) : t(e);
           };
         }
       });
     });
   }
 }
-__publicField(IndexedDBStore, "driver", "indexedDB");
-const systemStores = {};
-for (const store of [
-  MemoryStore,
-  LocalStorageStore,
-  SessionStorageStore,
-  CookieStore,
-  IndexedDBStore
-]) {
-  systemStores[store.driver] = store;
-}
-const externalStores = {};
-const registerStore = (store) => {
-  if (store instanceof BaseStore.constructor) {
-    if (store.driver && typeof store.driver === "string") {
-      externalStores[store.driver] = store;
-    } else {
+p(z, "driver", "indexedDB");
+const S = {};
+for (const o of [J, L, X, q, z])
+  Object.assign(S, { [o.driver]: o });
+const P = {};
+function le(o) {
+  if (o.driver && typeof o.driver == "string")
+    P[o.driver] = o;
+  else
+    throw new Error("please input the driver name.");
+  if (o instanceof F.constructor)
+    if (o.driver && typeof o.driver == "string")
+      P[o.driver] = o;
+    else
       throw new Error("please input the driver name.");
-    }
-  } else {
+  else
     throw new Error("the store driver class must be subclass of BaseStore.");
-  }
-};
-var browser = { exports: {} };
-var s = 1e3;
-var m = s * 60;
-var h = m * 60;
-var d = h * 24;
-var w = d * 7;
-var y = d * 365.25;
-var ms = function(val, options) {
-  options = options || {};
-  var type = typeof val;
-  if (type === "string" && val.length > 0) {
-    return parse(val);
-  } else if (type === "number" && isFinite(val)) {
-    return options.long ? fmtLong(val) : fmtShort(val);
-  }
-  throw new Error("val is not a non-empty string or a valid number. val=" + JSON.stringify(val));
-};
-function parse(str) {
-  str = String(str);
-  if (str.length > 100) {
-    return;
-  }
-  var match = /^(-?(?:\d+)?\.?\d+) *(milliseconds?|msecs?|ms|seconds?|secs?|s|minutes?|mins?|m|hours?|hrs?|h|days?|d|weeks?|w|years?|yrs?|y)?$/i.exec(str);
-  if (!match) {
-    return;
-  }
-  var n = parseFloat(match[1]);
-  var type = (match[2] || "ms").toLowerCase();
-  switch (type) {
-    case "years":
-    case "year":
-    case "yrs":
-    case "yr":
-    case "y":
-      return n * y;
-    case "weeks":
-    case "week":
-    case "w":
-      return n * w;
-    case "days":
-    case "day":
-    case "d":
-      return n * d;
-    case "hours":
-    case "hour":
-    case "hrs":
-    case "hr":
-    case "h":
-      return n * h;
-    case "minutes":
-    case "minute":
-    case "mins":
-    case "min":
-    case "m":
-      return n * m;
-    case "seconds":
-    case "second":
-    case "secs":
-    case "sec":
-    case "s":
-      return n * s;
-    case "milliseconds":
-    case "millisecond":
-    case "msecs":
-    case "msec":
-    case "ms":
-      return n;
-    default:
-      return void 0;
-  }
 }
-function fmtShort(ms2) {
-  var msAbs = Math.abs(ms2);
-  if (msAbs >= d) {
-    return Math.round(ms2 / d) + "d";
-  }
-  if (msAbs >= h) {
-    return Math.round(ms2 / h) + "h";
-  }
-  if (msAbs >= m) {
-    return Math.round(ms2 / m) + "m";
-  }
-  if (msAbs >= s) {
-    return Math.round(ms2 / s) + "s";
-  }
-  return ms2 + "ms";
+function ee(o) {
+  return o && o.__esModule && Object.prototype.hasOwnProperty.call(o, "default") ? o.default : o;
 }
-function fmtLong(ms2) {
-  var msAbs = Math.abs(ms2);
-  if (msAbs >= d) {
-    return plural(ms2, msAbs, d, "day");
-  }
-  if (msAbs >= h) {
-    return plural(ms2, msAbs, h, "hour");
-  }
-  if (msAbs >= m) {
-    return plural(ms2, msAbs, m, "minute");
-  }
-  if (msAbs >= s) {
-    return plural(ms2, msAbs, s, "second");
-  }
-  return ms2 + " ms";
-}
-function plural(ms2, msAbs, n, name) {
-  var isPlural = msAbs >= n * 1.5;
-  return Math.round(ms2 / n) + " " + name + (isPlural ? "s" : "");
-}
-function setup(env) {
-  createDebug.debug = createDebug;
-  createDebug.default = createDebug;
-  createDebug.coerce = coerce;
-  createDebug.disable = disable;
-  createDebug.enable = enable;
-  createDebug.enabled = enabled;
-  createDebug.humanize = ms;
-  createDebug.destroy = destroy;
-  Object.keys(env).forEach((key) => {
-    createDebug[key] = env[key];
-  });
-  createDebug.names = [];
-  createDebug.skips = [];
-  createDebug.formatters = {};
-  function selectColor(namespace) {
-    let hash = 0;
-    for (let i = 0; i < namespace.length; i++) {
-      hash = (hash << 5) - hash + namespace.charCodeAt(i);
-      hash |= 0;
-    }
-    return createDebug.colors[Math.abs(hash) % createDebug.colors.length];
-  }
-  createDebug.selectColor = selectColor;
-  function createDebug(namespace) {
-    let prevTime;
-    let enableOverride = null;
-    let namespacesCache;
-    let enabledCache;
-    function debug2(...args) {
-      if (!debug2.enabled) {
-        return;
-      }
-      const self = debug2;
-      const curr = Number(new Date());
-      const ms2 = curr - (prevTime || curr);
-      self.diff = ms2;
-      self.prev = prevTime;
-      self.curr = curr;
-      prevTime = curr;
-      args[0] = createDebug.coerce(args[0]);
-      if (typeof args[0] !== "string") {
-        args.unshift("%O");
-      }
-      let index = 0;
-      args[0] = args[0].replace(/%([a-zA-Z%])/g, (match, format) => {
-        if (match === "%%") {
-          return "%";
-        }
-        index++;
-        const formatter = createDebug.formatters[format];
-        if (typeof formatter === "function") {
-          const val = args[index];
-          match = formatter.call(self, val);
-          args.splice(index, 1);
-          index--;
-        }
-        return match;
-      });
-      createDebug.formatArgs.call(self, args);
-      const logFn = self.log || createDebug.log;
-      logFn.apply(self, args);
-    }
-    debug2.namespace = namespace;
-    debug2.useColors = createDebug.useColors();
-    debug2.color = createDebug.selectColor(namespace);
-    debug2.extend = extend;
-    debug2.destroy = createDebug.destroy;
-    Object.defineProperty(debug2, "enabled", {
-      enumerable: true,
-      configurable: false,
-      get: () => {
-        if (enableOverride !== null) {
-          return enableOverride;
-        }
-        if (namespacesCache !== createDebug.namespaces) {
-          namespacesCache = createDebug.namespaces;
-          enabledCache = createDebug.enabled(namespace);
-        }
-        return enabledCache;
-      },
-      set: (v) => {
-        enableOverride = v;
-      }
-    });
-    if (typeof createDebug.init === "function") {
-      createDebug.init(debug2);
-    }
-    return debug2;
-  }
-  function extend(namespace, delimiter) {
-    const newDebug = createDebug(this.namespace + (typeof delimiter === "undefined" ? ":" : delimiter) + namespace);
-    newDebug.log = this.log;
-    return newDebug;
-  }
-  function enable(namespaces) {
-    createDebug.save(namespaces);
-    createDebug.namespaces = namespaces;
-    createDebug.names = [];
-    createDebug.skips = [];
-    let i;
-    const split = (typeof namespaces === "string" ? namespaces : "").split(/[\s,]+/);
-    const len = split.length;
-    for (i = 0; i < len; i++) {
-      if (!split[i]) {
-        continue;
-      }
-      namespaces = split[i].replace(/\*/g, ".*?");
-      if (namespaces[0] === "-") {
-        createDebug.skips.push(new RegExp("^" + namespaces.slice(1) + "$"));
-      } else {
-        createDebug.names.push(new RegExp("^" + namespaces + "$"));
-      }
-    }
-  }
-  function disable() {
-    const namespaces = [
-      ...createDebug.names.map(toNamespace),
-      ...createDebug.skips.map(toNamespace).map((namespace) => "-" + namespace)
-    ].join(",");
-    createDebug.enable("");
-    return namespaces;
-  }
-  function enabled(name) {
-    if (name[name.length - 1] === "*") {
-      return true;
-    }
-    let i;
-    let len;
-    for (i = 0, len = createDebug.skips.length; i < len; i++) {
-      if (createDebug.skips[i].test(name)) {
-        return false;
-      }
-    }
-    for (i = 0, len = createDebug.names.length; i < len; i++) {
-      if (createDebug.names[i].test(name)) {
-        return true;
-      }
-    }
-    return false;
-  }
-  function toNamespace(regexp) {
-    return regexp.toString().substring(2, regexp.toString().length - 2).replace(/\.\*\?$/, "*");
-  }
-  function coerce(val) {
-    if (val instanceof Error) {
-      return val.stack || val.message;
-    }
-    return val;
-  }
-  function destroy() {
-    console.warn("Instance method `debug.destroy()` is deprecated and no longer does anything. It will be removed in the next major version of `debug`.");
-  }
-  createDebug.enable(createDebug.load());
-  return createDebug;
-}
-var common = setup;
-(function(module, exports) {
-  exports.formatArgs = formatArgs;
-  exports.save = save;
-  exports.load = load;
-  exports.useColors = useColors;
-  exports.storage = localstorage();
-  exports.destroy = (() => {
-    let warned = false;
-    return () => {
-      if (!warned) {
-        warned = true;
-        console.warn("Instance method `debug.destroy()` is deprecated and no longer does anything. It will be removed in the next major version of `debug`.");
-      }
-    };
-  })();
-  exports.colors = [
-    "#0000CC",
-    "#0000FF",
-    "#0033CC",
-    "#0033FF",
-    "#0066CC",
-    "#0066FF",
-    "#0099CC",
-    "#0099FF",
-    "#00CC00",
-    "#00CC33",
-    "#00CC66",
-    "#00CC99",
-    "#00CCCC",
-    "#00CCFF",
-    "#3300CC",
-    "#3300FF",
-    "#3333CC",
-    "#3333FF",
-    "#3366CC",
-    "#3366FF",
-    "#3399CC",
-    "#3399FF",
-    "#33CC00",
-    "#33CC33",
-    "#33CC66",
-    "#33CC99",
-    "#33CCCC",
-    "#33CCFF",
-    "#6600CC",
-    "#6600FF",
-    "#6633CC",
-    "#6633FF",
-    "#66CC00",
-    "#66CC33",
-    "#9900CC",
-    "#9900FF",
-    "#9933CC",
-    "#9933FF",
-    "#99CC00",
-    "#99CC33",
-    "#CC0000",
-    "#CC0033",
-    "#CC0066",
-    "#CC0099",
-    "#CC00CC",
-    "#CC00FF",
-    "#CC3300",
-    "#CC3333",
-    "#CC3366",
-    "#CC3399",
-    "#CC33CC",
-    "#CC33FF",
-    "#CC6600",
-    "#CC6633",
-    "#CC9900",
-    "#CC9933",
-    "#CCCC00",
-    "#CCCC33",
-    "#FF0000",
-    "#FF0033",
-    "#FF0066",
-    "#FF0099",
-    "#FF00CC",
-    "#FF00FF",
-    "#FF3300",
-    "#FF3333",
-    "#FF3366",
-    "#FF3399",
-    "#FF33CC",
-    "#FF33FF",
-    "#FF6600",
-    "#FF6633",
-    "#FF9900",
-    "#FF9933",
-    "#FFCC00",
-    "#FFCC33"
-  ];
-  function useColors() {
-    if (typeof window !== "undefined" && window.process && (window.process.type === "renderer" || window.process.__nwjs)) {
-      return true;
-    }
-    if (typeof navigator !== "undefined" && navigator.userAgent && navigator.userAgent.toLowerCase().match(/(edge|trident)\/(\d+)/)) {
-      return false;
-    }
-    return typeof document !== "undefined" && document.documentElement && document.documentElement.style && document.documentElement.style.WebkitAppearance || typeof window !== "undefined" && window.console && (window.console.firebug || window.console.exception && window.console.table) || typeof navigator !== "undefined" && navigator.userAgent && navigator.userAgent.toLowerCase().match(/firefox\/(\d+)/) && parseInt(RegExp.$1, 10) >= 31 || typeof navigator !== "undefined" && navigator.userAgent && navigator.userAgent.toLowerCase().match(/applewebkit\/(\d+)/);
-  }
-  function formatArgs(args) {
-    args[0] = (this.useColors ? "%c" : "") + this.namespace + (this.useColors ? " %c" : " ") + args[0] + (this.useColors ? "%c " : " ") + "+" + module.exports.humanize(this.diff);
-    if (!this.useColors) {
-      return;
-    }
-    const c = "color: " + this.color;
-    args.splice(1, 0, c, "color: inherit");
-    let index = 0;
-    let lastC = 0;
-    args[0].replace(/%[a-zA-Z%]/g, (match) => {
-      if (match === "%%") {
-        return;
-      }
-      index++;
-      if (match === "%c") {
-        lastC = index;
-      }
-    });
-    args.splice(lastC, 0, c);
-  }
-  exports.log = console.debug || console.log || (() => {
-  });
-  function save(namespaces) {
-    try {
-      if (namespaces) {
-        exports.storage.setItem("debug", namespaces);
-      } else {
-        exports.storage.removeItem("debug");
-      }
-    } catch (error) {
-    }
-  }
-  function load() {
-    let r;
-    try {
-      r = exports.storage.getItem("debug");
-    } catch (error) {
-    }
-    if (!r && typeof process !== "undefined" && "env" in process) {
-      r = {}.DEBUG;
-    }
-    return r;
-  }
-  function localstorage() {
-    try {
-      return localStorage;
-    } catch (error) {
-    }
-  }
-  module.exports = common(exports);
-  const { formatters } = module.exports;
-  formatters.j = function(v) {
-    try {
-      return JSON.stringify(v);
-    } catch (error) {
-      return "[UnexpectedJSONParseError]: " + error.message;
-    }
+var j = { exports: {} }, O, K;
+function te() {
+  if (K) return O;
+  K = 1;
+  var o = 1e3, s = o * 60, e = s * 60, t = e * 24, r = t * 7, n = t * 365.25;
+  O = function(c, a) {
+    a = a || {};
+    var u = typeof c;
+    if (u === "string" && c.length > 0)
+      return i(c);
+    if (u === "number" && isFinite(c))
+      return a.long ? l(c) : d(c);
+    throw new Error(
+      "val is not a non-empty string or a valid number. val=" + JSON.stringify(c)
+    );
   };
-})(browser, browser.exports);
-var debug = browser.exports;
-const cacheDebugger = debug("perfect-cache");
-const indexedDBDebugger = cacheDebugger.extend("indexedDB");
-const getSupportedDriverList = () => {
-  let supportedDriverList = ["memory"];
-  if ((window == null ? void 0 : window.localStorage) && systemStores.localStorage) {
-    supportedDriverList.push("localStorage");
+  function i(c) {
+    if (c = String(c), !(c.length > 100)) {
+      var a = /^(-?(?:\d+)?\.?\d+) *(milliseconds?|msecs?|ms|seconds?|secs?|s|minutes?|mins?|m|hours?|hrs?|h|days?|d|weeks?|w|years?|yrs?|y)?$/i.exec(
+        c
+      );
+      if (a) {
+        var u = parseFloat(a[1]), h = (a[2] || "ms").toLowerCase();
+        switch (h) {
+          case "years":
+          case "year":
+          case "yrs":
+          case "yr":
+          case "y":
+            return u * n;
+          case "weeks":
+          case "week":
+          case "w":
+            return u * r;
+          case "days":
+          case "day":
+          case "d":
+            return u * t;
+          case "hours":
+          case "hour":
+          case "hrs":
+          case "hr":
+          case "h":
+            return u * e;
+          case "minutes":
+          case "minute":
+          case "mins":
+          case "min":
+          case "m":
+            return u * s;
+          case "seconds":
+          case "second":
+          case "secs":
+          case "sec":
+          case "s":
+            return u * o;
+          case "milliseconds":
+          case "millisecond":
+          case "msecs":
+          case "msec":
+          case "ms":
+            return u;
+          default:
+            return;
+        }
+      }
+    }
   }
-  if ((window == null ? void 0 : window.sessionStorage) && systemStores.sessionStorage) {
-    supportedDriverList.push("sessionStorage");
+  function d(c) {
+    var a = Math.abs(c);
+    return a >= t ? Math.round(c / t) + "d" : a >= e ? Math.round(c / e) + "h" : a >= s ? Math.round(c / s) + "m" : a >= o ? Math.round(c / o) + "s" : c + "ms";
   }
-  if ((window == null ? void 0 : window.document) && "cookie" in (window == null ? void 0 : window.document) && systemStores.cookie) {
-    supportedDriverList.push("cookie");
+  function l(c) {
+    var a = Math.abs(c);
+    return a >= t ? m(c, a, t, "day") : a >= e ? m(c, a, e, "hour") : a >= s ? m(c, a, s, "minute") : a >= o ? m(c, a, o, "second") : c + " ms";
   }
-  if ((window == null ? void 0 : window.indexedDB) && systemStores.indexedDB) {
-    supportedDriverList.push("indexedDB");
+  function m(c, a, u, h) {
+    var f = a >= u * 1.5;
+    return Math.round(c / u) + " " + h + (f ? "s" : "");
   }
-  supportedDriverList = supportedDriverList.concat(Object.keys(externalStores));
-  return supportedDriverList;
-};
-const getStoreClass = (driver) => {
-  return systemStores[driver] || externalStores[driver];
-};
-const connectToIndexedDB = (dbName, dbVersion) => {
-  return new Promise((resolve, reject) => {
-    const request = window.indexedDB.open(dbName, dbVersion);
-    request.onerror = (e) => {
-      window.console.error(`Database ${dbName} version ${dbVersion || "latest"} initialised error.`, e);
-      reject(e);
+  return O;
+}
+var I, T;
+function re() {
+  if (T) return I;
+  T = 1;
+  function o(s) {
+    t.debug = t, t.default = t, t.coerce = m, t.disable = d, t.enable = n, t.enabled = l, t.humanize = te(), t.destroy = c, Object.keys(s).forEach((a) => {
+      t[a] = s[a];
+    }), t.names = [], t.skips = [], t.formatters = {};
+    function e(a) {
+      let u = 0;
+      for (let h = 0; h < a.length; h++)
+        u = (u << 5) - u + a.charCodeAt(h), u |= 0;
+      return t.colors[Math.abs(u) % t.colors.length];
+    }
+    t.selectColor = e;
+    function t(a) {
+      let u, h = null, f, b;
+      function y(...g) {
+        if (!y.enabled)
+          return;
+        const v = y, _ = Number(/* @__PURE__ */ new Date()), U = _ - (u || _);
+        v.diff = U, v.prev = u, v.curr = _, u = _, g[0] = t.coerce(g[0]), typeof g[0] != "string" && g.unshift("%O");
+        let R = 0;
+        g[0] = g[0].replace(/%([a-zA-Z%])/g, (D, G) => {
+          if (D === "%%")
+            return "%";
+          R++;
+          const A = t.formatters[G];
+          if (typeof A == "function") {
+            const W = g[R];
+            D = A.call(v, W), g.splice(R, 1), R--;
+          }
+          return D;
+        }), t.formatArgs.call(v, g), (v.log || t.log).apply(v, g);
+      }
+      return y.namespace = a, y.useColors = t.useColors(), y.color = t.selectColor(a), y.extend = r, y.destroy = t.destroy, Object.defineProperty(y, "enabled", {
+        enumerable: !0,
+        configurable: !1,
+        get: () => h !== null ? h : (f !== t.namespaces && (f = t.namespaces, b = t.enabled(a)), b),
+        set: (g) => {
+          h = g;
+        }
+      }), typeof t.init == "function" && t.init(y), y;
+    }
+    function r(a, u) {
+      const h = t(this.namespace + (typeof u > "u" ? ":" : u) + a);
+      return h.log = this.log, h;
+    }
+    function n(a) {
+      t.save(a), t.namespaces = a, t.names = [], t.skips = [];
+      const u = (typeof a == "string" ? a : "").trim().replace(" ", ",").split(",").filter(Boolean);
+      for (const h of u)
+        h[0] === "-" ? t.skips.push(h.slice(1)) : t.names.push(h);
+    }
+    function i(a, u) {
+      let h = 0, f = 0, b = -1, y = 0;
+      for (; h < a.length; )
+        if (f < u.length && (u[f] === a[h] || u[f] === "*"))
+          u[f] === "*" ? (b = f, y = h, f++) : (h++, f++);
+        else if (b !== -1)
+          f = b + 1, y++, h = y;
+        else
+          return !1;
+      for (; f < u.length && u[f] === "*"; )
+        f++;
+      return f === u.length;
+    }
+    function d() {
+      const a = [
+        ...t.names,
+        ...t.skips.map((u) => "-" + u)
+      ].join(",");
+      return t.enable(""), a;
+    }
+    function l(a) {
+      for (const u of t.skips)
+        if (i(a, u))
+          return !1;
+      for (const u of t.names)
+        if (i(a, u))
+          return !0;
+      return !1;
+    }
+    function m(a) {
+      return a instanceof Error ? a.stack || a.message : a;
+    }
+    function c() {
+      console.warn("Instance method `debug.destroy()` is deprecated and no longer does anything. It will be removed in the next major version of `debug`.");
+    }
+    return t.enable(t.load()), t;
+  }
+  return I = o, I;
+}
+var V;
+function se() {
+  return V || (V = 1, function(o, s) {
+    s.formatArgs = t, s.save = r, s.load = n, s.useColors = e, s.storage = i(), s.destroy = /* @__PURE__ */ (() => {
+      let l = !1;
+      return () => {
+        l || (l = !0, console.warn("Instance method `debug.destroy()` is deprecated and no longer does anything. It will be removed in the next major version of `debug`."));
+      };
+    })(), s.colors = [
+      "#0000CC",
+      "#0000FF",
+      "#0033CC",
+      "#0033FF",
+      "#0066CC",
+      "#0066FF",
+      "#0099CC",
+      "#0099FF",
+      "#00CC00",
+      "#00CC33",
+      "#00CC66",
+      "#00CC99",
+      "#00CCCC",
+      "#00CCFF",
+      "#3300CC",
+      "#3300FF",
+      "#3333CC",
+      "#3333FF",
+      "#3366CC",
+      "#3366FF",
+      "#3399CC",
+      "#3399FF",
+      "#33CC00",
+      "#33CC33",
+      "#33CC66",
+      "#33CC99",
+      "#33CCCC",
+      "#33CCFF",
+      "#6600CC",
+      "#6600FF",
+      "#6633CC",
+      "#6633FF",
+      "#66CC00",
+      "#66CC33",
+      "#9900CC",
+      "#9900FF",
+      "#9933CC",
+      "#9933FF",
+      "#99CC00",
+      "#99CC33",
+      "#CC0000",
+      "#CC0033",
+      "#CC0066",
+      "#CC0099",
+      "#CC00CC",
+      "#CC00FF",
+      "#CC3300",
+      "#CC3333",
+      "#CC3366",
+      "#CC3399",
+      "#CC33CC",
+      "#CC33FF",
+      "#CC6600",
+      "#CC6633",
+      "#CC9900",
+      "#CC9933",
+      "#CCCC00",
+      "#CCCC33",
+      "#FF0000",
+      "#FF0033",
+      "#FF0066",
+      "#FF0099",
+      "#FF00CC",
+      "#FF00FF",
+      "#FF3300",
+      "#FF3333",
+      "#FF3366",
+      "#FF3399",
+      "#FF33CC",
+      "#FF33FF",
+      "#FF6600",
+      "#FF6633",
+      "#FF9900",
+      "#FF9933",
+      "#FFCC00",
+      "#FFCC33"
+    ];
+    function e() {
+      if (typeof window < "u" && window.process && (window.process.type === "renderer" || window.process.__nwjs))
+        return !0;
+      if (typeof navigator < "u" && navigator.userAgent && navigator.userAgent.toLowerCase().match(/(edge|trident)\/(\d+)/))
+        return !1;
+      let l;
+      return typeof document < "u" && document.documentElement && document.documentElement.style && document.documentElement.style.WebkitAppearance || // Is firebug? http://stackoverflow.com/a/398120/376773
+      typeof window < "u" && window.console && (window.console.firebug || window.console.exception && window.console.table) || // Is firefox >= v31?
+      // https://developer.mozilla.org/en-US/docs/Tools/Web_Console#Styling_messages
+      typeof navigator < "u" && navigator.userAgent && (l = navigator.userAgent.toLowerCase().match(/firefox\/(\d+)/)) && parseInt(l[1], 10) >= 31 || // Double check webkit in userAgent just in case we are in a worker
+      typeof navigator < "u" && navigator.userAgent && navigator.userAgent.toLowerCase().match(/applewebkit\/(\d+)/);
+    }
+    function t(l) {
+      if (l[0] = (this.useColors ? "%c" : "") + this.namespace + (this.useColors ? " %c" : " ") + l[0] + (this.useColors ? "%c " : " ") + "+" + o.exports.humanize(this.diff), !this.useColors)
+        return;
+      const m = "color: " + this.color;
+      l.splice(1, 0, m, "color: inherit");
+      let c = 0, a = 0;
+      l[0].replace(/%[a-zA-Z%]/g, (u) => {
+        u !== "%%" && (c++, u === "%c" && (a = c));
+      }), l.splice(a, 0, m);
+    }
+    s.log = console.debug || console.log || (() => {
+    });
+    function r(l) {
+      try {
+        l ? s.storage.setItem("debug", l) : s.storage.removeItem("debug");
+      } catch {
+      }
+    }
+    function n() {
+      let l;
+      try {
+        l = s.storage.getItem("debug");
+      } catch {
+      }
+      return !l && typeof process < "u" && "env" in process && (l = process.env.DEBUG), l;
+    }
+    function i() {
+      try {
+        return localStorage;
+      } catch {
+      }
+    }
+    o.exports = re()(s);
+    const { formatters: d } = o.exports;
+    d.j = function(l) {
+      try {
+        return JSON.stringify(l);
+      } catch (m) {
+        return "[UnexpectedJSONParseError]: " + m.message;
+      }
     };
-    request.onsuccess = () => {
-      const dbConnection = request.result;
-      const dbVersion2 = dbConnection.version;
-      indexedDBDebugger(`Database ${dbName} version ${dbVersion2} initialised success.`);
-      resolve(dbConnection);
-    };
-    request.onupgradeneeded = (event) => {
-      const dbConnection = event.target.result;
-      indexedDBDebugger(`Database ${dbName} upgrade needed as oldVersion is ${event.oldVersion} and newVersion is ${event.newVersion}.`);
-      resolve(dbConnection);
-    };
-  });
-};
-class PerfectCache extends EventListener {
-  constructor(driver, opts) {
+  }(j, j.exports)), j.exports;
+}
+var oe = se();
+const ne = /* @__PURE__ */ ee(oe), w = ne("perfect-cache"), C = w.extend("indexedDB"), M = () => {
+  let o = ["memory"];
+  return typeof window < "u" && (window != null && window.localStorage) && S.localStorage && o.push("localStorage"), typeof window < "u" && (window != null && window.sessionStorage) && S.sessionStorage && o.push("sessionStorage"), typeof window < "u" && (window != null && window.document) && "cookie" in window.document && S.cookie && o.push("cookie"), typeof window < "u" && (window != null && window.indexedDB) && S.indexedDB && o.push("indexedDB"), o = o.concat(Object.keys(P)), o;
+}, ie = (o) => o in S ? S[o] : P[o], ae = (o, s) => new Promise((e, t) => {
+  const r = window.indexedDB.open(o, s);
+  r.onerror = (n) => {
+    console.error(`Database ${o} version ${s || "latest"} initialised error.`, n), t(n);
+  }, r.onsuccess = () => {
+    const n = r.result, i = n.version;
+    C(`Database ${o} version ${i} initialised success.`), e(n);
+  }, r.onupgradeneeded = (n) => {
+    const i = r.result;
+    C(
+      `Database ${o} upgrade needed as oldVersion is ${n.oldVersion} and newVersion is ${n.newVersion}.`
+    ), e(i);
+  };
+});
+class de extends B {
+  constructor(e, t) {
     super();
-    __publicField(this, "opts");
-    __publicField(this, "__init", false);
-    __publicField(this, "driver");
-    __publicField(this, "store");
-    __publicField(this, "keyFallbacks", []);
-    __publicField(this, "keyRegexFallbacks", []);
-    const supportedDriverList = getSupportedDriverList();
-    if (!driver && !opts) {
-      opts = __spreadValues({}, defaultOpts);
-    } else {
-      if (driver) {
-        if (supportedDriverList.includes(driver)) {
-          if (Object.prototype.toString.call(opts) === "[object Object]") {
-            opts = __spreadValues(__spreadProps(__spreadValues({}, defaultOpts), { driver }), opts);
-          } else {
-            opts = __spreadProps(__spreadValues({}, defaultOpts), { driver });
-          }
-        } else {
-          if (Object.prototype.toString.call(driver) === "[object Object]" && supportedDriverList.includes(driver.driver)) {
-            opts = __spreadValues(__spreadValues({}, defaultOpts), driver);
-          } else {
-            throw new Error("please input the correct driver param as the first param or in the opts params.");
-          }
-        }
-      } else {
-        throw new Error("please input the driver as first param.");
-      }
-    }
-    if (opts && opts.driver) {
-      this.opts = opts;
-      this.initDriver();
-    } else {
+    // cache options
+    p(this, "opts");
+    // driver is init
+    p(this, "__init", !1);
+    // the driver string
+    p(this, "driver");
+    // the store object
+    p(this, "store");
+    // the extra key and fallback config
+    p(this, "keyFallbacks", []);
+    // the key pattern and fallback config
+    p(this, "keyRegexFallbacks", []);
+    const r = M();
+    let n;
+    if (!e && !t)
+      n = { ...E };
+    else if (e)
+      if (typeof e == "string" && r.includes(e))
+        Object.prototype.toString.call(t) === "[object Object]" ? n = { ...E, driver: e, ...t } : n = { ...E, driver: e };
+      else if (typeof e != "string" && Object.prototype.toString.call(e) === "[object Object]" && r.includes(e.driver))
+        n = { ...E, ...e };
+      else
+        throw new Error(
+          "please input the correct driver param as the first param or in the opts params."
+        );
+    else
       throw new Error("please input the driver as first param.");
-    }
+    if (n && n.driver)
+      this.opts = n, this.initDriver();
+    else
+      throw new Error("please input the driver as first param.");
   }
+  /**
+   * init the driver
+   */
   initDriver() {
-    const supportedDriverList = getSupportedDriverList();
-    if (this.opts && this.opts.driver && supportedDriverList.includes(this.opts.driver)) {
-      this.__init = false;
-      const StoreClass = getStoreClass(this.opts.driver);
-      this.store = new StoreClass(this.opts);
-      this.store.$on("ready", () => {
-        this.__init = true;
-        this.driver = this.opts.driver;
-        this.$emit("ready");
-      });
-      this.store.$on("cacheExpired", (key) => {
-        this.$emit("cacheExpired", key);
+    const e = M();
+    if (this.opts && this.opts.driver && e.includes(this.opts.driver)) {
+      this.__init = !1;
+      const t = ie(this.opts.driver);
+      this.store = new t(this.opts), this.store.$on("ready", () => {
+        this.__init = !0, this.driver = this.opts.driver, this.$emit("ready");
+      }), this.store.$on("cacheExpired", (r) => {
+        this.$emit("cacheExpired", r);
       });
     }
   }
-  setDriver(driver) {
-    this.opts.driver = driver;
-    this.initDriver();
+  /**
+   *
+   * @param {String} driver the driver string
+   */
+  setDriver(e) {
+    this.opts.driver = e, this.initDriver();
   }
-  existsKey() {
-    return this.store.existsKey.apply(this.store, arguments);
+  /**
+   * @param {String} key the cache key
+   * @returns {Boolean}  is the key exists
+   */
+  existsKey(...e) {
+    return this.store.existsKey(...e);
   }
-  getItem(key, opts = {}) {
-    const { defaultVal, withFallback = true, refreshCache = true } = opts;
-    return new Promise(async (resolve, reject) => {
-      const result = await this.store.getItem(key);
-      const isResultInvalid = result === void 0 || result === null || result === "";
-      if (isResultInvalid && withFallback) {
-        const res = this.__getFallbackByKey(key);
-        if (res) {
-          const fallbackResult = await res.fallback(key);
-          const isFallbackResultInvalid = fallbackResult === void 0 || fallbackResult === null || fallbackResult === "";
-          if (refreshCache && !isFallbackResultInvalid) {
-            await this.store.setItem(key, fallbackResult, {
-              expiredTime: res.expiredTime,
-              maxAge: res.maxAge
-            });
-          }
-          resolve(isFallbackResultInvalid && defaultVal !== void 0 ? defaultVal : fallbackResult);
-        } else {
-          resolve(defaultVal === void 0 ? result : defaultVal);
-        }
-      } else {
-        resolve(isResultInvalid && defaultVal !== void 0 ? defaultVal : result);
-      }
-    });
+  /**
+   *
+   * @param {String} key the cache key
+   * @param {Object} opts the options
+   * @param {Object} opts.defaultVal default value if not get it
+   * @param {Boolean} opts.withFallback if use fallback when does not get the cache value
+   * @param {Boolean} opts.refreshCache if refresh the cache result when use the fallback
+   * @returns
+   */
+  async getItem(e, t = {}) {
+    const { defaultVal: r, withFallback: n = !0, refreshCache: i = !0 } = t, d = await this.store.getItem(e), l = d == null || d === "";
+    if (l && n) {
+      const m = this.__getFallbackByKey(e);
+      if (m) {
+        const c = await m.fallback(e), a = c == null || c === "";
+        return i && !a && await this.store.setItem(e, c, {
+          expiredTime: m.expiredTime,
+          maxAge: m.maxAge
+        }), a && r !== void 0 ? r : c;
+      } else
+        return r === void 0 ? d : r;
+    } else
+      return l && r !== void 0 ? r : d;
   }
-  setItem() {
-    return this.store.setItem.apply(this.store, arguments);
+  /**
+   * @param {String} key the cache key
+   * @param {Object} value the cache value
+   * @param {Object} options the cache options
+   * @returns {StoreResult}
+   */
+  setItem(...e) {
+    return this.store.setItem(...e);
   }
-  removeItem() {
-    return this.store.removeItem.apply(this.store, arguments);
+  /**
+   * @param {String} key the cache key
+   * @returns {Null}
+   */
+  removeItem(...e) {
+    return this.store.removeItem(...e);
   }
+  /**
+   * @returns {Null}
+   */
   clear() {
-    return this.store.clear.apply(this.store, arguments);
+    return this.store.clear();
   }
+  /**
+   * @returns {Array} the cache keys
+   */
   keys() {
-    return this.store.keys.apply(this.store, arguments);
+    return this.store.keys();
   }
+  /**
+   * @returns {Number} the cache keys count
+   */
   length() {
-    return this.store.length.apply(this.store, arguments);
+    return this.store.length();
   }
-  async getItemList(keys, opts) {
-    let storeKeys;
-    const itemListMap = {};
-    if (Array.isArray(keys)) {
-      storeKeys = keys;
-    } else {
-      if (keys instanceof RegExp) {
-        storeKeys = (await this.keys()).filter((key) => {
-          return keys.test(key);
-        });
-      } else {
-        storeKeys = [];
-      }
+  /**
+   * @returns {Array} the cache values
+   */
+  async getItemList(e, t) {
+    let r = [];
+    const n = {};
+    Array.isArray(e) ? r = e : e instanceof RegExp ? r = (await this.keys()).filter((i) => e.test(i)) : r = [];
+    for (const i of r) {
+      const d = await this.getItem(i, t);
+      n[i] = d;
     }
-    for (const key of storeKeys) {
-      const item = await this.getItem(key, opts);
-      itemListMap[key] = item;
-    }
-    return itemListMap;
+    return n;
   }
-  async removeItemList(keys) {
-    let storeKeys;
-    if (Array.isArray(keys)) {
-      storeKeys = keys;
-    } else {
-      if (keys instanceof RegExp) {
-        storeKeys = (await this.keys()).filter((key) => {
-          return keys.test(key);
-        });
-      } else {
-        storeKeys = [];
-      }
-    }
-    for (const key of storeKeys) {
-      await this.removeItem(key);
-    }
-    return void 0;
+  /**
+   * @returns {Null}
+   */
+  async removeItemList(e) {
+    let t = [];
+    Array.isArray(e) ? t = e : e instanceof RegExp ? t = (await this.keys()).filter((r) => e.test(r)) : t = [];
+    for (const r of t)
+      await this.removeItem(r);
   }
-  fallbackKey(key, fallback, options = {}) {
-    const { expiredTime, maxAge } = options;
-    if (typeof key === "string") {
-      if (fallback instanceof Function) {
-        return this.keyFallbacks.push({ key, expiredTime, maxAge, fallback });
-      } else {
-        throw new Error("please input the fallback as type [Function]");
-      }
+  /**
+   *
+   * @param {String/Regex} key the extra key or the key pattern
+   * @param {Function} fallback the fallback function when the key is not exists
+   * @param {Object} options the setItem operation options when the cache is updated
+   * @returns
+   */
+  fallbackKey(e, t, r = {}) {
+    const { expiredTime: n, maxAge: i } = r;
+    if (typeof e == "string") {
+      if (t instanceof Function)
+        return this.keyFallbacks.push({ key: e, expiredTime: n, maxAge: i, fallback: t });
+      throw new Error("please input the fallback as type [Function]");
     }
-    if (key instanceof RegExp) {
-      if (fallback instanceof Function) {
+    if (e instanceof RegExp) {
+      if (t instanceof Function)
         return this.keyRegexFallbacks.push({
-          regex: key,
-          expiredTime,
-          maxAge,
-          fallback
+          regex: e,
+          expiredTime: n,
+          maxAge: i,
+          fallback: t
         });
-      } else {
-        throw new Error("please input the fallback as type [Function]");
-      }
+      throw new Error("please input the fallback as type [Function]");
     }
   }
-  __getFallbackByKey(key) {
-    let res = this.keyFallbacks.find((obj) => {
-      return obj.key === key;
-    });
-    if (res) {
-      return res;
-    } else {
-      res = this.keyRegexFallbacks.find((obj) => {
-        return obj.regex.test(key);
-      });
-      return res;
-    }
+  /**
+   *
+   * @param {String} key the cache key
+   * @returns {Object} the fallback config object if exists, undefined otherwise.
+   */
+  __getFallbackByKey(e) {
+    let t;
+    return t = this.keyFallbacks.find((r) => r.key === e), t || (t = this.keyRegexFallbacks.find((r) => r.regex.test(e)), t);
   }
 }
-export { BaseStore, EventListener, PerfectCache, StoreResult, cacheDebugger, connectToIndexedDB, getSupportedDriverList, indexedDBDebugger, registerStore };
+export {
+  F as BaseStore,
+  B as EventListener,
+  de as PerfectCache,
+  k as StoreResult,
+  w as cacheDebugger,
+  ae as connectToIndexedDB,
+  M as getSupportedDriverList,
+  C as indexedDBDebugger,
+  le as registerStore
+};

@@ -5,13 +5,28 @@ import SessionStorageStore from './SessionStorageStore';
 import CookieStore from './CookieStore';
 import IndexedDBStore from './IndexedDBStore';
 import StoreResult from './StoreResult';
+import type { BaseStoreOptions } from '../types';
 
-const systemStores = {};
+const systemStores: {
+    memory?: typeof MemoryStore;
+    localStorage?: typeof LocalStorageStore;
+    sessionStorage?: typeof SessionStorageStore;
+    cookie?: typeof CookieStore;
+    indexedDB?: typeof IndexedDBStore;
+} = {};
 for (const store of [MemoryStore, LocalStorageStore, SessionStorageStore, CookieStore, IndexedDBStore]) {
-    systemStores[store.driver] = store;
+    Object.assign(systemStores, { [store.driver]: store });
 }
-const externalStores = {};
-const registerStore = (store) => {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const externalStores: { [key: string]: any } = {};
+function registerStore<StoreOptions extends BaseStoreOptions, T extends { driver: string } & BaseStore<StoreOptions>>(
+    store: T
+) {
+    if (store.driver && typeof store.driver === 'string') {
+        externalStores[store.driver] = store;
+    } else {
+        throw new Error('please input the driver name.');
+    }
     if (store instanceof BaseStore.constructor) {
         if (store.driver && typeof store.driver === 'string') {
             externalStores[store.driver] = store;
@@ -21,5 +36,5 @@ const registerStore = (store) => {
     } else {
         throw new Error('the store driver class must be subclass of BaseStore.');
     }
-};
+}
 export { systemStores, externalStores, BaseStore, StoreResult, registerStore };

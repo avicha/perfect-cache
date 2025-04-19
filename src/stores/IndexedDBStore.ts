@@ -1,13 +1,14 @@
 import BaseStore from './BaseStore';
 import { connectToIndexedDB, indexedDBDebugger } from '../utils';
+import type { IndexedDBStoreOptions, IndexedDBConnectOption, IndexedDBStoreObject, StoreObject } from '../types';
 
-export default class IndexedDBStore extends BaseStore {
-    static driver = 'indexedDB';
+export default class IndexedDBStore extends BaseStore<IndexedDBStoreOptions> {
+    static driver = 'indexedDB' as const;
     dbName = 'perfect-cache';
     objectStoreName = 'perfect-cache';
-    dbVersion = undefined;
-    dbConnection;
-    constructor(opts) {
+    dbVersion: number | undefined = undefined;
+    dbConnection: IDBDatabase | undefined = undefined;
+    constructor(opts: IndexedDBStoreOptions) {
         super(opts);
         if (this.opts?.dbName) {
             this.dbName = this.opts.dbName;
@@ -34,7 +35,7 @@ export default class IndexedDBStore extends BaseStore {
             return this.initObjectStore();
         });
     }
-    connectToVersion(dbVersion) {
+    connectToVersion(dbVersion?: number) {
         this.dbVersion = dbVersion;
         indexedDBDebugger(
             `Database ${this.dbName} is connecting to version ${
@@ -72,7 +73,8 @@ export default class IndexedDBStore extends BaseStore {
                 }
             });
     }
-    waitForConnectionReady(callback, { timeout = undefined, interval = 100, readyLog = false } = {}) {
+    waitForConnectionReady(callback: (error?: Error) => void, connectOption: IndexedDBConnectOption = {}) {
+        const { timeout, interval = 100, readyLog = false } = connectOption;
         if (this.isReady && this.dbConnection) {
             if (readyLog) {
                 indexedDBDebugger(
@@ -86,8 +88,8 @@ export default class IndexedDBStore extends BaseStore {
             indexedDBDebugger(
                 `Waiting for the database connection ${this.dbName} store ${this.objectStoreName} ready...`
             );
-            if (timeout > 0 || timeout === undefined) {
-                setTimeout(() => {
+            if ((timeout && timeout > 0) || timeout === undefined) {
+                window.setTimeout(() => {
                     this.waitForConnectionReady(callback, {
                         timeout: timeout ? timeout - interval : undefined,
                         interval,
@@ -109,7 +111,7 @@ export default class IndexedDBStore extends BaseStore {
         if (this.dbConnection) {
             this.dbConnection.close();
             this.dbConnection.onversionchange = null;
-            this.dbConnection = null;
+            this.dbConnection = undefined;
             this.isReady = false;
         }
         return connectToIndexedDB(this.dbName, this.dbVersion).then((dbConnection) => {
@@ -119,11 +121,11 @@ export default class IndexedDBStore extends BaseStore {
                 indexedDBDebugger(
                     `The version of this database ${this.dbName} store ${this.objectStoreName} has changed from ${event.oldVersion} to ${event.newVersion}`
                 );
-                this.connectToVersion(event.newVersion);
+                this.connectToVersion(event.newVersion || undefined);
             };
         });
     }
-    initObjectStore() {
+    initObjectStore(): Promise<IDBObjectStore | undefined> {
         return new Promise((resolve, reject) => {
             if (this.dbConnection) {
                 if (!this.dbConnection.objectStoreNames.contains(this.objectStoreName)) {
@@ -135,10 +137,10 @@ export default class IndexedDBStore extends BaseStore {
                     // finished before adding data into it.
                     objectStore.transaction.oncomplete = (_event) => {
                         indexedDBDebugger(`ObjectStore ${this.objectStoreName} is created now.`);
-                        resolve();
+                        resolve(objectStore);
                     };
                 } else {
-                    resolve();
+                    resolve(undefined);
                 }
             } else {
                 const error = new Error(`Database ${this.dbName} connection is not initialised.`);
@@ -146,14 +148,13 @@ export default class IndexedDBStore extends BaseStore {
             }
         });
     }
-    keyValueGet(key) {
+    keyValueGet(key: string): Promise<StoreObject | undefined> {
         return new Promise((resolve, reject) => {
             this.waitForConnectionReady((error) => {
                 if (error) {
                     reject(error);
                 } else {
-                    const request = this.dbConnection
-                        .transaction([this.objectStoreName], 'readonly')
+                    const request = this.dbConnection!.transaction([this.objectStoreName], 'readonly')
                         .objectStore(this.objectStoreName)
                         .get(this.__getRealKey(key));
                     request.onerror = () => {
@@ -161,20 +162,19 @@ export default class IndexedDBStore extends BaseStore {
                         reject(request.result);
                     };
                     request.onsuccess = () => {
-                        resolve(request.result?.value);
+                        resolve((request.result as IndexedDBStoreObject)?.value);
                     };
                 }
             });
         });
     }
-    keyValueSet(key, value) {
+    keyValueSet(key: string, value: StoreObject): Promise<void> {
         return new Promise((resolve, reject) => {
             this.waitForConnectionReady((error) => {
                 if (error) {
                     reject(error);
                 } else {
-                    const request = this.dbConnection
-                        .transaction([this.objectStoreName], 'readwrite')
+                    const request = this.dbConnection!.transaction([this.objectStoreName], 'readwrite')
                         .objectStore(this.objectStoreName)
                         .put({ key: this.__getRealKey(key), value });
                     request.onerror = () => {
@@ -182,20 +182,19 @@ export default class IndexedDBStore extends BaseStore {
                         reject(request.result);
                     };
                     request.onsuccess = () => {
-                        resolve(request.result?.value);
+                        resolve();
                     };
                 }
             });
         });
     }
-    existsKey(key) {
+    existsKey(key: string): Promise<boolean> {
         return new Promise((resolve, reject) => {
             this.waitForConnectionReady((error) => {
                 if (error) {
                     reject(error);
                 } else {
-                    const request = this.dbConnection
-                        .transaction([this.objectStoreName], 'readonly')
+                    const request = this.dbConnection!.transaction([this.objectStoreName], 'readonly')
                         .objectStore(this.objectStoreName)
                         .count(this.__getRealKey(key));
                     request.onerror = () => {
@@ -209,14 +208,13 @@ export default class IndexedDBStore extends BaseStore {
             });
         });
     }
-    removeItem(key) {
+    removeItem(key: string): Promise<void> {
         return new Promise((resolve, reject) => {
             this.waitForConnectionReady((error) => {
                 if (error) {
                     reject(error);
                 } else {
-                    const request = this.dbConnection
-                        .transaction([this.objectStoreName], 'readwrite')
+                    const request = this.dbConnection!.transaction([this.objectStoreName], 'readwrite')
                         .objectStore(this.objectStoreName)
                         .delete(this.__getRealKey(key));
                     request.onerror = () => {
@@ -230,15 +228,14 @@ export default class IndexedDBStore extends BaseStore {
             });
         });
     }
-    keys() {
-        const keys = [];
+    keys(): Promise<string[]> {
+        const keys: string[] = [];
         return new Promise((resolve, reject) => {
             this.waitForConnectionReady((error) => {
                 if (error) {
                     reject(error);
                 } else {
-                    const request = this.dbConnection
-                        .transaction([this.objectStoreName], 'readonly')
+                    const request = this.dbConnection!.transaction([this.objectStoreName], 'readonly')
                         .objectStore(this.objectStoreName)
                         .openCursor();
                     request.onerror = () => {
@@ -246,10 +243,10 @@ export default class IndexedDBStore extends BaseStore {
                         reject(request.result);
                     };
                     request.onsuccess = (e) => {
-                        var cursor = e.target.result;
+                        const cursor = request.result;
                         if (cursor) {
-                            if (cursor.key.startsWith(this.prefix)) {
-                                keys.push(cursor.key.replace(this.prefix, ''));
+                            if ((cursor.key as string).startsWith(this.prefix)) {
+                                keys.push((cursor.key as string).replace(this.prefix, ''));
                             }
                             cursor.continue();
                         } else {

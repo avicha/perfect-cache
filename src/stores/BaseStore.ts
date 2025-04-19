@@ -1,11 +1,14 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import EventListener from '../EventListener';
 import StoreResult from './StoreResult';
+import type { BaseStoreOptions, StoreObject, SetItemOption, SupportedDriver } from '../types';
 
-export default class BaseStore extends EventListener {
-    opts;
+export default abstract class BaseStore<StoreOption extends BaseStoreOptions> extends EventListener {
+    static driver: SupportedDriver;
+    opts: StoreOption;
     isReady = false;
     prefix = 'cache:';
-    constructor(opts = {}) {
+    constructor(opts: StoreOption) {
         super();
         this.opts = opts;
         if (this.opts.prefix) {
@@ -13,10 +16,10 @@ export default class BaseStore extends EventListener {
         }
         this.isReady = false;
     }
-    __getRealKey(key) {
+    __getRealKey(key: string) {
         return `${this.prefix}${key}`;
     }
-    ready(callback) {
+    ready(callback?: CallbackFunc) {
         setTimeout(() => {
             this.isReady = true;
             this.$emit('ready');
@@ -25,29 +28,20 @@ export default class BaseStore extends EventListener {
             }
         }, 0);
     }
-    keyValueGet() {
-        throw new Error('please implement the keyValueGet method for this driver.');
-    }
-    keyValueSet() {
-        throw new Error('please implement the keyValueSet method for this driver.');
-    }
-    existsKey() {
-        throw new Error('please implement the existsKey method for this driver.');
-    }
-    removeItem() {
-        throw new Error('please implement the removeItem method for this driver.');
-    }
-    async clear() {
+    abstract keyValueGet(_key: string): Promise<StoreObject | undefined>;
+    abstract keyValueSet(_key: string, _valueObj: StoreObject): Promise<void>;
+    abstract existsKey(_key: string): Promise<boolean>;
+    abstract removeItem(_key: string): Promise<void>;
+    abstract keys(): Promise<string[]>;
+    async clear(): Promise<number> {
         const keys = await this.keys();
         for (const key of keys) {
             await this.removeItem(key);
         }
-        return Promise.resolve();
+        return Promise.resolve(keys.length);
     }
-    keys() {
-        throw new Error('please implement the keys method for this driver.');
-    }
-    length() {
+
+    length(): Promise<number> {
         return new Promise((resolve, reject) => {
             this.keys()
                 .then((keys) => {
@@ -58,7 +52,7 @@ export default class BaseStore extends EventListener {
                 });
         });
     }
-    getItem(key) {
+    getItem(key: string): Promise<any> {
         return new Promise((resolve, reject) => {
             this.keyValueGet(key)
                 .then((valueObj) => {
@@ -85,14 +79,14 @@ export default class BaseStore extends EventListener {
                             } else {
                                 // if expired return undefined and emit the event
                                 this.$emit('cacheExpired', key);
-                                resolve();
+                                resolve(undefined);
                             }
                         } else {
                             // not set the expiredAt then return the value directly
                             resolve(valueObj.value);
                         }
                     } else {
-                        resolve();
+                        resolve(undefined);
                     }
                 })
                 .catch((e) => {
@@ -100,7 +94,7 @@ export default class BaseStore extends EventListener {
                 });
         });
     }
-    setItem(key, value, options = {}) {
+    setItem(key: string, value: any, options: SetItemOption = {}): Promise<symbol> {
         const {
             // seconds -- Set the specified expire time, in milliseconds.
             expiredTime,
@@ -113,7 +107,7 @@ export default class BaseStore extends EventListener {
             // Only set the key if it already exist.
             setOnlyExist = false,
         } = options;
-        let localExpiredTimeAt, localMaxAge;
+        let localExpiredTimeAt: number | undefined, localMaxAge: number | undefined;
         if (expiredTime && typeof expiredTime === 'number' && expiredTime > 0) {
             localExpiredTimeAt = Date.now() + expiredTime;
         }

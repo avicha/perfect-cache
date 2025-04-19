@@ -51,10 +51,7 @@ cocnst value = await perfectCacheInstance.getItem(key, opts)
  *   'otherKey_c': 'valueC'
  * }
  */
-const itemListMap = await perfectCacheInstance.getItemList(
-  ["key_a", "key_b", "otherKey_c"],
-  opts
-);
+const itemListMap = await perfectCacheInstance.getItemList(['key_a', 'key_b', 'otherKey_c'], opts);
 /**
  * itemListMap = {
  *   'key_a': 'valueA',
@@ -96,18 +93,18 @@ const result = await perfectCacheInstance.setItem(key, value, options);
 设置的返回结果枚举值
 
 ```javascript
-import { StoreResult } from "perfect-cache";
+import { StoreResult } from 'perfect-cache';
 
 switch (result) {
-  // 成功设置
-  case StoreResult.OK:
-    break;
-  // 设置缓存值时，设置了不存在才设置，但是由于 key 存在导致没有设置
-  case StoreResult.NX_SET_NOT_PERFORMED:
-    break;
-  // 置缓存值时，设置了存在才设置，但是由于 key 不存在导致没有设置
-  case StoreResult.XX_SET_NOT_PERFORMED:
-    break;
+    // 成功设置
+    case StoreResult.OK:
+        break;
+    // 设置缓存值时，设置了不存在才设置，但是由于 key 存在导致没有设置
+    case StoreResult.NX_SET_NOT_PERFORMED:
+        break;
+    // 置缓存值时，设置了存在才设置，但是由于 key 不存在导致没有设置
+    case StoreResult.XX_SET_NOT_PERFORMED:
+        break;
 }
 ```
 
@@ -144,7 +141,7 @@ await perfectCacheInstance.removeItem(key);
 - 批量删除 keys 对应的缓存值
 
 ```javascript
-await perfectCacheInstance.removeItemList(["key_a", "key_b", "otherKey_c"]);
+await perfectCacheInstance.removeItemList(['key_a', 'key_b', 'otherKey_c']);
 await perfectCacheInstance.removeItemList(/^key_.*$/);
 ```
 
@@ -178,31 +175,31 @@ const keysCount = await perfectCacheInstance.length();
 perfectCacheInstance.fallbackKey(key, fallback, options);
 // 当获取key=userInfo找不到时，则调用fallback退路函数来获取userInfo，通过Promise返回新的缓存值，并设置有效期2小时
 perfectCacheInstance.fallbackKey(
-  "userInfo",
-  () => {
-    return new Promise((resolve) => {
-      window.setTimeout(() => {
-        resolve({
-          userName: "张三",
-          userCode: "123",
+    'userInfo',
+    () => {
+        return new Promise((resolve) => {
+            window.setTimeout(() => {
+                resolve({
+                    userName: '张三',
+                    userCode: '123',
+                });
+            }, 3000);
         });
-      }, 3000);
-    });
-  },
-  { expiredTime: 7200 * 1000 }
+    },
+    { expiredTime: 7200 * 1000 }
 );
 // 当获取key匹配page_找不到时，则调用fallback退路函数来获取pageInfo，通过Promise返回新的缓存值，并设置生命存活期2小时
 perfectCacheInstance.fallbackKey(
-  /^page_(\w+)$/i,
-  (key) => {
-    return new Promise((resolve) => {
-      const pageCode = key.match(/^page_(\w+)$/i)[1];
-      api.getPageInfo(pageCode).then((pageInfo) => {
-        resolve(pageInfo);
-      });
-    });
-  },
-  { maxAge: 7200 * 1000 }
+    /^page_(\w+)$/i,
+    (key) => {
+        return new Promise((resolve) => {
+            const pageCode = key.match(/^page_(\w+)$/i)[1];
+            api.getPageInfo(pageCode).then((pageInfo) => {
+                resolve(pageInfo);
+            });
+        });
+    },
+    { maxAge: 7200 * 1000 }
 );
 ```
 
@@ -220,11 +217,11 @@ perfectCacheInstance.fallbackKey(
 
 ```javascript
 const cacheExpiredHandler = (key) => {
-  console.log("key expired", key);
+    console.log('key expired', key);
 };
-perfectCacheInstance.$on("ready", () => {});
-perfectCacheInstance.$off("cacheExpired", cacheExpiredHandler);
-perfectCacheInstance.$emit("myEvent", { a: 1, b: 2 });
+perfectCacheInstance.$on('ready', () => {});
+perfectCacheInstance.$off('cacheExpired', cacheExpiredHandler);
+perfectCacheInstance.$emit('myEvent', { a: 1, b: 2 });
 ```
 
 | 名称         | 触发时机                                 | 返回数据 |
@@ -239,80 +236,78 @@ perfectCacheInstance.$emit("myEvent", { a: 1, b: 2 });
 ## 自定义存储引擎
 
 ```javascript
-import { registerStore, BaseStore } from "perfect-cache";
+import { registerStore, BaseStore } from 'perfect-cache';
 class MyStore extends BaseStore {
-  // 驱动名称
-  static driver = "myStore";
-  data = {};
-  constructor(opts) {
-    super(opts);
-    // 告诉缓存系统已经准备好了，如果是异步的就在准备好的时候调用ready函数告知系统
-    this.ready();
-  }
-  // 重载keyValueGet方法，告知引擎底层怎样获取一个key对应的缓存值
-  // 必须返回Promise对象，同时resolve的对象结构为
-  // { value:'xxx', expiredTimeAt: 12345678910, maxAge: 3600000}
-  keyValueGet(key) {
-    const valueStr = this.data[this.__getRealKey(key)];
-    return new Promise((resolve) => {
-      if (valueStr) {
-        try {
-          const valueObj = JSON.parse(valueStr);
-          resolve(valueObj);
-        } catch (error) {
-          window.console.debug(`get key ${key} json parse error`, valueStr);
-          resolve();
-        }
-      } else {
-        resolve();
-      }
-    });
-  }
-  // 重载keyValueSet方法，告知引擎底层怎样设置一个key对应的缓存值
-  // 必须返回Promise对象
-  // value的数据结构为{ value:'xxx', expiredTimeAt: 12345678910, maxAge: 3600000}
-  keyValueSet(key, value) {
-    this.data[this.__getRealKey(key)] = JSON.stringify(value);
-    return Promise.resolve();
-  }
-  // 重载existsKey方法，告知引擎底层一个key是否存在
-  // 必须返回Promise对象
-  existsKey(key) {
-    const realKey = this.__getRealKey(key);
-    if (realKey in this.data) {
-      return Promise.resolve(true);
-    } else {
-      return Promise.resolve(false);
+    // 驱动名称
+    static driver = 'myStore';
+    data = {};
+    constructor(opts) {
+        super(opts);
+        // 告诉缓存系统已经准备好了，如果是异步的就在准备好的时候调用ready函数告知系统
+        this.ready();
     }
-  }
-  // 重载removeItem方法，删除key对应的缓存值
-  removeItem(key) {
-    return new Promise((resolve, reject) => {
-      try {
-        delete this.data[this.__getRealKey(key)];
-        resolve();
-      } catch (error) {
-        reject(error);
-      }
-    });
-  }
-  // 重载keys方法，获取缓存所有key
-  keys() {
-    const keys = Object.keys(this.data).map((key) =>
-      key.replace(this.prefix, "")
-    );
-    return Promise.resolve(keys);
-  }
-  // 重载clear方法，清空缓存值
-  clear() {
-    this.data = {};
-    return Promise.resolve();
-  }
-  // 重载length方法，获取keys的长度
-  length() {
-    return Promise.resolve(Object.keys(this.data).length);
-  }
+    // 重载keyValueGet方法，告知引擎底层怎样获取一个key对应的缓存值
+    // 必须返回Promise对象，同时resolve的对象结构为
+    // { value:'xxx', expiredTimeAt: 12345678910, maxAge: 3600000}
+    keyValueGet(key) {
+        const valueStr = this.data[this.__getRealKey(key)];
+        return new Promise((resolve) => {
+            if (valueStr) {
+                try {
+                    const valueObj = JSON.parse(valueStr);
+                    resolve(valueObj);
+                } catch (error) {
+                    window.console.debug(`get key ${key} json parse error`, valueStr);
+                    resolve();
+                }
+            } else {
+                resolve();
+            }
+        });
+    }
+    // 重载keyValueSet方法，告知引擎底层怎样设置一个key对应的缓存值
+    // 必须返回Promise对象
+    // value的数据结构为{ value:'xxx', expiredTimeAt: 12345678910, maxAge: 3600000}
+    keyValueSet(key, value) {
+        this.data[this.__getRealKey(key)] = JSON.stringify(value);
+        return Promise.resolve();
+    }
+    // 重载existsKey方法，告知引擎底层一个key是否存在
+    // 必须返回Promise对象
+    existsKey(key) {
+        const realKey = this.__getRealKey(key);
+        if (realKey in this.data) {
+            return Promise.resolve(true);
+        } else {
+            return Promise.resolve(false);
+        }
+    }
+    // 重载removeItem方法，删除key对应的缓存值
+    removeItem(key) {
+        return new Promise((resolve, reject) => {
+            try {
+                delete this.data[this.__getRealKey(key)];
+                resolve();
+            } catch (error) {
+                reject(error);
+            }
+        });
+    }
+    // 重载keys方法，获取缓存所有key
+    keys() {
+        const keys = Object.keys(this.data).map((key) => key.replace(this.prefix, ''));
+        return Promise.resolve(keys);
+    }
+    // 重载clear方法，清空缓存值
+    clear() {
+        this.data = {};
+        return Promise.resolve();
+    }
+    // 重载length方法，获取keys的长度
+    length() {
+        return Promise.resolve(Object.keys(this.data).length);
+    }
 }
 registerStore(MyStore);
-const perfectCacheInstance = new PerfectCache("myStore");
+const perfectCacheInstance = new PerfectCache('myStore');
 ```

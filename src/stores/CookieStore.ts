@@ -1,49 +1,51 @@
+import jsCookie from 'js-cookie';
 import BaseStore from './BaseStore';
 import { cacheDebugger } from '../utils';
+import type { BaseStoreOptions, StoreObject } from '../types';
 
-export default class LocalStorageStore extends BaseStore {
-    static driver = 'localStorage';
-    constructor(opts) {
+export default class CookieStore extends BaseStore<BaseStoreOptions> {
+    static driver = 'cookie' as const;
+    constructor(opts: BaseStoreOptions) {
         super(opts);
         this.ready();
     }
-    keyValueGet(key) {
-        const valueStr = localStorage.getItem(this.__getRealKey(key));
+    keyValueGet(key: string): Promise<StoreObject | undefined> {
+        const valueStr = jsCookie.get(this.__getRealKey(key));
         return new Promise((resolve) => {
             if (valueStr) {
                 try {
-                    const valueObj = JSON.parse(valueStr);
+                    const valueObj: StoreObject = JSON.parse(valueStr);
                     resolve(valueObj);
                 } catch (error) {
                     cacheDebugger(`get key ${key} json parse error`, valueStr);
-                    resolve();
+                    resolve(undefined);
                 }
             } else {
-                resolve();
+                resolve(undefined);
             }
         });
     }
-    keyValueSet(key, value) {
+    keyValueSet(key: string, value: StoreObject): Promise<void> {
         return new Promise((resolve, reject) => {
             try {
-                localStorage.setItem(this.__getRealKey(key), JSON.stringify(value));
+                jsCookie.set(this.__getRealKey(key), JSON.stringify(value));
                 resolve();
             } catch (error) {
                 reject(error);
             }
         });
     }
-    existsKey(key) {
-        if (localStorage.getItem(this.__getRealKey(key))) {
+    existsKey(key: string): Promise<boolean> {
+        if (jsCookie.get(this.__getRealKey(key))) {
             return Promise.resolve(true);
         } else {
             return Promise.resolve(false);
         }
     }
-    removeItem(key) {
+    removeItem(key: string): Promise<void> {
         return new Promise((resolve, reject) => {
             try {
-                localStorage.removeItem(this.__getRealKey(key));
+                jsCookie.remove(this.__getRealKey(key));
                 resolve();
             } catch (error) {
                 reject(error);
@@ -51,8 +53,9 @@ export default class LocalStorageStore extends BaseStore {
         });
     }
     keys() {
-        const keys = [];
-        for (const key of Object.keys(localStorage)) {
+        const cookies = jsCookie.get();
+        const keys: string[] = [];
+        for (const key of Object.keys(cookies)) {
             if (key.startsWith(this.prefix)) {
                 keys.push(key.replace(this.prefix, ''));
             }
