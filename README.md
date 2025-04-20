@@ -14,10 +14,10 @@ const perfectCacheInstance = new PerfectCache(driver, opts);
 
 | 名称                 | 意义                           | 类型        | 默认值          | 是否必填 |
 | -------------------- | ------------------------------ | ----------- | --------------- | -------- |
-| driver               | 使用的存储引擎                 | String      | memory          | 非必填   |
-| opts                 | 缓存配置                       | Object      | -               | 非必填   |
-| opts.driver          | 缓存使用的存储引擎             | String      | memory          | 非必填   |
-| opts.prefix          | 缓存 key 使用的前缀            | String      | cache:          | 非必填   |
+| driver               | 使用的存储引擎                 | string      | memory          | 非必填   |
+| opts                 | 缓存配置                       | object      | -               | 非必填   |
+| opts.driver          | 缓存使用的存储引擎             | string      | memory          | 非必填   |
+| opts.prefix          | 缓存 key 使用的前缀            | string      | cache:          | 非必填   |
 | opts.dbName          | indexdb 名称                   | string      | 'perfect-cache' | 非必填   |
 | opts.objectStoreName | indexdb 的 store 名称          | string      | 'perfect-cache' | 非必填   |
 | opts.dbVersion       | indexdb 连接版本，默认最新     | number      | -               | 非必填   |
@@ -35,11 +35,11 @@ cocnst value = await perfectCacheInstance.getItem(key, opts)
 
 | 名称              | 意义                           | 类型    | 默认值 | 是否必填 |
 | ----------------- | ------------------------------ | ------- | ------ | -------- |
-| key               | 缓存的 key                     | String  | -      | 必填     |
-| opts              | 获取选项                       | Object  | -      | 非必填   |
+| key               | 缓存的 key                     | string  | -      | 必填     |
+| opts              | 获取选项                       | object  | -      | 非必填   |
 | opts.defaultVal   | 获取不到时返回的默认值         | any     | -      | 非必填   |
-| opts.withFallback | 获取不到时是否使用退路         | Boolean | true   | 非必填   |
-| opts.refreshCache | 使用退路获取到值时是否更新缓存 | Boolean | true   | 非必填   |
+| opts.withFallback | 获取不到时是否使用退路         | boolean | true   | 非必填   |
+| opts.refreshCache | 使用退路获取到值时是否更新缓存 | boolean | true   | 非必填   |
 
 - 批量获取 keys 对应的缓存值
 
@@ -65,11 +65,11 @@ const itemListMap = await perfectCacheInstance.getItemList(/^key_.*$/, opts);
 
 | 名称              | 意义                                    | 类型                    | 默认值 | 是否必填 |
 | ----------------- | --------------------------------------- | ----------------------- | ------ | -------- |
-| keys              | 缓存的 keys 数组或者 key 正则匹配表达式 | Array\<String\>\|RegExp | -      | 必填     |
-| opts              | 获取选项                                | Object                  | -      | 非必填   |
+| keys              | 缓存的 keys 数组或者 key 正则匹配表达式 | Array\<string\>\|RegExp | -      | 必填     |
+| opts              | 获取选项                                | object                  | -      | 非必填   |
 | opts.defaultVal   | 获取不到时返回的默认值                  | any                     | -      | 非必填   |
-| opts.withFallback | 获取不到时是否使用退路                  | Boolean                 | true   | 非必填   |
-| opts.refreshCache | 使用退路获取到值时是否更新缓存          | Boolean                 | true   | 非必填   |
+| opts.withFallback | 获取不到时是否使用退路                  | boolean                 | true   | 非必填   |
+| opts.refreshCache | 使用退路获取到值时是否更新缓存          | boolean                 | true   | 非必填   |
 
 - 设置 key 对应的缓存值
 
@@ -81,14 +81,14 @@ const result = await perfectCacheInstance.setItem(key, value, options);
 
 | 名称                    | 意义                  | 类型    | 默认值 | 是否必填 |
 | ----------------------- | --------------------- | ------- | ------ | -------- |
-| key                     | 设置的 key            | String  | -      | 必填     |
+| key                     | 设置的 key            | string  | -      | 必填     |
 | value                   | 设置的缓存值          | any     | -      | 必填     |
-| options                 | 设置选项              | Object  | -      | 非必填   |
-| options.expiredTime     | 过期时间，毫秒数      | Number  | -      | 非必填   |
-| options.expiredTimeAt   | 过期时间戳            | Number  | -      | 非必填   |
-| options.maxAge          | 缓存最大生命时间戳    | Number  | -      | 非必填   |
-| options.setOnlyNotExist | 只有不存在 key 才设置 | Boolean | false  | 非必填   |
-| options.setOnlyExist    | 只有存在 key 才设置   | Boolean | false  | 非必填   |
+| options                 | 设置选项              | object  | -      | 非必填   |
+| options.expiredTime     | 过期时间，毫秒数      | number  | -      | 非必填   |
+| options.expiredTimeAt   | 过期时间戳            | number  | -      | 非必填   |
+| options.maxAge          | 缓存最大生命时间戳    | number  | -      | 非必填   |
+| options.setOnlyNotExist | 只有不存在 key 才设置 | boolean | false  | 非必填   |
+| options.setOnlyExist    | 只有存在 key 才设置   | boolean | false  | 非必填   |
 
 设置的返回结果枚举值
 
@@ -124,7 +124,7 @@ const isKeyExists = await perfectCacheInstance.existsKey(key);
 
 | 名称 | 意义       | 类型   | 默认值 | 是否必填 |
 | ---- | ---------- | ------ | ------ | -------- |
-| key  | 缓存的 key | String | -      | 必填     |
+| key  | 缓存的 key | string | -      | 必填     |
 
 - 删除 key 对应的缓存值
 
@@ -136,7 +136,7 @@ await perfectCacheInstance.removeItem(key);
 
 | 名称 | 意义       | 类型   | 默认值 | 是否必填 |
 | ---- | ---------- | ------ | ------ | -------- |
-| key  | 缓存的 key | String | -      | 必填     |
+| key  | 缓存的 key | string | -      | 必填     |
 
 - 批量删除 keys 对应的缓存值
 
@@ -149,7 +149,7 @@ await perfectCacheInstance.removeItemList(/^key_.*$/);
 
 | 名称 | 意义                                    | 类型                    | 默认值 | 是否必填 |
 | ---- | --------------------------------------- | ----------------------- | ------ | -------- |
-| keys | 缓存的 keys 数组或者 key 正则匹配表达式 | Array\<String\>\|RegExp | -      | 必填     |
+| keys | 缓存的 keys 数组或者 key 正则匹配表达式 | Array\<string\>\|RegExp | -      | 必填     |
 
 - 清除所有缓存值
 
@@ -205,13 +205,13 @@ perfectCacheInstance.fallbackKey(
 
 参数说明
 
-| 名称                | 意义                                     | 类型         | 默认值 | 是否必填 |
-| ------------------- | ---------------------------------------- | ------------ | ------ | -------- |
-| key                 | 缓存的 key 或者缓存的 key 匹配正则表达式 | String/Regex | -      | 必填     |
-| fallback            | 退路函数                                 | Function     | -      | 必填     |
-| options             | 通过退路函数获取到的缓存值更新缓存的参数 | Object       | -      | 非必填   |
-| options.expiredTime | 过期时间，毫秒数                         | Number       | -      | 非必填   |
-| options.maxAge      | 缓存最大生命时间戳                       | Number       | -      | 非必填   |
+| 名称                | 意义                                     | 类型                         | 默认值 | 是否必填 |
+| ------------------- | ---------------------------------------- | ---------------------------- | ------ | -------- |
+| key                 | 缓存的 key 或者缓存的 key 匹配正则表达式 | string/Regex                 | -      | 必填     |
+| fallback            | 退路函数                                 | (key:string)=>Promise\<any\> | -      | 必填     |
+| options             | 通过退路函数获取到的缓存值更新缓存的参数 | object                       | -      | 非必填   |
+| options.expiredTime | 过期时间，毫秒数                         | number                       | -      | 非必填   |
+| options.maxAge      | 缓存最大生命时间戳                       | number                       | -      | 非必填   |
 
 #### 实例事件
 
