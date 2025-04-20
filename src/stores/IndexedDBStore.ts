@@ -1,6 +1,6 @@
 import BaseStore from './BaseStore';
 import { connectToIndexedDB, indexedDBDebugger } from '../utils';
-import type { IndexedDBStoreOptions, IndexedDBConnectOption, IndexedDBStoreObject, StoreObject } from '../types';
+import type { IndexedDBStoreOptions, IndexedDBConnectOptions, IndexedDBStoreObject, StoreObject } from '../types';
 
 export default class IndexedDBStore extends BaseStore<IndexedDBStoreOptions> {
     static driver = 'indexedDB' as const;
@@ -74,7 +74,7 @@ export default class IndexedDBStore extends BaseStore<IndexedDBStoreOptions> {
                 }
             });
     }
-    waitForConnectionReady(callback: (error?: Error) => void, connectOption: IndexedDBConnectOption = {}) {
+    waitForConnectionReady(callback: (error?: Error) => void, connectOption: IndexedDBConnectOptions = {}) {
         const { timeout, interval = 100, readyLog = false } = connectOption;
         if (this.isReady && this.dbConnection) {
             if (readyLog) {

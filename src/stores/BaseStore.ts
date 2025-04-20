@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import EventListener from '../EventListener';
 import StoreResult from './StoreResult';
-import type { BaseStoreOptions, StoreObject, SetItemOption, SupportedDriver } from '../types';
+import type { BaseStoreOptions, StoreObject, SetItemOptions, SupportedDriver } from '../types';
 
 export default abstract class BaseStore<StoreOption extends BaseStoreOptions> extends EventListener {
     static driver: SupportedDriver | string;
@@ -93,7 +93,7 @@ export default abstract class BaseStore<StoreOption extends BaseStoreOptions> ex
                 });
         });
     }
-    setItem(key: string, value: any, options: SetItemOption = {}): Promise<symbol> {
+    setItem(key: string, value: any, options: SetItemOptions = {}): Promise<symbol> {
         const {
             // seconds -- Set the specified expire time, in milliseconds.
             expiredTime,

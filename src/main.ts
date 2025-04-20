@@ -5,8 +5,8 @@ import { getSupportedDriverList, getStoreClass } from './utils';
 import type {
     CacheOptions,
     BaseStoreOptions,
-    SetItemOption,
-    GetItemOption,
+    SetItemOptions,
+    GetItemOptions,
     KeyFallbackConfig,
     KeyRegexFallbackConfig,
 } from './types';
@@ -125,7 +125,7 @@ class PerfectCache<StoreOptions extends BaseStoreOptions, Store extends BaseStor
      * @param {Boolean} opts.refreshCache if refresh the cache result when use the fallback
      * @returns
      */
-    async getItem(key: string, opts: GetItemOption = {}) {
+    async getItem(key: string, opts: GetItemOptions = {}) {
         const { defaultVal, withFallback = true, refreshCache = true } = opts;
         // get the cache value
         const result = await this.store!.getItem(key);
@@ -165,7 +165,7 @@ class PerfectCache<StoreOptions extends BaseStoreOptions, Store extends BaseStor
      * @param {Object} options the cache options
      * @returns {StoreResult}
      */
-    setItem(...args: [string, any, SetItemOption]) {
+    setItem(...args: [string, any, SetItemOptions]) {
         return this.store!.setItem(...args);
     }
     /**
@@ -196,7 +196,7 @@ class PerfectCache<StoreOptions extends BaseStoreOptions, Store extends BaseStor
     /**
      * @returns {Array} the cache values
      */
-    async getItemList(keys?: string[] | RegExp, opts?: GetItemOption) {
+    async getItemList(keys?: string[] | RegExp, opts?: GetItemOptions) {
         let storeKeys: string[] = [];
         const itemListMap: { [key: string]: any } = {};
         if (Array.isArray(keys)) {

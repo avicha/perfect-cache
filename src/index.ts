@@ -17,20 +17,20 @@ import type {
     SupportedDriver,
     BaseStoreOptions,
     IndexedDBStoreOptions,
-    IndexedDBConnectOption,
+    IndexedDBConnectOptions,
     IndexedDBStoreObject,
     StoreObject,
-    SetItemOption,
+    SetItemOptions,
 } from './types';
 
 export type {
     SupportedDriver,
     BaseStoreOptions,
     IndexedDBStoreOptions,
-    IndexedDBConnectOption,
+    IndexedDBConnectOptions,
     IndexedDBStoreObject,
     StoreObject,
-    SetItemOption,
+    SetItemOptions,
 };
 export {
     PerfectCache,

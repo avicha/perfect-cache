@@ -3,14 +3,14 @@ type SupportedDriver = 'memory' | 'localStorage' | 'sessionStorage' | 'cookie' |
 interface BaseStoreOptions {
     prefix?: string;
 }
-type CacheOptions = { driver: string; [key: string]: any };
+type CacheOptions = { driver: string; prefix?: string; [key: string]: any };
 interface IndexedDBStoreOptions extends BaseStoreOptions {
     dbName?: string;
     objectStoreName?: string;
     dbVersion?: number;
     dbConnection?: IDBDatabase;
 }
-interface IndexedDBConnectOption {
+interface IndexedDBConnectOptions {
     interval?: number;
     timeout?: number;
     readyLog?: boolean;
@@ -24,7 +24,7 @@ interface StoreObject {
     expiredTimeAt?: number;
     maxAge?: number;
 }
-interface SetItemOption {
+interface SetItemOptions {
     // seconds -- Set the specified expire time, in milliseconds.
     expiredTime?: number;
     // timestamp-seconds -- Set the specified Unix time at which the key will expire, in milliseconds.
@@ -36,7 +36,7 @@ interface SetItemOption {
     // Only set the key if it already exist.
     setOnlyExist?: boolean;
 }
-interface GetItemOption {
+interface GetItemOptions {
     // If the key does not exist, return the default value.
     defaultVal?: any;
     // if use fallback when does not get the cache value.
@@ -61,11 +61,11 @@ export type {
     BaseStoreOptions,
     CacheOptions,
     IndexedDBStoreOptions,
-    IndexedDBConnectOption,
+    IndexedDBConnectOptions,
     IndexedDBStoreObject,
     StoreObject,
-    SetItemOption,
-    GetItemOption,
+    SetItemOptions,
+    GetItemOptions,
     KeyFallbackConfig,
     KeyRegexFallbackConfig,
 };
