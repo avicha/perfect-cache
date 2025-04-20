@@ -4,7 +4,7 @@ import StoreResult from './StoreResult';
 import type { BaseStoreOptions, StoreObject, SetItemOption, SupportedDriver } from '../types';
 
 export default abstract class BaseStore<StoreOption extends BaseStoreOptions> extends EventListener {
-    static driver: SupportedDriver;
+    static driver: SupportedDriver | string;
     opts: StoreOption;
     isReady = false;
     prefix = 'cache:';
@@ -40,7 +40,6 @@ export default abstract class BaseStore<StoreOption extends BaseStoreOptions> ex
         }
         return Promise.resolve(keys.length);
     }
-
     length(): Promise<number> {
         return new Promise((resolve, reject) => {
             this.keys()

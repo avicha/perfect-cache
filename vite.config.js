@@ -1,30 +1,25 @@
 import { defineConfig } from 'vite';
-const path = require('path');
+import { resolve } from 'path';
+import dts from 'vite-plugin-dts';
 
-export default defineConfig(({ command, mode }) => {
-    console.log(command, mode);
-    if (command === 'serve') {
-        // dev 独有配置
-        return {
-            build: {
-                lib: {
-                    entry: path.resolve(__dirname, 'src/index.js'),
-                    name: 'PerfectCache',
-                    fileName: (format) => `perfect-cache.${format}.js`,
-                },
+export default defineConfig(() => {
+    return {
+        build: {
+            target: ['es2020', 'edge88', 'firefox78', 'chrome87', 'safari14'],
+            sourcemap: true,
+            lib: {
+                entry: resolve(__dirname, 'src/index.ts'),
+                name: 'PerfectCache',
+                formats: ['es', 'cjs'],
+                fileName: (format) => `perfect-cache.${format}.js`,
             },
-        };
-    } else {
-        // command === 'build'
-        // build 独有配置
-        return {
-            build: {
-                lib: {
-                    entry: path.resolve(__dirname, 'src/index.js'),
-                    name: 'PerfectCache',
-                    fileName: (format) => `perfect-cache.${format}.js`,
-                },
-            },
-        };
-    }
+        },
+        plugins: [
+            dts({
+                entryRoot: resolve(__dirname, './src'),
+                tsconfigPath: './tsconfig.src.json',
+                outDir: resolve(__dirname, 'dist', 'typings'),
+            }),
+        ],
+    };
 });

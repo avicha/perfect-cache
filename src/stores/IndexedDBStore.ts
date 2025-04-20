@@ -25,6 +25,7 @@ export default class IndexedDBStore extends BaseStore<IndexedDBStoreOptions> {
         if (!this.dbConnection) {
             this.connectToVersion(this.dbVersion);
         } else {
+            this.dbName = this.dbConnection.name;
             this.dbVersion = this.dbConnection.version;
             this.ready();
         }
@@ -138,6 +139,10 @@ export default class IndexedDBStore extends BaseStore<IndexedDBStoreOptions> {
                     objectStore.transaction.oncomplete = (_event) => {
                         indexedDBDebugger(`ObjectStore ${this.objectStoreName} is created now.`);
                         resolve(objectStore);
+                    };
+                    objectStore.transaction.onerror = (_event) => {
+                        window.console.error('ObjectStore creation occurs error', _event);
+                        reject(_event);
                     };
                 } else {
                     resolve(undefined);
