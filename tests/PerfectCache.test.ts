@@ -1,4 +1,5 @@
-import { PerfectCache } from '../src';
+import { describe, expect, test } from 'vitest';
+import { PerfectCache } from 'perfect-cache';
 import defaultOpts from '../src/defaultOpts';
 
 describe('perfect cache should be correct', () => {

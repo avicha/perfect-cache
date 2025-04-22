@@ -1,0 +1,12 @@
+{
+    "extends": "@tsconfig/node22/tsconfig.json",
+    "include": ["**/*/vitest.config.mts"],
+    "exclude": ["node_modules"],
+    "compilerOptions": {
+        "composite": true,
+        "module": "ESNext",
+        "moduleResolution": "Bundler",
+        "allowSyntheticDefaultImports": true,
+        "types": ["node"]
+    }
+}

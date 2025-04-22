@@ -1,3 +1,4 @@
+import { beforeAll, describe, expect, test } from 'vitest';
 import { PerfectCache, MemoryStore } from '../src';
 import type { BaseStoreOptions } from '../src/types';
 

@@ -1,3 +1,4 @@
+import { beforeAll, describe, expect, test } from 'vitest';
 import { getSupportedDriverList, getStoreClass } from '../src/utils';
 import LocalStorageStore from '../src/stores/LocalStorageStore';
 import MemoryStore from '../src/stores/MemoryStore';
