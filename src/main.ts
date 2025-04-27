@@ -130,7 +130,7 @@ class PerfectCache<StoreOptions extends BaseStoreOptions, Store extends BaseStor
         // get the cache value
         const result = await this.store!.getItem(key);
         // is the result null
-        const isResultInvalid = result === undefined || result === null || result === '';
+        const isResultInvalid = result === undefined || result === null;
         // if the result is invalid and use fallback function
         if (isResultInvalid && withFallback) {
             // get the fallback config
@@ -139,8 +139,7 @@ class PerfectCache<StoreOptions extends BaseStoreOptions, Store extends BaseStor
                 // get the fallback result
                 const fallbackResult = await res.fallback(key);
                 // is fallback result invalid
-                const isFallbackResultInvalid =
-                    fallbackResult === undefined || fallbackResult === null || fallbackResult === '';
+                const isFallbackResultInvalid = fallbackResult === undefined || fallbackResult === null;
                 // if need refresh cache, then set the fallback result as the cache value
                 if (refreshCache && !isFallbackResultInvalid) {
                     await this.store!.setItem(key, fallbackResult, {
@@ -165,7 +164,7 @@ class PerfectCache<StoreOptions extends BaseStoreOptions, Store extends BaseStor
      * @param {Object} options the cache options
      * @returns {StoreResult}
      */
-    setItem(...args: [string, any, SetItemOptions]) {
+    setItem(...args: [string, any, SetItemOptions?]) {
         return this.store!.setItem(...args);
     }
     /**

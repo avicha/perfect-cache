@@ -4,7 +4,7 @@ import MemoryStore from './MemoryStore';
 import SessionStorageStore from './SessionStorageStore';
 import CookieStore from './CookieStore';
 import IndexedDBStore from './IndexedDBStore';
-import StoreResult from './StoreResult';
+import { StoreResult } from './enum';
 import type { BaseStoreOptions } from '../types';
 
 const systemStores: {

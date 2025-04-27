@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import EventListener from '../EventListener';
-import StoreResult from './StoreResult';
+import { StoreResult } from './enum';
 import type { BaseStoreOptions, StoreObject, SetItemOptions, SupportedDriver } from '../types';
 
 export default abstract class BaseStore<StoreOption extends BaseStoreOptions> extends EventListener {

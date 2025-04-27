@@ -6,4 +6,5 @@ const StoreResult = {
     NX_SET_NOT_PERFORMED: Symbol('NX_SET_NOT_PERFORMED'),
     XX_SET_NOT_PERFORMED: Symbol('XX_SET_NOT_PERFORMED'),
 };
-export default StoreResult;
+
+export { StoreResult };

@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+type Awaitable<T> = T | Promise<T>;
 type SupportedDriver = 'memory' | 'localStorage' | 'sessionStorage' | 'cookie' | 'indexedDB';
 interface BaseStoreOptions {
     prefix?: string;
@@ -48,13 +49,13 @@ interface KeyFallbackConfig {
     key: string;
     expiredTime?: number;
     maxAge?: number;
-    fallback: (key: string) => Promise<any>;
+    fallback: (key: string) => Awaitable<any>;
 }
 interface KeyRegexFallbackConfig {
     regex: RegExp;
     expiredTime?: number;
     maxAge?: number;
-    fallback: (key: string) => Promise<any>;
+    fallback: (key: string) => Awaitable<any>;
 }
 export type {
     SupportedDriver,
