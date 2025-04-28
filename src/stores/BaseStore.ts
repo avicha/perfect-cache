@@ -1,13 +1,15 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import EventListener from '../EventListener';
 import { StoreResult } from './enum';
-import type { BaseStoreOptions, StoreObject, SetItemOptions, SupportedDriver } from '../types';
+import type { BaseStoreOptions, StoreObject, GetItemOptions, SetItemOptions, SupportedDriver } from '../types';
 
 export default abstract class BaseStore<StoreOption extends BaseStoreOptions> extends EventListener {
     static driver: SupportedDriver | string;
     opts: StoreOption;
     isReady = false;
     prefix = 'cache:';
+    getItemList?: (keys?: string[] | RegExp, opts?: GetItemOptions) => Promise<{ [key: string]: any }>;
+    removeItemList?: (keys?: string[] | RegExp) => Promise<void>;
     constructor(opts: StoreOption) {
         super();
         this.opts = opts;

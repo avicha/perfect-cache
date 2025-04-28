@@ -14,9 +14,20 @@ describe('memory cache should be correct', () => {
         PerfectCacheInstance.fallbackKey('undefined', (_FallbackKey) => {
             return undefined;
         });
-        PerfectCacheInstance.fallbackKey(/^cache/, (fallbackKey) => {
-            return `${fallbackValue} ${fallbackKey}`;
-        });
+        PerfectCacheInstance.fallbackKey(
+            /^cacheExpiredTime/,
+            (fallbackKey) => {
+                return `${fallbackValue} ${fallbackKey}`;
+            },
+            { expiredTime: 2000 }
+        );
+        PerfectCacheInstance.fallbackKey(
+            /^cacheMaxAge/,
+            (fallbackKey) => {
+                return `${fallbackValue} ${fallbackKey}`;
+            },
+            { maxAge: 2000 }
+        );
         return new Promise((resolve) => {
             PerfectCacheInstance.$on('ready', resolve);
         });

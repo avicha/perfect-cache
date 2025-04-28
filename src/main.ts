@@ -110,13 +110,6 @@ class PerfectCache<StoreOptions extends BaseStoreOptions, Store extends BaseStor
         this.initDriver();
     }
     /**
-     * @param {String} key the cache key
-     * @returns {Boolean}  is the key exists
-     */
-    existsKey(...args: [string]) {
-        return this.store!.existsKey(...args);
-    }
-    /**
      *
      * @param {String} key the cache key
      * @param {Object} opts the options
@@ -169,6 +162,13 @@ class PerfectCache<StoreOptions extends BaseStoreOptions, Store extends BaseStor
     }
     /**
      * @param {String} key the cache key
+     * @returns {Boolean}  is the key exists
+     */
+    existsKey(...args: [string]) {
+        return this.store!.existsKey(...args);
+    }
+    /**
+     * @param {String} key the cache key
      * @returns {Null}
      */
     removeItem(...args: [string]) {
@@ -196,6 +196,9 @@ class PerfectCache<StoreOptions extends BaseStoreOptions, Store extends BaseStor
      * @returns {Array} the cache values
      */
     async getItemList(keys?: string[] | RegExp, opts?: GetItemOptions) {
+        if (this.store?.getItemList) {
+            return this.store.getItemList(keys, opts);
+        }
         let storeKeys: string[] = [];
         const itemListMap: { [key: string]: any } = {};
         if (Array.isArray(keys)) {
@@ -219,6 +222,9 @@ class PerfectCache<StoreOptions extends BaseStoreOptions, Store extends BaseStor
      * @returns {Null}
      */
     async removeItemList(keys?: string[] | RegExp) {
+        if (this.store?.removeItemList) {
+            return this.store.removeItemList(keys);
+        }
         let storeKeys: string[] = [];
         if (Array.isArray(keys)) {
             storeKeys = keys;
