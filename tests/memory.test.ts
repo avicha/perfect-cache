@@ -2,6 +2,13 @@ import { beforeAll, beforeEach, describe, expect, test } from 'vitest';
 import { PerfectCache, MemoryStore, StoreResult } from '../src';
 import type { BaseStoreOptions } from '../src/types';
 
+const sleep = (ms: number) => {
+    return new Promise((resolve) => {
+        window.setTimeout(() => {
+            resolve(true);
+        }, ms);
+    });
+};
 describe('memory cache should be correct', () => {
     let PerfectCacheInstance: PerfectCache<BaseStoreOptions, MemoryStore>;
     const fallbackValue = 'i am fallback value of';
@@ -108,6 +115,16 @@ describe('memory cache should be correct', () => {
         const value2 = await PerfectCacheInstance.getItem('undefined', { withFallback: false });
         expect(value2).toBeUndefined();
     });
+    // 测试没有值的时候，使用后备值，可以命中后备值，没有默认值，获取到命中后备值
+    // 不刷新缓存，下次不使用后备值就获取不到后备值
+    test('getItem null and withFallback true and found fallback value and has not defaultVal and refreshCache false should return fallback value', async () => {
+        const value = await PerfectCacheInstance.getItem('emptyString', { withFallback: false });
+        expect(value).toBeUndefined();
+        const value1 = await PerfectCacheInstance.getItem('emptyString', { withFallback: true, refreshCache: false });
+        expect(value1).eq('');
+        const value2 = await PerfectCacheInstance.getItem('emptyString', { withFallback: false });
+        expect(value2).toBeUndefined();
+    });
     // 测试没有值的时候，使用后备值，可以命中后备值空，有默认值，获取到默认值
     // 后备值为空，不刷新缓存，下次不使用后备值还是获取不到值
     test('getItem null and withFallback true and found fallback value null and has defaultVal and refreshCache true should return fallback value', async () => {
@@ -119,16 +136,6 @@ describe('memory cache should be correct', () => {
         });
         expect(value1).toStrictEqual(defaultValue);
         const value2 = await PerfectCacheInstance.getItem('undefined', { withFallback: false });
-        expect(value2).toBeUndefined();
-    });
-    // 测试没有值的时候，使用后备值，可以命中后备值，没有默认值，获取到命中后备值
-    // 不刷新缓存，下次不使用后备值就获取不到后备值
-    test('getItem null and withFallback true and found fallback value and has not defaultVal and refreshCache false should return fallback value', async () => {
-        const value = await PerfectCacheInstance.getItem('emptyString', { withFallback: false });
-        expect(value).toBeUndefined();
-        const value1 = await PerfectCacheInstance.getItem('emptyString', { withFallback: true, refreshCache: false });
-        expect(value1).eq('');
-        const value2 = await PerfectCacheInstance.getItem('emptyString', { withFallback: false });
         expect(value2).toBeUndefined();
     });
     // 测试没有值的时候，使用后备值，可以命中后备值，有默认值，获取到命中后备值
@@ -143,6 +150,23 @@ describe('memory cache should be correct', () => {
         });
         expect(value1).eq('');
         const value2 = await PerfectCacheInstance.getItem('emptyString', {
+            withFallback: false,
+            defaultVal: defaultValue,
+        });
+        expect(value2).toStrictEqual(defaultValue);
+    });
+    // 测试没有值的时候，使用后备值，可以命中后备值，有默认值，获取到命中后备值
+    // 不刷新缓存，下次不使用后备值就获取不到后备值
+    test('getItem null and withFallback true and found fallback value null and has defaultVal and refreshCache false should return fallback value', async () => {
+        const value = await PerfectCacheInstance.getItem('undefined', { withFallback: false });
+        expect(value).toBeUndefined();
+        const value1 = await PerfectCacheInstance.getItem('undefined', {
+            withFallback: true,
+            defaultVal: defaultValue,
+            refreshCache: false,
+        });
+        expect(value1).toStrictEqual(defaultValue);
+        const value2 = await PerfectCacheInstance.getItem('undefined', {
             withFallback: false,
             defaultVal: defaultValue,
         });
@@ -300,5 +324,78 @@ describe('memory cache should be correct', () => {
         expect(removeItemListResult2).eq(void 0);
         const getItemListResult2 = await PerfectCacheInstance.getItemList(/^key[0-9]/);
         expect(getItemListResult2).toStrictEqual({});
+    });
+    test('setItem with expiredTime and get with not expired should return the value', async () => {
+        const result = await PerfectCacheInstance.setItem('key', defaultValue, { expiredTime: 200 });
+        expect(result).eq(StoreResult.OK);
+        const value = await PerfectCacheInstance.getItem('key');
+        expect(value).toStrictEqual(defaultValue);
+        await sleep(150);
+        const value1 = await PerfectCacheInstance.getItem('key');
+        expect(value1).toStrictEqual(defaultValue);
+        await sleep(150);
+        const value2 = await PerfectCacheInstance.getItem('key');
+        expect(value2).toBeUndefined();
+    });
+    test('setItem with expiredTime and get with expired should return the default value or undefined', async () => {
+        const result = await PerfectCacheInstance.setItem('key', 'value', { expiredTime: 200 });
+        expect(result).eq(StoreResult.OK);
+        const value = await PerfectCacheInstance.getItem('key');
+        expect(value).eq('value');
+        await sleep(300);
+        const value1 = await PerfectCacheInstance.getItem('key');
+        expect(value1).toBeUndefined();
+        const value2 = await PerfectCacheInstance.getItem('key', { defaultVal: defaultValue });
+        expect(value2).toStrictEqual(defaultValue);
+    });
+    test('setItem with expiredTimeAt and get with not expired should return the value', async () => {
+        const result = await PerfectCacheInstance.setItem('key', defaultValue, { expiredTimeAt: Date.now() + 200 });
+        expect(result).eq(StoreResult.OK);
+        const value = await PerfectCacheInstance.getItem('key');
+        expect(value).toStrictEqual(defaultValue);
+        await sleep(150);
+        const value1 = await PerfectCacheInstance.getItem('key');
+        expect(value1).toStrictEqual(defaultValue);
+        await sleep(150);
+        const value2 = await PerfectCacheInstance.getItem('key');
+        expect(value2).toBeUndefined();
+    });
+    test('setItem with expiredTimeAt and get with expired should return the default value or undefined', async () => {
+        const result = await PerfectCacheInstance.setItem('key', 'value', { expiredTimeAt: Date.now() + 200 });
+        expect(result).eq(StoreResult.OK);
+        const value = await PerfectCacheInstance.getItem('key');
+        expect(value).eq('value');
+        await sleep(300);
+        const value1 = await PerfectCacheInstance.getItem('key');
+        expect(value1).toBeUndefined();
+        const value2 = await PerfectCacheInstance.getItem('key', { defaultVal: defaultValue });
+        expect(value2).toStrictEqual(defaultValue);
+    });
+    test('setItem with maxAge and get with not expired should return the value', async () => {
+        const result = await PerfectCacheInstance.setItem('key', defaultValue, { maxAge: 200 });
+        expect(result).eq(StoreResult.OK);
+        const value = await PerfectCacheInstance.getItem('key');
+        expect(value).toStrictEqual(defaultValue);
+        await sleep(150);
+        const value1 = await PerfectCacheInstance.getItem('key');
+        expect(value1).toStrictEqual(defaultValue);
+        await sleep(150);
+        const value2 = await PerfectCacheInstance.getItem('key');
+        expect(value2).toStrictEqual(defaultValue);
+    });
+    test('setItem with maxAge and get with expired should return the default value or undefined', async () => {
+        const result = await PerfectCacheInstance.setItem('key', 'value', { maxAge: 200 });
+        expect(result).eq(StoreResult.OK);
+        const value = await PerfectCacheInstance.getItem('key');
+        expect(value).eq('value');
+        await sleep(150);
+        const value1 = await PerfectCacheInstance.getItem('key');
+        expect(value1).eq('value');
+        await sleep(150);
+        const value2 = await PerfectCacheInstance.getItem('key', { defaultVal: defaultValue });
+        expect(value2).eq('value');
+        await sleep(300);
+        const value3 = await PerfectCacheInstance.getItem('key', { defaultVal: defaultValue });
+        expect(value3).toStrictEqual(defaultValue);
     });
 });
