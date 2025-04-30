@@ -14,7 +14,7 @@ describe('memory cache should be correct', () => {
     const fallbackValue = 'i am fallback value of';
     const defaultValue = { a: 1, b: 2 };
     beforeAll(() => {
-        PerfectCacheInstance = new PerfectCache();
+        PerfectCacheInstance = new PerfectCache('memory');
         PerfectCacheInstance.fallbackKey('emptyString', (_FallbackKey) => {
             return '';
         });
@@ -26,14 +26,14 @@ describe('memory cache should be correct', () => {
             (fallbackKey) => {
                 return `${fallbackValue} ${fallbackKey}`;
             },
-            { expiredTime: 2000 }
+            { expiredTime: 200 }
         );
         PerfectCacheInstance.fallbackKey(
             /^cacheMaxAge/,
             (fallbackKey) => {
                 return `${fallbackValue} ${fallbackKey}`;
             },
-            { maxAge: 2000 }
+            { maxAge: 200 }
         );
         return new Promise((resolve) => {
             PerfectCacheInstance.$on('ready', resolve);
@@ -397,5 +397,65 @@ describe('memory cache should be correct', () => {
         await sleep(300);
         const value3 = await PerfectCacheInstance.getItem('key', { defaultVal: defaultValue });
         expect(value3).toStrictEqual(defaultValue);
+    });
+    test('setItem with setOnlyNotExist true and key exists', async () => {
+        const result1 = await PerfectCacheInstance.setItem('key', 'value1');
+        expect(result1).eq(StoreResult.OK);
+        const value1 = await PerfectCacheInstance.getItem('key');
+        expect(value1).eq('value1');
+        const result2 = await PerfectCacheInstance.setItem('key', 'value2', { setOnlyNotExist: true });
+        expect(result2).eq(StoreResult.NX_SET_NOT_PERFORMED);
+        const value2 = await PerfectCacheInstance.getItem('key');
+        expect(value2).eq('value1');
+        const result3 = await PerfectCacheInstance.setItem('key', 'value2');
+        expect(result3).eq(StoreResult.OK);
+        const value3 = await PerfectCacheInstance.getItem('key');
+        expect(value3).eq('value2');
+    });
+    test('setItem with setOnlyNotExist true and key not exists', async () => {
+        const result1 = await PerfectCacheInstance.setItem('key', 'value1', { setOnlyNotExist: true });
+        expect(result1).eq(StoreResult.OK);
+        const value1 = await PerfectCacheInstance.getItem('key');
+        expect(value1).eq('value1');
+        const result2 = await PerfectCacheInstance.setItem('key', 'value2', { setOnlyNotExist: true });
+        expect(result2).eq(StoreResult.NX_SET_NOT_PERFORMED);
+        const value2 = await PerfectCacheInstance.getItem('key');
+        expect(value2).eq('value1');
+    });
+    test('setItem with setOnlyExist true and key not exists', async () => {
+        const result1 = await PerfectCacheInstance.setItem('key', 'value1', { setOnlyExist: true });
+        expect(result1).eq(StoreResult.XX_SET_NOT_PERFORMED);
+        const value1 = await PerfectCacheInstance.getItem('key');
+        expect(value1).toBeUndefined();
+    });
+    test('setItem with setOnlyExist true and key exists', async () => {
+        const result1 = await PerfectCacheInstance.setItem('key', 'value1');
+        expect(result1).eq(StoreResult.OK);
+        const value1 = await PerfectCacheInstance.getItem('key');
+        expect(value1).eq('value1');
+        const result2 = await PerfectCacheInstance.setItem('key', 'value2', { setOnlyExist: true });
+        expect(result2).eq(StoreResult.OK);
+        const value2 = await PerfectCacheInstance.getItem('key');
+        expect(value2).eq('value2');
+    });
+    test('getItem null and fallback key with expiredTime', async () => {
+        const result1 = await PerfectCacheInstance.getItem('cacheExpiredTime_key');
+        expect(result1).eq(`${fallbackValue} cacheExpiredTime_key`);
+        await sleep(150);
+        const result2 = await PerfectCacheInstance.getItem('cacheExpiredTime_key', { withFallback: false });
+        expect(result2).eq(`${fallbackValue} cacheExpiredTime_key`);
+        await sleep(150);
+        const result3 = await PerfectCacheInstance.getItem('cacheExpiredTime_key', { withFallback: false });
+        expect(result3).toBeUndefined();
+    });
+    test('getItem null and fallback key with maxAge', async () => {
+        const result1 = await PerfectCacheInstance.getItem('cacheMaxAge_key');
+        expect(result1).eq(`${fallbackValue} cacheMaxAge_key`);
+        await sleep(150);
+        const result2 = await PerfectCacheInstance.getItem('cacheMaxAge_key', { withFallback: false });
+        expect(result2).eq(`${fallbackValue} cacheMaxAge_key`);
+        await sleep(150);
+        const result3 = await PerfectCacheInstance.getItem('cacheMaxAge_key', { withFallback: false });
+        expect(result3).eq(`${fallbackValue} cacheMaxAge_key`);
     });
 });
