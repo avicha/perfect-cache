@@ -6,7 +6,7 @@ export default class LocalStorageStore extends BaseStore<BaseStoreOptions> {
     static driver = 'localStorage' as const;
     constructor(opts: BaseStoreOptions) {
         super(opts);
-        this.ready();
+        this.getReady();
     }
     keyValueGet(key: string): Promise<StoreObject | undefined> {
         const valueStr = localStorage.getItem(this.__getRealKey(key));
@@ -49,6 +49,6 @@ export default class LocalStorageStore extends BaseStore<BaseStoreOptions> {
                 keys.push(key.replace(this.prefix, ''));
             }
         }
-        return Promise.resolve(keys);
+        return Promise.resolve(keys.sort());
     }
 }

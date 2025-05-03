@@ -1,6 +1,6 @@
 {
     "extends": "@tsconfig/node22/tsconfig.json",
-    "include": ["**/*/vitest.config.mts"],
+    "include": ["**/*/vitest.config.ts"],
     "exclude": ["node_modules"],
     "compilerOptions": {
         "composite": true,

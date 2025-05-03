@@ -80,7 +80,7 @@ class PerfectCache<StoreOptions extends BaseStoreOptions, Store extends BaseStor
     /**
      * init the driver
      */
-    initDriver() {
+    private initDriver() {
         const supportedDriverList = getSupportedDriverList();
         if (this.opts && this.opts.driver && supportedDriverList.includes(this.opts.driver)) {
             // init false
@@ -102,12 +102,39 @@ class PerfectCache<StoreOptions extends BaseStoreOptions, Store extends BaseStor
         }
     }
     /**
-     *
-     * @param {String} driver the driver string
+     * @returns {Boolean} is the driver is ready
      */
-    setDriver(driver: string) {
-        this.opts.driver = driver;
-        this.initDriver();
+    isReady() {
+        return this.__init;
+    }
+    /**
+     *
+     * @param {Number} timeout the timeout in ms
+     * @returns {Promise} the promise object
+     * @description the promise will be resolved when the driver is ready
+     */
+    ready(timeout?: number) {
+        let isTimeout = false;
+        return new Promise((resolve, reject) => {
+            if (this.__init) {
+                this.$off('ready');
+                resolve(this);
+            } else {
+                this.$on('ready', () => {
+                    if (!isTimeout) {
+                        resolve(this);
+                    }
+                });
+                if (timeout) {
+                    window.setTimeout(() => {
+                        if (!this.__init) {
+                            isTimeout = true;
+                            reject(new Error('the driver is not ready in ' + timeout + 'ms'));
+                        }
+                    }, timeout);
+                }
+            }
+        });
     }
     /**
      *
@@ -118,38 +145,40 @@ class PerfectCache<StoreOptions extends BaseStoreOptions, Store extends BaseStor
      * @param {Boolean} opts.refreshCache if refresh the cache result when use the fallback
      * @returns
      */
-    async getItem(key: string, opts: GetItemOptions = {}) {
-        const { defaultVal, withFallback = true, refreshCache = true } = opts;
-        // get the cache value
-        const result = await this.store!.getItem(key);
-        // is the result null
-        const isResultInvalid = result === undefined || result === null;
-        // if the result is invalid and use fallback function
-        if (isResultInvalid && withFallback) {
-            // get the fallback config
-            const res = this.__getFallbackByKey(key);
-            if (res) {
-                // get the fallback result
-                const fallbackResult = await res.fallback(key);
-                // is fallback result invalid
-                const isFallbackResultInvalid = fallbackResult === undefined || fallbackResult === null;
-                // if need refresh cache, then set the fallback result as the cache value
-                if (refreshCache && !isFallbackResultInvalid) {
-                    await this.store!.setItem(key, fallbackResult, {
-                        expiredTime: res.expiredTime,
-                        maxAge: res.maxAge,
-                    });
+    getItem(key: string, opts: GetItemOptions = {}) {
+        return this.ready().then(async () => {
+            const { defaultVal, withFallback = true, refreshCache = true } = opts;
+            // get the cache value
+            const result = await this.store!.getItem(key);
+            // is the result null
+            const isResultInvalid = result === undefined || result === null;
+            // if the result is invalid and use fallback function
+            if (isResultInvalid && withFallback) {
+                // get the fallback config
+                const res = this.__getFallbackByKey(key);
+                if (res) {
+                    // get the fallback result
+                    const fallbackResult = await res.fallback(key);
+                    // is fallback result invalid
+                    const isFallbackResultInvalid = fallbackResult === undefined || fallbackResult === null;
+                    // if need refresh cache, then set the fallback result as the cache value
+                    if (refreshCache && !isFallbackResultInvalid) {
+                        await this.store!.setItem(key, fallbackResult, {
+                            expiredTime: res.expiredTime,
+                            maxAge: res.maxAge,
+                        });
+                    }
+                    // return the default value or the fallback result
+                    return isFallbackResultInvalid && defaultVal !== undefined ? defaultVal : fallbackResult;
+                } else {
+                    // have not the fallback config then return the default value or the origin result
+                    return defaultVal === undefined ? result : defaultVal;
                 }
-                // return the default value or the fallback result
-                return isFallbackResultInvalid && defaultVal !== undefined ? defaultVal : fallbackResult;
             } else {
-                // have not the fallback config then return the default value or the origin result
-                return defaultVal === undefined ? result : defaultVal;
+                // if the result is valid or does not use fallback function,then return the default value or the origin result
+                return isResultInvalid && defaultVal !== undefined ? defaultVal : result;
             }
-        } else {
-            // if the result is valid or does not use fallback function,then return the default value or the origin result
-            return isResultInvalid && defaultVal !== undefined ? defaultVal : result;
-        }
+        });
     }
     /**
      * @param {String} key the cache key
@@ -158,89 +187,105 @@ class PerfectCache<StoreOptions extends BaseStoreOptions, Store extends BaseStor
      * @returns {StoreResult}
      */
     setItem(...args: [string, any, SetItemOptions?]) {
-        return this.store!.setItem(...args);
-    }
-    /**
-     * @param {String} key the cache key
-     * @returns {Boolean}  is the key exists
-     */
-    existsKey(...args: [string]) {
-        return this.store!.existsKey(...args);
+        return this.ready().then(() => {
+            return this.store!.setItem(...args);
+        });
     }
     /**
      * @param {String} key the cache key
      * @returns {Null}
      */
     removeItem(...args: [string]) {
-        return this.store!.removeItem(...args);
+        return this.ready().then(() => {
+            return this.store!.removeItem(...args);
+        });
     }
     /**
-     * @returns {Null}
+     * @param {String} key the cache key
+     * @returns {Boolean}  is the key exists
      */
-    clear() {
-        return this.store!.clear();
+    existsKey(...args: [string]) {
+        return this.ready().then(() => {
+            return this.store!.existsKey(...args);
+        });
     }
     /**
      * @returns {Array} the cache keys
      */
     keys() {
-        return this.store!.keys();
+        return this.ready().then(() => {
+            return this.store!.keys();
+        });
+    }
+    /**
+     * @returns {Null}
+     */
+    clear() {
+        return this.ready().then(() => {
+            return this.store!.clear();
+        });
     }
     /**
      * @returns {Number} the cache keys count
      */
     length() {
-        return this.store!.length();
+        return this.ready().then(() => {
+            return this.store!.length();
+        });
     }
     /**
      * @returns {Array} the cache values
      */
-    async getItemList(keys?: string[] | RegExp, opts?: GetItemOptions) {
-        if (this.store?.getItemList) {
-            return this.store.getItemList(keys, opts);
-        }
-        let storeKeys: string[] = [];
-        const itemListMap: { [key: string]: any } = {};
-        if (Array.isArray(keys)) {
-            storeKeys = keys;
-        } else {
-            if (keys instanceof RegExp) {
-                storeKeys = (await this.keys()).filter((key) => {
-                    return keys.test(key);
-                });
-            } else {
-                storeKeys = [];
+    getItemList(keys?: string[] | RegExp, opts?: GetItemOptions) {
+        return this.ready().then(async () => {
+            if (this.store?.getItemList) {
+                return this.store.getItemList(keys, opts);
             }
-        }
-        for (const key of storeKeys) {
-            const item = await this.getItem(key, opts);
-            itemListMap[key] = item;
-        }
-        return itemListMap;
+            let storeKeys: string[] = [];
+            const itemListMap: { [key: string]: any } = {};
+            if (Array.isArray(keys)) {
+                storeKeys = keys;
+            } else {
+                if (keys instanceof RegExp) {
+                    storeKeys = (await this.keys()).filter((key) => {
+                        return keys.test(key);
+                    });
+                } else {
+                    storeKeys = [];
+                }
+            }
+            for (const key of storeKeys) {
+                const item = await this.getItem(key, opts);
+                itemListMap[key] = item;
+            }
+            return itemListMap;
+        });
     }
     /**
      * @returns {Null}
      */
-    async removeItemList(keys?: string[] | RegExp) {
-        if (this.store?.removeItemList) {
-            return this.store.removeItemList(keys);
-        }
-        let storeKeys: string[] = [];
-        if (Array.isArray(keys)) {
-            storeKeys = keys;
-        } else {
-            if (keys instanceof RegExp) {
-                storeKeys = (await this.keys()).filter((key) => {
-                    return keys.test(key);
-                });
-            } else {
-                storeKeys = [];
+    removeItemList(keys?: string[] | RegExp) {
+        return this.ready().then(async () => {
+            if (this.store?.removeItemList) {
+                return this.store.removeItemList(keys);
             }
-        }
-        for (const key of storeKeys) {
-            await this.removeItem(key);
-        }
-        return void 0;
+            let storeKeys: string[] = [];
+            if (Array.isArray(keys)) {
+                storeKeys = keys;
+            } else {
+                if (keys instanceof RegExp) {
+                    storeKeys = (await this.keys()).filter((key) => {
+                        return keys.test(key);
+                    });
+                } else {
+                    storeKeys = [];
+                }
+            }
+            for (const key of storeKeys) {
+                await this.removeItem(key);
+            }
+            return void 0;
+        });
     }
     /**
      *

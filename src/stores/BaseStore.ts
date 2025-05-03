@@ -21,13 +21,10 @@ export default abstract class BaseStore<StoreOption extends BaseStoreOptions> ex
     __getRealKey(key: string) {
         return `${this.prefix}${key}`;
     }
-    ready(callback?: CallbackFunc) {
+    getReady() {
         setTimeout(() => {
             this.isReady = true;
             this.$emit('ready');
-            if (callback && typeof callback === 'function') {
-                callback();
-            }
         }, 0);
     }
     abstract keyValueGet(_key: string): Promise<StoreObject | undefined>;

@@ -7,7 +7,7 @@ export default class CookieStore extends BaseStore<BaseStoreOptions> {
     static driver = 'cookie' as const;
     constructor(opts: BaseStoreOptions) {
         super(opts);
-        this.ready();
+        this.getReady();
     }
     keyValueGet(key: string): Promise<StoreObject | undefined> {
         const valueStr = jsCookie.get(this.__getRealKey(key));
@@ -60,6 +60,6 @@ export default class CookieStore extends BaseStore<BaseStoreOptions> {
                 keys.push(key.replace(this.prefix, ''));
             }
         }
-        return Promise.resolve(keys);
+        return Promise.resolve(keys.sort());
     }
 }

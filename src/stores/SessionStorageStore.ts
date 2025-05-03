@@ -6,7 +6,7 @@ export default class SessionStorageStore extends BaseStore<BaseStoreOptions> {
     static driver = 'sessionStorage' as const;
     constructor(opts: BaseStoreOptions) {
         super(opts);
-        this.ready();
+        this.getReady();
     }
     keyValueGet(key: string): Promise<StoreObject | undefined> {
         const valueStr = sessionStorage.getItem(this.__getRealKey(key));
@@ -54,6 +54,6 @@ export default class SessionStorageStore extends BaseStore<BaseStoreOptions> {
                 keys.push(key.replace(this.prefix, ''));
             }
         }
-        return Promise.resolve(keys);
+        return Promise.resolve(keys.sort());
     }
 }

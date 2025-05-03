@@ -27,7 +27,7 @@ export default class IndexedDBStore extends BaseStore<IndexedDBStoreOptions> {
         } else {
             this.dbName = this.dbConnection.name;
             this.dbVersion = this.dbConnection.version;
-            this.ready();
+            this.getReady();
         }
     }
     init() {
@@ -48,7 +48,7 @@ export default class IndexedDBStore extends BaseStore<IndexedDBStoreOptions> {
                 indexedDBDebugger(
                     `Database ${this.dbName} is connected to ${this.dbVersion} success and store ${this.objectStoreName} is ready.`
                 );
-                this.ready();
+                this.getReady();
             })
             .catch((err) => {
                 // get the database connection failed, maybe the version is not match, so we need to upgrade it.
@@ -255,7 +255,7 @@ export default class IndexedDBStore extends BaseStore<IndexedDBStoreOptions> {
                             }
                             cursor.continue();
                         } else {
-                            resolve(keys);
+                            resolve(keys.sort());
                         }
                     };
                 }

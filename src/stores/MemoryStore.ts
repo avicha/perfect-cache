@@ -7,7 +7,7 @@ export default class MemoryStore extends BaseStore<BaseStoreOptions> {
     data = new Map<string, string>();
     constructor(opts: BaseStoreOptions) {
         super(opts);
-        this.ready();
+        this.getReady();
     }
     keyValueGet(key: string): Promise<StoreObject | undefined> {
         const valueStr = this.data.get(this.__getRealKey(key));
@@ -45,7 +45,7 @@ export default class MemoryStore extends BaseStore<BaseStoreOptions> {
     }
     keys() {
         const keys = Array.from(this.data.keys()).map((key) => key.replace(this.prefix, ''));
-        return Promise.resolve(keys);
+        return Promise.resolve(keys.sort());
     }
     clear(): Promise<number> {
         const size = this.data.size;
