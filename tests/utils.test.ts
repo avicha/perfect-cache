@@ -20,6 +20,7 @@ describe('getSupportedDriverList should be correct', () => {
         expect(supportedDriverList).toContain('localStorage');
         expect(supportedDriverList).toContain('sessionStorage');
         expect(supportedDriverList).toContain('cookie');
+        expect(supportedDriverList).toContain('indexedDB');
     });
 });
 

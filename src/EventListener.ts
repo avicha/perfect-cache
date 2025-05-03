@@ -1,8 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import mitt from 'mitt';
 import type { Emitter, Handler, WildcardHandler } from 'mitt';
-
-type Events = { ready: void; cacheExpired: string };
+import type { Events } from './types';
 export default class EventListener {
     mitt: Emitter<Events>;
     constructor() {

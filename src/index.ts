@@ -14,23 +14,33 @@ import {
 } from './stores';
 import { getSupportedDriverList, connectToIndexedDB, cacheDebugger, indexedDBDebugger } from './utils';
 import type {
+    Events,
     SupportedDriver,
     BaseStoreOptions,
+    CacheOptions,
     IndexedDBStoreOptions,
     IndexedDBConnectOptions,
     IndexedDBStoreObject,
     StoreObject,
     SetItemOptions,
+    GetItemOptions,
+    KeyFallbackConfig,
+    KeyRegexFallbackConfig,
 } from './types';
 
 export type {
+    Events,
     SupportedDriver,
     BaseStoreOptions,
+    CacheOptions,
     IndexedDBStoreOptions,
     IndexedDBConnectOptions,
     IndexedDBStoreObject,
     StoreObject,
     SetItemOptions,
+    GetItemOptions,
+    KeyFallbackConfig,
+    KeyRegexFallbackConfig,
 };
 export {
     PerfectCache,

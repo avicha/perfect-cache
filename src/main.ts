@@ -21,9 +21,9 @@ class PerfectCache<StoreOptions extends BaseStoreOptions, Store extends BaseStor
     // the store object
     store?: Store;
     // the extra key and fallback config
-    keyFallbacks: KeyFallbackConfig[] = [];
+    protected keyFallbacks: KeyFallbackConfig[] = [];
     // the key pattern and fallback config
-    keyRegexFallbacks: KeyRegexFallbackConfig[] = [];
+    protected keyRegexFallbacks: KeyRegexFallbackConfig[] = [];
     /**
      *
      * @param {String} driver the driver string
@@ -80,7 +80,7 @@ class PerfectCache<StoreOptions extends BaseStoreOptions, Store extends BaseStor
     /**
      * init the driver
      */
-    private initDriver() {
+    protected initDriver() {
         const supportedDriverList = getSupportedDriverList();
         if (this.opts && this.opts.driver && supportedDriverList.includes(this.opts.driver)) {
             // init false
@@ -109,30 +109,25 @@ class PerfectCache<StoreOptions extends BaseStoreOptions, Store extends BaseStor
     }
     /**
      *
-     * @param {Number} timeout the timeout in ms
+     * @param {CallableFunction} timeout the timeout in ms
      * @returns {Promise} the promise object
      * @description the promise will be resolved when the driver is ready
      */
-    ready(timeout?: number) {
-        let isTimeout = false;
+    ready(callback?: (self: this) => void) {
         return new Promise((resolve, reject) => {
             if (this.__init) {
                 this.$off('ready');
                 resolve(this);
+                if (callback && callback instanceof Function) {
+                    callback(this);
+                }
             } else {
                 this.$on('ready', () => {
-                    if (!isTimeout) {
-                        resolve(this);
+                    resolve(this);
+                    if (callback && callback instanceof Function) {
+                        callback(this);
                     }
                 });
-                if (timeout) {
-                    window.setTimeout(() => {
-                        if (!this.__init) {
-                            isTimeout = true;
-                            reject(new Error('the driver is not ready in ' + timeout + 'ms'));
-                        }
-                    }, timeout);
-                }
             }
         });
     }
@@ -327,7 +322,7 @@ class PerfectCache<StoreOptions extends BaseStoreOptions, Store extends BaseStor
      * @param {String} key the cache key
      * @returns {Object} the fallback config object if exists, undefined otherwise.
      */
-    __getFallbackByKey(key: string): KeyFallbackConfig | KeyRegexFallbackConfig | undefined {
+    protected __getFallbackByKey(key: string): KeyFallbackConfig | KeyRegexFallbackConfig | undefined {
         let res: KeyFallbackConfig | KeyRegexFallbackConfig | undefined;
         // find the exact key matches the config first
         res = this.keyFallbacks.find((obj) => {

@@ -1,13 +1,66 @@
 # perfect-cache
 
-PerfectCache 是一个前端 javascript 的缓存库，可以使用不同的存储 driver 来进行数据的保存，获取，删除等操作。
+PerfectCache 是一个前端 javascript 的缓存库，可以使用不同的存储引擎来进行数据的保存，获取，删除等操作，作为国产软件，始终追求极致与完美，所以命名PerfectCache。它拥有如下功能
+
+- 支持不同的存储引擎方式，例如内存、localStorage、sessionStorage、cookie、indexedDB和自定义引擎
+- 支持存储的key的前缀prefix，以便跟其他key区分，清空时不会把其他key清除
+- 作为缓存库，获取key时如果获取不到会自动重新请求（详见下面fallbackKey功能），并自动更新到缓存值，以便下次获取时可以直接拿到缓存值
+- 支持缓存的批量插入，查询，删除操作
+- 更多功能，欢迎提出
+
+整个库导出的对象包括
+
+```javascript
+export {
+    PerfectCache, // 核心的缓存类
+    BaseStore, // 所有存储引擎的基类，用于自定义存储引擎
+    EventListener, // 事件基类，拥有$on，$off，$emit实例方法，一般不用到
+    systemStores, // 系统存储引擎，一般不用到
+    externalStores, // 注册的自定义存储引擎，一般不用到
+    LocalStorageStore, // 本地存储的存储引擎类，一般不用到
+    MemoryStore, // 内存的存储引擎类，一般不用到
+    SessionStorageStore, // 会话的存储引擎类，一般不用到
+    CookieStore, // Cookie的存储引擎类，一般不用到
+    IndexedDBStore, // 本地数据库的存储引擎类，一般不用到
+    StoreResult, // 存储结果，用于判断setItem是否成功
+    registerStore, // 用于注册自定义存储引擎
+    getSupportedDriverList, // 在使用相应的存储引擎之前可以先获取支持的情况，确保可以正常使用
+    connectToIndexedDB, // 封装了连接到IndexedDB函数
+    cacheDebugger, // 缓存库的debugger，用于调试
+    indexedDBDebugger, // indexedDB的debugger，用于调试
+};
+```
+
+整个库导出的TS类型包括
+
+```typescript
+export type {
+    Events, // 定义了BaseStore支持的事件类型的格式
+    SupportedDriver, // 定义了默认支持的存储引擎类型
+    BaseStoreOptions, // 定义了BaseStore的构造函数的选项
+    CacheOptions, // 定义了PerfectCache的构造函数的选项
+    IndexedDBStoreOptions, // 定义了IndexedDBStore的构造函数的选项
+    IndexedDBConnectOptions, // 定义了IndexedDBStore的连接函数的选项
+    IndexedDBStoreObject, // 定义了IndexedDBStore的内部存储结构
+    StoreObject, // 定义了存储引擎的内部存储结构
+    SetItemOptions, // 定义了setItem函数的选项
+    GetItemOptions, // 定义了getItem函数的选项
+    KeyFallbackConfig, // 定义了key字符串的退路函数配置
+    KeyRegexFallbackConfig, // 定义了key正则表达式的退路函数配置
+};
+```
 
 ## 类 PerfectCache
 
-#### 构造函数
+### 构造函数
 
 ```javascript
+// 方式一，传driver和选项，推荐
 const perfectCacheInstance = new PerfectCache(driver, opts);
+// 方式二，只传选项
+const perfectCacheInstance = new PerfectCache(opts);
+// 方式三，只适合使用默认使用内存driver
+const perfectCacheInstance = new PerfectCache();
 ```
 
 参数说明
@@ -23,12 +76,31 @@ const perfectCacheInstance = new PerfectCache(driver, opts);
 | opts.dbVersion       | indexdb 连接版本，默认最新     | number      | -               | 非必填   |
 | opts.dbConnection    | indexdb 连接，用于公用现有连接 | IDBDatabase | -               | 非必填   |
 
-#### 实例方法
+### 实例方法
+
+- 存储引擎是否已经准备好
+
+```javascript
+const isReady = await perfectCacheInstance.isReady();
+```
+
+- 存储引擎已经准备好回调
+
+```javascript
+// 方式一
+perfectCacheInstance.ready((self) => {
+    window.console.log(self.driver + ' cache ready.');
+});
+// 方式二
+perfectCacheInstance.ready().then(() => {
+    window.console.log('cache ready.');
+});
+```
 
 - 获取 key 对应的缓存值
 
 ```javascript
-cocnst value = await perfectCacheInstance.getItem(key, opts)
+const value = await perfectCacheInstance.getItem(key, opts);
 ```
 
 参数说明
@@ -213,14 +285,18 @@ perfectCacheInstance.fallbackKey(
 | options.expiredTime | 过期时间，毫秒数                         | number                       | -      | 非必填   |
 | options.maxAge      | 缓存最大生命时间戳                       | number                       | -      | 非必填   |
 
-#### 实例事件
+### 实例事件
 
 ```javascript
 const cacheExpiredHandler = (key) => {
     console.log('key expired', key);
 };
 perfectCacheInstance.$on('ready', () => {});
+perfectCacheInstance.$on('cacheExpired', cacheExpiredHandler);
 perfectCacheInstance.$off('cacheExpired', cacheExpiredHandler);
+perfectCacheInstance.$on('myEvent', (e) => {
+    console.log(e); // e={ a: 1, b: 2 }
+});
 perfectCacheInstance.$emit('myEvent', { a: 1, b: 2 });
 ```
 
@@ -231,20 +307,27 @@ perfectCacheInstance.$emit('myEvent', { a: 1, b: 2 });
 
 ## 支持的存储引擎
 
-目前浏览器端支持内存(memory)，本地存储(localStorage)，会话(sessionStorage)，cookie(cookie)，数据库(indexedDB) 这些存储引擎，同时还支持自定义存储引擎。
+目前浏览器端支持内存(memory)，本地存储(localStorage)，会话(sessionStorage)，cookie(cookie)，数据库(indexedDB) 这些存储引擎，同时还支持自定义存储引擎。可以通过
+
+```javascript
+import { getSupportedDriverList } from 'perfect-cache';
+const supportedDriverList = getSupportedDriverList();
+```
+
+获取到支持的存储引擎，包括了默认的系统引擎和自定义引擎
 
 ## 自定义存储引擎
 
 ```javascript
 import { registerStore, BaseStore } from 'perfect-cache';
 class MyStore extends BaseStore {
-    // 驱动名称
+    // 引擎名称
     static driver = 'myStore';
     data = {};
     constructor(opts) {
         super(opts);
         // 告诉缓存系统已经准备好了，如果是异步的就在准备好的时候调用ready函数告知系统
-        this.ready();
+        this.getReady();
     }
     // 重载keyValueGet方法，告知引擎底层怎样获取一个key对应的缓存值
     // 必须返回Promise对象，同时resolve的对象结构为
@@ -258,10 +341,10 @@ class MyStore extends BaseStore {
                     resolve(valueObj);
                 } catch (error) {
                     window.console.debug(`get key ${key} json parse error`, valueStr);
-                    resolve();
+                    resolve(undefined);
                 }
             } else {
-                resolve();
+                resolve(undefined);
             }
         });
     }
@@ -311,3 +394,5 @@ class MyStore extends BaseStore {
 registerStore(MyStore);
 const perfectCacheInstance = new PerfectCache('myStore');
 ```
+
+## 其他问题

@@ -18,7 +18,7 @@ export default abstract class BaseStore<StoreOption extends BaseStoreOptions> ex
         }
         this.isReady = false;
     }
-    __getRealKey(key: string) {
+    protected __getRealKey(key: string) {
         return `${this.prefix}${key}`;
     }
     getReady() {

@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type Awaitable<T> = T | Promise<T>;
+type Events = { ready: void; cacheExpired: string };
 type SupportedDriver = 'memory' | 'localStorage' | 'sessionStorage' | 'cookie' | 'indexedDB';
 interface BaseStoreOptions {
     prefix?: string;
@@ -58,6 +59,7 @@ interface KeyRegexFallbackConfig {
     fallback: (key: string) => Awaitable<any>;
 }
 export type {
+    Events,
     SupportedDriver,
     BaseStoreOptions,
     CacheOptions,
