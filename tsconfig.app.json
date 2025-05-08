@@ -16,10 +16,7 @@
         "skipLibCheck": true,
         "forceConsistentCasingInFileNames": true,
         "baseUrl": ".",
-        "paths": {
-            "perfect-cache": ["src/index.ts"],
-            "perfect-cache/*": ["src/*"]
-        },
+        "paths": {},
         "lib": ["ES2020", "DOM", "DOM.Iterable"],
         "composite": true
     }

@@ -5,6 +5,10 @@ import type { BaseStoreOptions } from '../src/types';
 
 describe('localStorage cache should be correct', () => {
     const perfectCacheInstance: PerfectCache<BaseStoreOptions, LocalStorageStore> = new PerfectCache('localStorage');
-    beforeAll(() => perfectCacheInstance.ready(), 5000);
+    beforeAll(() => {
+        return new Promise((resolve) => {
+            perfectCacheInstance.ready(resolve);
+        });
+    }, 5000);
     runTestCases(perfectCacheInstance);
 });

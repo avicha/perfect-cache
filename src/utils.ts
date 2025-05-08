@@ -43,8 +43,10 @@ const connectToIndexedDB = (dbName: string, dbVersion?: number): Promise<IDBData
     return new Promise((resolve, reject) => {
         const request = window.indexedDB.open(dbName, dbVersion);
         request.onerror = (e) => {
-            console.error(`Database ${dbName} version ${dbVersion || 'latest'} initialised error.`, e);
-            reject(e);
+            const error = (e.target as IDBOpenDBRequest).error;
+            const errMsg = error?.message || 'unknown error';
+            console.error(`Database ${dbName} version ${dbVersion || 'latest'} initialised error.`, error);
+            reject(new Error(errMsg));
         };
         request.onsuccess = () => {
             const dbConnection = request.result;

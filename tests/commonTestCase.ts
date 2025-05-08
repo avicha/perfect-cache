@@ -36,6 +36,10 @@ const runTestCases = (perfectCacheInstance: InstanceType<typeof PerfectCache>) =
     beforeEach(async () => {
         await perfectCacheInstance.clear();
     });
+    test('driver is ready', () => {
+        const isReady = perfectCacheInstance.isReady();
+        expect(isReady).toBeTruthy();
+    });
     // 测试非空值的时候，获取到存储值
     test('getItem not null and should return the value', async () => {
         const result = await perfectCacheInstance.setItem('key', defaultValue);

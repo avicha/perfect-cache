@@ -1,5 +1,5 @@
 import { beforeAll, describe, expect, test } from 'vitest';
-import { getSupportedDriverList, getStoreClass } from '../src/utils';
+import { getSupportedDriverList, getStoreClass, connectToIndexedDB } from '../src/utils';
 import LocalStorageStore from '../src/stores/LocalStorageStore';
 import MemoryStore from '../src/stores/MemoryStore';
 import SessionStorageStore from '../src/stores/SessionStorageStore';
@@ -31,5 +31,26 @@ describe('getStoreClass should be correct', () => {
         expect(getStoreClass('sessionStorage')).toBe(SessionStorageStore);
         expect(getStoreClass('cookie')).toBe(CookieStore);
         expect(getStoreClass('indexedDB')).toBe(IndexedDBStore);
+        expect(getStoreClass('unknown')).toBeUndefined();
+    });
+});
+
+describe('connectToIndexedDB should be correct', () => {
+    test('connectToIndexedDB result', async () => {
+        const dbName = 'test-db';
+        const dbVersion = 3;
+        const dbConnection = await connectToIndexedDB(dbName, dbVersion);
+        expect(dbConnection).toBeInstanceOf(IDBDatabase);
+        expect(dbConnection.name).toBe(dbName);
+        expect(dbConnection.version).toBe(dbVersion);
+    });
+});
+
+describe('connectToIndexedDB should be incorrect', () => {
+    test('connectToIndexedDB fail', async () => {
+        const dbName = 'test-db';
+        const dbVersion = 1;
+        const promise = connectToIndexedDB(dbName, dbVersion);
+        await expect(promise).rejects.toThrowError();
     });
 });

@@ -12,6 +12,7 @@ export default defineConfig({
         },
         coverage: {
             enabled: true,
+            include: ['src/**/*.{ts,js}'],
             provider: 'v8', // or 'istanbul'
         },
     },

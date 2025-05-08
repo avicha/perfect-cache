@@ -21,9 +21,9 @@ class PerfectCache<StoreOptions extends BaseStoreOptions, Store extends BaseStor
     // the store object
     store?: Store;
     // the extra key and fallback config
-    protected keyFallbacks: KeyFallbackConfig[] = [];
+    keyFallbacks: KeyFallbackConfig[] = [];
     // the key pattern and fallback config
-    protected keyRegexFallbacks: KeyRegexFallbackConfig[] = [];
+    keyRegexFallbacks: KeyRegexFallbackConfig[] = [];
     /**
      *
      * @param {String} driver the driver string
@@ -45,7 +45,7 @@ class PerfectCache<StoreOptions extends BaseStoreOptions, Store extends BaseStor
                 if (typeof driver === 'string' && supportedDriverList.includes(driver)) {
                     // opts is object config
                     if (Object.prototype.toString.call(opts) === '[object Object]') {
-                        cacheOptions = { ...defaultOpts, driver, ...opts };
+                        cacheOptions = { ...defaultOpts, ...opts, driver };
                     } else {
                         // opts is not object, then discard.
                         cacheOptions = { ...defaultOpts, driver };
@@ -70,12 +70,8 @@ class PerfectCache<StoreOptions extends BaseStoreOptions, Store extends BaseStor
                 throw new Error('please input the driver as first param.');
             }
         }
-        if (cacheOptions && cacheOptions.driver) {
-            this.opts = cacheOptions;
-            this.initDriver();
-        } else {
-            throw new Error('please input the driver as first param.');
-        }
+        this.opts = cacheOptions;
+        this.initDriver();
     }
     /**
      * init the driver
@@ -245,8 +241,6 @@ class PerfectCache<StoreOptions extends BaseStoreOptions, Store extends BaseStor
                     storeKeys = (await this.keys()).filter((key) => {
                         return keys.test(key);
                     });
-                } else {
-                    storeKeys = [];
                 }
             }
             for (const key of storeKeys) {
@@ -272,8 +266,6 @@ class PerfectCache<StoreOptions extends BaseStoreOptions, Store extends BaseStor
                     storeKeys = (await this.keys()).filter((key) => {
                         return keys.test(key);
                     });
-                } else {
-                    storeKeys = [];
                 }
             }
             for (const key of storeKeys) {
@@ -290,10 +282,17 @@ class PerfectCache<StoreOptions extends BaseStoreOptions, Store extends BaseStor
      * @returns
      */
     fallbackKey(
-        key: string | RegExp,
+        key: string,
         fallback: KeyFallbackConfig['fallback'],
-        options: { expiredTime?: number; maxAge?: number } = {}
-    ) {
+        options?: { expiredTime?: number; maxAge?: number }
+    ): number;
+    fallbackKey(
+        key: RegExp,
+        fallback: KeyFallbackConfig['fallback'],
+        options?: { expiredTime?: number; maxAge?: number }
+    ): number;
+    fallbackKey(key: any, fallback: any, options?: { expiredTime?: number; maxAge?: number }): void;
+    fallbackKey(key: any, fallback: any, options: { expiredTime?: number; maxAge?: number } = {}) {
         const { expiredTime, maxAge } = options;
         //the extra key
         if (typeof key === 'string') {
