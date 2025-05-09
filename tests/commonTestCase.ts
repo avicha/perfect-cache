@@ -456,5 +456,19 @@ const runTestCases = (perfectCacheInstance: InstanceType<typeof PerfectCache>) =
         const result3 = await perfectCacheInstance.getItem('cacheMaxAge_key', { withFallback: false });
         expect(result3).eq(`${fallbackValue} cacheMaxAge_key`);
     });
+    test('setItem with value circular structure should be fail', async () => {
+        const setItemFunc = () => {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const value: { [key: string]: any } = { a: 1, b: 2, self: undefined };
+            value.self = value;
+            return perfectCacheInstance.setItem('key', value);
+        };
+        if (perfectCacheInstance.driver !== 'indexedDB') {
+            await expect(setItemFunc).rejects.toThrowError('Converting circular structure to JSON');
+        } else {
+            await expect(setItemFunc()).resolves.not.toThrowError();
+            await expect(setItemFunc()).resolves.toEqual(StoreResult.OK);
+        }
+    });
 };
 export { runTestCases };

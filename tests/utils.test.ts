@@ -1,4 +1,4 @@
-import { beforeAll, describe, expect, test } from 'vitest';
+import { beforeAll, describe, expect, expectTypeOf, test } from 'vitest';
 import { getSupportedDriverList, getStoreClass, connectToIndexedDB } from '../src/utils';
 import LocalStorageStore from '../src/stores/LocalStorageStore';
 import MemoryStore from '../src/stores/MemoryStore';
@@ -35,8 +35,8 @@ describe('getStoreClass should be correct', () => {
     });
 });
 
-describe('connectToIndexedDB should be correct', () => {
-    test('connectToIndexedDB result', async () => {
+describe('connectToIndexedDB', () => {
+    test('dbName and dbVersion correct should be success', async () => {
         const dbName = 'test-db';
         const dbVersion = 3;
         const dbConnection = await connectToIndexedDB(dbName, dbVersion);
@@ -44,13 +44,17 @@ describe('connectToIndexedDB should be correct', () => {
         expect(dbConnection.name).toBe(dbName);
         expect(dbConnection.version).toBe(dbVersion);
     });
-});
-
-describe('connectToIndexedDB should be incorrect', () => {
-    test('connectToIndexedDB fail', async () => {
+    test('dbName and dbVersion error should be fail', async () => {
         const dbName = 'test-db';
         const dbVersion = 1;
         const promise = connectToIndexedDB(dbName, dbVersion);
         await expect(promise).rejects.toThrowError();
+    });
+    test('dbName and dbVersion undefined should be success', async () => {
+        const dbName = 'test-db';
+        const dbConnection = await connectToIndexedDB(dbName);
+        expect(dbConnection).toBeInstanceOf(IDBDatabase);
+        expect(dbConnection.name).toBe(dbName);
+        expectTypeOf(dbConnection.version).toEqualTypeOf<number>();
     });
 });

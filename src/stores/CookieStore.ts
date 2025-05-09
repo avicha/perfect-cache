@@ -43,14 +43,8 @@ export default class CookieStore extends BaseStore<BaseStoreOptions> {
         }
     }
     removeItem(key: string): Promise<void> {
-        return new Promise((resolve, reject) => {
-            try {
-                jsCookie.remove(this.__getRealKey(key));
-                resolve();
-            } catch (error) {
-                reject(error);
-            }
-        });
+        jsCookie.remove(this.__getRealKey(key));
+        return Promise.resolve();
     }
     keys() {
         const cookies = jsCookie.get();
