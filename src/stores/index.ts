@@ -19,14 +19,9 @@ for (const store of [MemoryStore, LocalStorageStore, SessionStorageStore, Cookie
 }
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const externalStores: { [key: string]: any } = {};
-function registerStore<StoreOptions extends BaseStoreOptions, T extends { driver: string } & BaseStore<StoreOptions>>(
-    store: T
+function registerStore<StoreOptions extends BaseStoreOptions, T extends { driver: string }>(
+    store: T & { new (opts: StoreOptions): BaseStore<StoreOptions> }
 ) {
-    if (store.driver && typeof store.driver === 'string') {
-        externalStores[store.driver] = store;
-    } else {
-        throw new Error('please input the driver name.');
-    }
     if (store instanceof BaseStore.constructor) {
         if (store.driver && typeof store.driver === 'string') {
             externalStores[store.driver] = store;
