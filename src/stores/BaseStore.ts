@@ -22,10 +22,8 @@ export default abstract class BaseStore<StoreOption extends BaseStoreOptions> ex
         return `${this.prefix}${key}`;
     }
     getReady() {
-        setTimeout(() => {
-            this.isReady = true;
-            this.$emit('ready');
-        }, 0);
+        this.isReady = true;
+        this.$emit('ready');
     }
     abstract keyValueGet(_key: string): Promise<StoreObject | undefined>;
     abstract keyValueSet(_key: string, _valueObj: StoreObject): Promise<void>;

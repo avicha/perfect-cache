@@ -1,12 +1,15 @@
 import BaseStore from './BaseStore';
-import { cacheDebugger } from '../utils';
+import { cacheLogger } from '../utils';
 import type { BaseStoreOptions, StoreObject } from '../types';
 
 export default class LocalStorageStore extends BaseStore<BaseStoreOptions> {
     static driver = 'localStorage' as const;
     constructor(opts: BaseStoreOptions) {
         super(opts);
-        this.getReady();
+        // 这里为什么延迟ready，一方面因为统一制造异步ready的回调，另一方面方便vitest测试getReady函数被调用过了
+        window.setTimeout(() => {
+            this.getReady();
+        }, 0);
     }
     keyValueGet(key: string): Promise<StoreObject | undefined> {
         const valueStr = localStorage.getItem(this.__getRealKey(key));
@@ -15,7 +18,7 @@ export default class LocalStorageStore extends BaseStore<BaseStoreOptions> {
                 const valueObj = JSON.parse(valueStr);
                 return Promise.resolve(valueObj);
             } catch (error) {
-                cacheDebugger(`get key ${key} json parse error`, valueStr);
+                cacheLogger.error(`get key ${key} json parse error`, valueStr);
                 return Promise.resolve(undefined);
             }
         } else {
@@ -27,7 +30,7 @@ export default class LocalStorageStore extends BaseStore<BaseStoreOptions> {
             localStorage.setItem(this.__getRealKey(key), JSON.stringify(value));
             return Promise.resolve();
         } catch (error) {
-            cacheDebugger(`set key ${key} json stringify error`, error);
+            cacheLogger.error(`set key ${key} json stringify error`, error);
             return Promise.reject(error);
         }
     }

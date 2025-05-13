@@ -11,7 +11,9 @@ class MyStore extends BaseStore<BaseStoreOptions> {
     constructor(opts: BaseStoreOptions) {
         super(opts);
         // 告诉缓存系统已经准备好了，如果是异步的就在准备好的时候调用ready函数告知系统
-        this.getReady();
+        window.setTimeout(() => {
+            this.getReady();
+        }, 0);
     }
     // 重载keyValueGet方法，告知引擎底层怎样获取一个key对应的缓存值
     // 必须返回Promise对象，同时resolve的对象结构为

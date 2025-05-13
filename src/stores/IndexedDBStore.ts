@@ -1,5 +1,5 @@
 import BaseStore from './BaseStore';
-import { connectToIndexedDB, indexedDBDebugger } from '../utils';
+import { connectToIndexedDB, indexedDBLogger } from '../utils';
 import type { IndexedDBStoreOptions, IndexedDBConnectOptions, IndexedDBStoreObject, StoreObject } from '../types';
 
 export default class IndexedDBStore extends BaseStore<IndexedDBStoreOptions> {
@@ -23,32 +23,41 @@ export default class IndexedDBStore extends BaseStore<IndexedDBStoreOptions> {
             this.dbConnection = this.opts.dbConnection;
         }
         if (!this.dbConnection) {
-            this.connectToVersion(this.dbVersion);
+            // 这里为什么延迟connectToVersion，纯粹方便vitest测试connectToVersion函数被调用过了
+            window.setTimeout(() => {
+                this.connectToVersion(this.dbVersion);
+            }, 0);
         } else {
             this.dbName = this.dbConnection.name;
             this.dbVersion = this.dbConnection.version;
-            this.getReady();
+            // 这里为什么延迟ready，一方面因为统一制造异步ready的回调，另一方面方便vitest测试getReady函数被调用过了
+            window.setTimeout(() => {
+                this.getReady();
+            }, 0);
         }
     }
-    init() {
+    init(): Promise<this> {
         // init the database connecttion and ensure the store table exists.
         return this.connectDB().then(() => {
-            return this.initObjectStore();
+            return this.initObjectStore().then(() => {
+                return this;
+            });
         });
     }
-    connectToVersion(dbVersion?: number) {
+    connectToVersion(dbVersion?: number): Promise<this> {
         this.dbVersion = dbVersion;
-        indexedDBDebugger(
+        indexedDBLogger.debug(
             `Database ${this.dbName} is connecting to version ${
                 this.dbVersion || 'latest'
             } and store ${this.objectStoreName} will be created if not exists.`
         );
-        this.init()
+        return this.init()
             .then(() => {
-                indexedDBDebugger(
+                indexedDBLogger.debug(
                     `Database ${this.dbName} is connected to ${this.dbVersion} success and store ${this.objectStoreName} is ready.`
                 );
                 this.getReady();
+                return this;
             })
             .catch((err) => {
                 // get the database connection failed, maybe the version is not match, so we need to upgrade it.
@@ -61,7 +70,7 @@ export default class IndexedDBStore extends BaseStore<IndexedDBStoreOptions> {
                         }`,
                         err
                     );
-                    this.connectToVersion(this.dbConnection.version + 1);
+                    return this.connectToVersion(this.dbConnection.version + 1);
                 } else {
                     window.console.error(
                         `Database ${this.dbName} is connected to ${this.dbVersion || 'latest'} failed and store ${
@@ -70,7 +79,7 @@ export default class IndexedDBStore extends BaseStore<IndexedDBStoreOptions> {
                         err
                     );
                     // maybe the given database version to connect is not the latest, so we need to reconnect to the latest one without the exact version.
-                    this.connectToVersion();
+                    return this.connectToVersion();
                 }
             });
     }
@@ -78,7 +87,7 @@ export default class IndexedDBStore extends BaseStore<IndexedDBStoreOptions> {
         const { timeout, interval = 100, readyLog = false } = connectOption;
         if (this.isReady && this.dbConnection) {
             if (readyLog) {
-                indexedDBDebugger(
+                indexedDBLogger.debug(
                     `Database connection ${this.dbName} is connected and store ${this.objectStoreName} is ready.(^v^)`
                 );
             }
@@ -86,7 +95,7 @@ export default class IndexedDBStore extends BaseStore<IndexedDBStoreOptions> {
                 callback();
             }
         } else {
-            indexedDBDebugger(
+            indexedDBLogger.debug(
                 `Waiting for the database connection ${this.dbName} store ${this.objectStoreName} ready...`
             );
             if ((timeout && timeout > 0) || timeout === undefined) {
@@ -119,25 +128,26 @@ export default class IndexedDBStore extends BaseStore<IndexedDBStoreOptions> {
             this.dbConnection = dbConnection;
             this.dbVersion = dbConnection.version;
             dbConnection.onversionchange = (event) => {
-                indexedDBDebugger(
+                indexedDBLogger.debug(
                     `The version of this database ${this.dbName} store ${this.objectStoreName} has changed from ${event.oldVersion} to ${event.newVersion}`
                 );
                 this.connectToVersion(event.newVersion || undefined);
             };
+            return dbConnection;
         });
     }
     initObjectStore(): Promise<IDBObjectStore | undefined> {
         return new Promise((resolve, reject) => {
             if (this.dbConnection) {
                 if (!this.dbConnection.objectStoreNames.contains(this.objectStoreName)) {
-                    indexedDBDebugger(`ObjectStore ${this.objectStoreName} is not exists, now creating it!`);
+                    indexedDBLogger.debug(`ObjectStore ${this.objectStoreName} is not exists, now creating it!`);
                     const objectStore = this.dbConnection.createObjectStore(this.objectStoreName, {
                         keyPath: 'key',
                     });
                     // Use transaction oncomplete to make sure the objectStore creation is
                     // finished before adding data into it.
                     objectStore.transaction.oncomplete = (_event) => {
-                        indexedDBDebugger(`ObjectStore ${this.objectStoreName} is created now.`);
+                        indexedDBLogger.debug(`ObjectStore ${this.objectStoreName} is created now.`);
                         resolve(objectStore);
                     };
                     objectStore.transaction.onerror = (_event) => {

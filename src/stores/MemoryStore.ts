@@ -1,5 +1,5 @@
 import BaseStore from './BaseStore';
-import { cacheDebugger } from '../utils';
+import { cacheLogger } from '../utils';
 import type { BaseStoreOptions, StoreObject } from '../types';
 
 export default class MemoryStore extends BaseStore<BaseStoreOptions> {
@@ -7,7 +7,10 @@ export default class MemoryStore extends BaseStore<BaseStoreOptions> {
     data = new Map<string, string>();
     constructor(opts: BaseStoreOptions) {
         super(opts);
-        this.getReady();
+        // 这里为什么延迟ready，一方面因为统一制造异步ready的回调，另一方面方便vitest测试getReady函数被调用过了
+        window.setTimeout(() => {
+            this.getReady();
+        }, 0);
     }
     keyValueGet(key: string): Promise<StoreObject | undefined> {
         const valueStr = this.data.get(this.__getRealKey(key));
@@ -16,7 +19,7 @@ export default class MemoryStore extends BaseStore<BaseStoreOptions> {
                 const valueObj: StoreObject = JSON.parse(valueStr);
                 return Promise.resolve(valueObj);
             } catch (error) {
-                cacheDebugger(`get key ${key} json parse error`, valueStr);
+                cacheLogger.error(`get key ${key} json parse error`, valueStr);
                 return Promise.resolve(undefined);
             }
         } else {
@@ -28,7 +31,7 @@ export default class MemoryStore extends BaseStore<BaseStoreOptions> {
             this.data.set(this.__getRealKey(key), JSON.stringify(value));
             return Promise.resolve();
         } catch (error) {
-            cacheDebugger(`set key ${key} json stringify error`, error);
+            cacheLogger.error(`set key ${key} json stringify error`, error);
             return Promise.reject(error);
         }
     }

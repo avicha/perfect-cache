@@ -2,8 +2,35 @@ import { systemStores, externalStores } from './stores';
 import debug from 'debug';
 import type { SupportedDriver } from './types';
 
-const cacheDebugger = debug('perfect-cache');
-const indexedDBDebugger = cacheDebugger.extend('indexedDB');
+const cacheDebug = debug('perfect-cache:debug');
+cacheDebug.log = console.debug.bind(console);
+const cacheLog = debug('perfect-cache:log');
+cacheLog.log = console.log.bind(console);
+const cacheError = debug('perfect-cache:error');
+cacheError.log = console.error.bind(console);
+const cacheWarn = debug('perfect-cache:warn');
+cacheWarn.log = console.warn.bind(console);
+const cacheLogger = {
+    debug: cacheDebug,
+    log: cacheLog,
+    error: cacheError,
+    warn: cacheWarn,
+};
+const indexedDBDebug = debug('perfect-cache:indexedDB:debug');
+indexedDBDebug.log = console.debug.bind(console);
+const indexedDBLog = debug('perfect-cache:indexedDB:log');
+indexedDBLog.log = console.log.bind(console);
+const indexedDBError = debug('perfect-cache:indexedDB:error');
+indexedDBError.log = console.error.bind(console);
+const indexedDBWarn = debug('perfect-cache:indexedDB:warn');
+indexedDBWarn.log = console.warn.bind(console);
+const indexedDBLogger = {
+    debug: indexedDBDebug,
+    log: indexedDBLog,
+    error: indexedDBError,
+    warn: indexedDBWarn,
+};
+
 /**
  *
  * @return {Array} the supported driver list
@@ -51,12 +78,12 @@ const connectToIndexedDB = (dbName: string, dbVersion?: number): Promise<IDBData
         request.onsuccess = () => {
             const dbConnection = request.result;
             const dbVersion = dbConnection.version;
-            indexedDBDebugger(`Database ${dbName} version ${dbVersion} initialised success.`);
+            indexedDBLogger.debug(`Database ${dbName} version ${dbVersion} initialised success.`);
             resolve(dbConnection);
         };
         request.onupgradeneeded = (event: IDBVersionChangeEvent) => {
             const dbConnection = request.result;
-            indexedDBDebugger(
+            indexedDBLogger.debug(
                 `Database ${dbName} upgrade needed as oldVersion is ${event.oldVersion} and newVersion is ${event.newVersion}.`
             );
             resolve(dbConnection);
@@ -64,4 +91,4 @@ const connectToIndexedDB = (dbName: string, dbVersion?: number): Promise<IDBData
     });
 };
 
-export { getSupportedDriverList, getStoreClass, connectToIndexedDB, cacheDebugger, indexedDBDebugger };
+export { getSupportedDriverList, getStoreClass, connectToIndexedDB, cacheLogger, indexedDBLogger };
