@@ -14,8 +14,6 @@ import { BaseStore } from './stores';
 class PerfectCache<StoreOptions extends BaseStoreOptions, Store extends BaseStore<StoreOptions>> extends EventListener {
     // cache options
     opts: CacheOptions;
-    // driver is init
-    __init = false;
     // the driver string
     driver?: string;
     // the store object
@@ -79,15 +77,12 @@ class PerfectCache<StoreOptions extends BaseStoreOptions, Store extends BaseStor
     protected initDriver() {
         const supportedDriverList = getSupportedDriverList();
         if (this.opts && this.opts.driver && supportedDriverList.includes(this.opts.driver)) {
-            // init false
-            this.__init = false;
             // get the store class
             const StoreClass: new (opts: StoreOptions) => Store = getStoreClass(this.opts.driver);
             // the store instance object
             this.store = new StoreClass(this.opts as unknown as StoreOptions);
             // the store like database maybe async,so listen the ready event to be ready
             this.store.$on('ready', () => {
-                this.__init = true;
                 this.driver = this.opts.driver;
                 this.$emit('ready');
             });
@@ -101,7 +96,7 @@ class PerfectCache<StoreOptions extends BaseStoreOptions, Store extends BaseStor
      * @returns {Boolean} is the driver is ready
      */
     isReady() {
-        return this.__init;
+        return this.store?.isReady;
     }
     /**
      *
@@ -111,7 +106,7 @@ class PerfectCache<StoreOptions extends BaseStoreOptions, Store extends BaseStor
      */
     ready(callback?: (self: this) => void) {
         return new Promise((resolve, reject) => {
-            if (this.__init) {
+            if (this.isReady() === true) {
                 this.$off('ready');
                 resolve(this);
                 if (callback && callback instanceof Function) {

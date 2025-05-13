@@ -11,6 +11,11 @@ interface IndexedDBStoreOptions extends BaseStoreOptions {
     objectStoreName?: string;
     dbVersion?: number;
     dbConnection?: IDBDatabase;
+    connectOption?: {
+        interval?: number;
+        timeout?: number;
+        readyLog?: boolean;
+    };
 }
 interface IndexedDBConnectOptions {
     interval?: number;

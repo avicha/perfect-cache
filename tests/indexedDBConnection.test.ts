@@ -42,6 +42,7 @@ describe('indexedDB connection should be correct', () => {
         const dictInitObjectStore = vi.spyOn(dictCache.store!, 'initObjectStore');
         const dictGetReady = vi.spyOn(dictCache.store!, 'getReady');
         await dictCache.ready();
+        await appCache.ready();
         // 第一次按指定版本连接1
         expect(dictConnectToVersion).toHaveBeenNthCalledWith(1, 1);
         // 因为最新版本是2，所以第二次按最新版本连接2
@@ -60,5 +61,18 @@ describe('indexedDB connection should be correct', () => {
         // 最后触发一次ready
         expect(dictGetReady).toHaveBeenCalledOnce();
         expect(dictGetReady).toHaveBeenCalledAfter(dictInitObjectStore);
+        expect(appConnectToVersion).toHaveBeenNthCalledWith(1, 2);
+        expect(appConnectToVersion).toHaveBeenNthCalledWith(2, 3);
+        expect(appConnectToVersion).toHaveLastResolvedWith(appCache.store!);
+        expect(appInit).toHaveBeenCalledTimes(2);
+        expect(appInit).toHaveLastResolvedWith(appCache.store!);
+        expect(appInit).toHaveBeenCalledAfter(appConnectToVersion);
+        expect(appConnectDB).toHaveBeenCalledTimes(2);
+        expect(appConnectDB).toHaveResolvedWith(appCache.store!.dbConnection);
+        expect(appConnectDB).toHaveBeenCalledAfter(appInit);
+        expect(appInitObjectStore).toHaveBeenCalledTimes(2);
+        expect(appInitObjectStore).toHaveBeenCalledAfter(appConnectDB);
+        expect(appGetReady).toHaveBeenCalledTimes(2);
+        expect(appGetReady).toHaveBeenCalledAfter(appInitObjectStore);
     });
 });

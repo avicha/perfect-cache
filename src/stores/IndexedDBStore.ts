@@ -84,7 +84,10 @@ export default class IndexedDBStore extends BaseStore<IndexedDBStoreOptions> {
             });
     }
     waitForConnectionReady(callback: (error?: Error) => void, connectOption: IndexedDBConnectOptions = {}) {
-        const { timeout, interval = 100, readyLog = false } = connectOption;
+        const defaultTimeout = this.opts?.connectOption?.timeout;
+        const defaultInterval = this.opts?.connectOption?.interval || 100;
+        const defaultReadyLog = this.opts?.connectOption?.readyLog !== false;
+        const { timeout = defaultTimeout, interval = defaultInterval, readyLog = false } = connectOption;
         if (this.isReady && this.dbConnection) {
             if (readyLog) {
                 indexedDBLogger.debug(
@@ -103,7 +106,7 @@ export default class IndexedDBStore extends BaseStore<IndexedDBStoreOptions> {
                     this.waitForConnectionReady(callback, {
                         timeout: timeout ? timeout - interval : undefined,
                         interval,
-                        readyLog: true,
+                        readyLog: defaultReadyLog,
                     });
                 }, interval);
             } else {
@@ -141,19 +144,25 @@ export default class IndexedDBStore extends BaseStore<IndexedDBStoreOptions> {
             if (this.dbConnection) {
                 if (!this.dbConnection.objectStoreNames.contains(this.objectStoreName)) {
                     indexedDBLogger.debug(`ObjectStore ${this.objectStoreName} is not exists, now creating it!`);
-                    const objectStore = this.dbConnection.createObjectStore(this.objectStoreName, {
-                        keyPath: 'key',
-                    });
-                    // Use transaction oncomplete to make sure the objectStore creation is
-                    // finished before adding data into it.
-                    objectStore.transaction.oncomplete = (_event) => {
-                        indexedDBLogger.debug(`ObjectStore ${this.objectStoreName} is created now.`);
-                        resolve(objectStore);
-                    };
-                    objectStore.transaction.onerror = (_event) => {
-                        window.console.error('ObjectStore creation occurs error', _event);
-                        reject(_event);
-                    };
+                    try {
+                        const objectStore = this.dbConnection.createObjectStore(this.objectStoreName, {
+                            keyPath: 'key',
+                        });
+                        // Use transaction oncomplete to make sure the objectStore creation is
+                        // finished before adding data into it.
+                        objectStore.transaction.oncomplete = (_event) => {
+                            indexedDBLogger.debug(`ObjectStore ${this.objectStoreName} is created now.`);
+                            resolve(objectStore);
+                        };
+                        // // 这个事件貌似不会执行到，当创建store出错的时候会直接抛出异常
+                        // objectStore.transaction.onerror = (_event) => {
+                        //     window.console.error(`ObjectStore ${this.objectStoreName} occurs error`, _event);
+                        //     reject(_event);
+                        // };
+                    } catch (e) {
+                        window.console.error(`ObjectStore ${this.objectStoreName} create failed`, e);
+                        reject(e);
+                    }
                 } else {
                     resolve(undefined);
                 }
