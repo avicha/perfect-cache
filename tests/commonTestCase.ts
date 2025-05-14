@@ -10,6 +10,8 @@ const sleep = (ms: number) => {
 };
 const fallbackValue = 'i am fallback value of';
 const defaultValue = { a: 1, b: 2 };
+const expiredTime = 500;
+const sleepTime = 300;
 const runTestCases = (perfectCacheInstance: InstanceType<typeof PerfectCache>) => {
     beforeAll(() => {
         perfectCacheInstance.fallbackKey('emptyString', (_FallbackKey) => {
@@ -23,14 +25,14 @@ const runTestCases = (perfectCacheInstance: InstanceType<typeof PerfectCache>) =
             (fallbackKey) => {
                 return `${fallbackValue} ${fallbackKey}`;
             },
-            { expiredTime: 200 }
+            { expiredTime: expiredTime }
         );
         perfectCacheInstance.fallbackKey(
             /^cacheMaxAge/,
             (fallbackKey) => {
                 return `${fallbackValue} ${fallbackKey}`;
             },
-            { maxAge: 200 }
+            { maxAge: expiredTime }
         );
     });
     beforeEach(async () => {
@@ -324,75 +326,77 @@ const runTestCases = (perfectCacheInstance: InstanceType<typeof PerfectCache>) =
         expect(getItemListResult2).toStrictEqual({});
     });
     test('setItem with expiredTime and get with not expired should return the value', async () => {
-        const result = await perfectCacheInstance.setItem('key', defaultValue, { expiredTime: 200 });
+        const result = await perfectCacheInstance.setItem('key', defaultValue, { expiredTime: expiredTime });
         expect(result).eq(StoreResult.OK);
         const value = await perfectCacheInstance.getItem('key');
         expect(value).toStrictEqual(defaultValue);
-        await sleep(150);
+        await sleep(sleepTime);
         const value1 = await perfectCacheInstance.getItem('key');
         expect(value1).toStrictEqual(defaultValue);
-        await sleep(150);
+        await sleep(sleepTime);
         const value2 = await perfectCacheInstance.getItem('key');
         expect(value2).toBeUndefined();
     });
     test('setItem with expiredTime and get with expired should return the default value or undefined', async () => {
-        const result = await perfectCacheInstance.setItem('key', 'value', { expiredTime: 200 });
+        const result = await perfectCacheInstance.setItem('key', 'value', { expiredTime: expiredTime });
         expect(result).eq(StoreResult.OK);
         const value = await perfectCacheInstance.getItem('key');
         expect(value).eq('value');
-        await sleep(300);
+        await sleep(1500);
         const value1 = await perfectCacheInstance.getItem('key');
         expect(value1).toBeUndefined();
         const value2 = await perfectCacheInstance.getItem('key', { defaultVal: defaultValue });
         expect(value2).toStrictEqual(defaultValue);
     });
     test('setItem with expiredTimeAt and get with not expired should return the value', async () => {
-        const result = await perfectCacheInstance.setItem('key', defaultValue, { expiredTimeAt: Date.now() + 200 });
+        const result = await perfectCacheInstance.setItem('key', defaultValue, {
+            expiredTimeAt: Date.now() + expiredTime,
+        });
         expect(result).eq(StoreResult.OK);
         const value = await perfectCacheInstance.getItem('key');
         expect(value).toStrictEqual(defaultValue);
-        await sleep(150);
+        await sleep(sleepTime);
         const value1 = await perfectCacheInstance.getItem('key');
         expect(value1).toStrictEqual(defaultValue);
-        await sleep(150);
+        await sleep(sleepTime);
         const value2 = await perfectCacheInstance.getItem('key');
         expect(value2).toBeUndefined();
     });
     test('setItem with expiredTimeAt and get with expired should return the default value or undefined', async () => {
-        const result = await perfectCacheInstance.setItem('key', 'value', { expiredTimeAt: Date.now() + 200 });
+        const result = await perfectCacheInstance.setItem('key', 'value', { expiredTimeAt: Date.now() + expiredTime });
         expect(result).eq(StoreResult.OK);
         const value = await perfectCacheInstance.getItem('key');
         expect(value).eq('value');
-        await sleep(300);
+        await sleep(sleepTime * 2);
         const value1 = await perfectCacheInstance.getItem('key');
         expect(value1).toBeUndefined();
         const value2 = await perfectCacheInstance.getItem('key', { defaultVal: defaultValue });
         expect(value2).toStrictEqual(defaultValue);
     });
     test('setItem with maxAge and get with not expired should return the value', async () => {
-        const result = await perfectCacheInstance.setItem('key', defaultValue, { maxAge: 200 });
+        const result = await perfectCacheInstance.setItem('key', defaultValue, { maxAge: expiredTime });
         expect(result).eq(StoreResult.OK);
         const value = await perfectCacheInstance.getItem('key');
         expect(value).toStrictEqual(defaultValue);
-        await sleep(150);
+        await sleep(sleepTime);
         const value1 = await perfectCacheInstance.getItem('key');
         expect(value1).toStrictEqual(defaultValue);
-        await sleep(150);
+        await sleep(sleepTime);
         const value2 = await perfectCacheInstance.getItem('key');
         expect(value2).toStrictEqual(defaultValue);
     });
     test('setItem with maxAge and get with expired should return the default value or undefined', async () => {
-        const result = await perfectCacheInstance.setItem('key', 'value', { maxAge: 200 });
+        const result = await perfectCacheInstance.setItem('key', 'value', { maxAge: expiredTime });
         expect(result).eq(StoreResult.OK);
         const value = await perfectCacheInstance.getItem('key');
         expect(value).eq('value');
-        await sleep(150);
+        await sleep(sleepTime);
         const value1 = await perfectCacheInstance.getItem('key');
         expect(value1).eq('value');
-        await sleep(150);
+        await sleep(sleepTime);
         const value2 = await perfectCacheInstance.getItem('key', { defaultVal: defaultValue });
         expect(value2).eq('value');
-        await sleep(300);
+        await sleep(sleepTime * 2);
         const value3 = await perfectCacheInstance.getItem('key', { defaultVal: defaultValue });
         expect(value3).toStrictEqual(defaultValue);
     });
@@ -439,20 +443,20 @@ const runTestCases = (perfectCacheInstance: InstanceType<typeof PerfectCache>) =
     test('getItem null and fallback key with expiredTime', async () => {
         const result1 = await perfectCacheInstance.getItem('cacheExpiredTime_key');
         expect(result1).eq(`${fallbackValue} cacheExpiredTime_key`);
-        await sleep(150);
+        await sleep(sleepTime);
         const result2 = await perfectCacheInstance.getItem('cacheExpiredTime_key', { withFallback: false });
         expect(result2).eq(`${fallbackValue} cacheExpiredTime_key`);
-        await sleep(150);
+        await sleep(sleepTime);
         const result3 = await perfectCacheInstance.getItem('cacheExpiredTime_key', { withFallback: false });
         expect(result3).toBeUndefined();
     });
     test('getItem null and fallback key with maxAge', async () => {
         const result1 = await perfectCacheInstance.getItem('cacheMaxAge_key');
         expect(result1).eq(`${fallbackValue} cacheMaxAge_key`);
-        await sleep(150);
+        await sleep(sleepTime);
         const result2 = await perfectCacheInstance.getItem('cacheMaxAge_key', { withFallback: false });
         expect(result2).eq(`${fallbackValue} cacheMaxAge_key`);
-        await sleep(150);
+        await sleep(sleepTime);
         const result3 = await perfectCacheInstance.getItem('cacheMaxAge_key', { withFallback: false });
         expect(result3).eq(`${fallbackValue} cacheMaxAge_key`);
     });

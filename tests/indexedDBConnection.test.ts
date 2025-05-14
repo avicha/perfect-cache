@@ -61,6 +61,7 @@ describe('indexedDB connection should be correct', () => {
         // 最后触发一次ready
         expect(dictGetReady).toHaveBeenCalledOnce();
         expect(dictGetReady).toHaveBeenCalledAfter(dictInitObjectStore);
+        // appConnection也会多次重新连接
         expect(appConnectToVersion).toHaveBeenNthCalledWith(1, 2);
         expect(appConnectToVersion).toHaveBeenNthCalledWith(2, 3);
         expect(appConnectToVersion).toHaveLastResolvedWith(appCache.store!);
@@ -73,6 +74,62 @@ describe('indexedDB connection should be correct', () => {
         expect(appInitObjectStore).toHaveBeenCalledTimes(2);
         expect(appInitObjectStore).toHaveBeenCalledAfter(appConnectDB);
         expect(appGetReady).toHaveBeenCalledTimes(2);
+        expect(appGetReady).toHaveBeenCalledAfter(appInitObjectStore);
+    });
+    test('connection not ready and set item ok', async () => {
+        const addressCache = new PerfectCache<IndexedDBStoreOptions, IndexedDBStore>('indexedDB', {
+            dbName: 'perfectCache',
+            objectStoreName: 'address-cache',
+            dbVersion: 1,
+            prefix: 'address:',
+            connectOptions: {
+                timeout: 1000,
+                interval: 100,
+                readyLog: true,
+            },
+        });
+        const addressConnectToVersion = vi.spyOn(addressCache.store!, 'connectToVersion');
+        const addressInit = vi.spyOn(addressCache.store!, 'init');
+        const addressConnectDB = vi.spyOn(addressCache.store!, 'connectDB');
+        const addressInitObjectStore = vi.spyOn(addressCache.store!, 'initObjectStore');
+        const addressGetReady = vi.spyOn(addressCache.store!, 'getReady');
+        const addressSetItem = vi.spyOn(addressCache.store!, 'setItem');
+        await addressCache.setItem('key', 'value');
+        await appCache.ready();
+        expect(addressSetItem).toHaveBeenCalledOnce();
+        expect(addressSetItem).toHaveBeenCalledWith('key', 'value');
+        // 第一次按指定版本连接1
+        expect(addressConnectToVersion).toHaveBeenNthCalledWith(1, 1);
+        // 因为最新版本是3，所以第二次按最新版本连接3
+        expect(addressConnectToVersion).toHaveBeenNthCalledWith(2);
+        // 因为创建新的store，所以第三次按升级版本连接3
+        expect(addressConnectToVersion).toHaveBeenNthCalledWith(3, 4);
+        // 所以init函数也会被触发三次
+        expect(addressInit).toHaveBeenCalledTimes(3);
+        expect(addressInit).toHaveBeenCalledAfter(addressConnectToVersion);
+        // 连接数据库也会被触发三次
+        expect(addressConnectDB).toHaveBeenCalledTimes(3);
+        expect(addressConnectDB).toHaveBeenCalledAfter(addressInit);
+        // 第一次连接db已经失败了，所以不会调用创建objectStore，所以被触发两次
+        expect(addressInitObjectStore).toHaveBeenCalledTimes(2);
+        expect(addressInitObjectStore).toHaveBeenCalledAfter(addressConnectDB);
+        // 最后触发一次ready
+        expect(addressGetReady).toHaveBeenCalledOnce();
+        expect(addressGetReady).toHaveBeenCalledAfter(addressInitObjectStore);
+        // appConnection也会多次重新连接
+        expect(appConnectToVersion).toHaveBeenNthCalledWith(1, 2);
+        expect(appConnectToVersion).toHaveBeenNthCalledWith(2, 3);
+        expect(appConnectToVersion).toHaveBeenNthCalledWith(3, 4);
+        expect(appConnectToVersion).toHaveLastResolvedWith(appCache.store!);
+        expect(appInit).toHaveBeenCalledTimes(3);
+        expect(appInit).toHaveLastResolvedWith(appCache.store!);
+        expect(appInit).toHaveBeenCalledAfter(appConnectToVersion);
+        expect(appConnectDB).toHaveBeenCalledTimes(3);
+        expect(appConnectDB).toHaveResolvedWith(appCache.store!.dbConnection);
+        expect(appConnectDB).toHaveBeenCalledAfter(appInit);
+        expect(appInitObjectStore).toHaveBeenCalledTimes(3);
+        expect(appInitObjectStore).toHaveBeenCalledAfter(appConnectDB);
+        expect(appGetReady).toHaveBeenCalledTimes(3);
         expect(appGetReady).toHaveBeenCalledAfter(appInitObjectStore);
     });
 });

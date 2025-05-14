@@ -36,90 +36,6 @@ export default class IndexedDBStore extends BaseStore<IndexedDBStoreOptions> {
             }, 0);
         }
     }
-    init(): Promise<this> {
-        // init the database connecttion and ensure the store table exists.
-        return this.connectDB().then(() => {
-            return this.initObjectStore().then(() => {
-                return this;
-            });
-        });
-    }
-    connectToVersion(dbVersion?: number): Promise<this> {
-        this.dbVersion = dbVersion;
-        indexedDBLogger.debug(
-            `Database ${this.dbName} is connecting to version ${
-                this.dbVersion || 'latest'
-            } and store ${this.objectStoreName} will be created if not exists.`
-        );
-        return this.init()
-            .then(() => {
-                indexedDBLogger.debug(
-                    `Database ${this.dbName} is connected to ${this.dbVersion} success and store ${this.objectStoreName} is ready.`
-                );
-                this.getReady();
-                return this;
-            })
-            .catch((err) => {
-                // get the database connection failed, maybe the version is not match, so we need to upgrade it.
-                if (this.dbConnection) {
-                    window.console.error(
-                        `Database ${this.dbName} is connected to ${this.dbConnection.version} success but store ${
-                            this.objectStoreName
-                        } init failed because of the outdated version. now reconnect to the next version ${
-                            this.dbConnection.version + 1
-                        }`,
-                        err
-                    );
-                    return this.connectToVersion(this.dbConnection.version + 1);
-                } else {
-                    window.console.error(
-                        `Database ${this.dbName} is connected to ${this.dbVersion || 'latest'} failed and store ${
-                            this.objectStoreName
-                        } is not ready because of the outdated version. now reconnect to the latest version`,
-                        err
-                    );
-                    // maybe the given database version to connect is not the latest, so we need to reconnect to the latest one without the exact version.
-                    return this.connectToVersion();
-                }
-            });
-    }
-    waitForConnectionReady(callback: (error?: Error) => void, connectOption: IndexedDBConnectOptions = {}) {
-        const defaultTimeout = this.opts?.connectOption?.timeout;
-        const defaultInterval = this.opts?.connectOption?.interval || 100;
-        const defaultReadyLog = this.opts?.connectOption?.readyLog !== false;
-        const { timeout = defaultTimeout, interval = defaultInterval, readyLog = false } = connectOption;
-        if (this.isReady && this.dbConnection) {
-            if (readyLog) {
-                indexedDBLogger.debug(
-                    `Database connection ${this.dbName} is connected and store ${this.objectStoreName} is ready.(^v^)`
-                );
-            }
-            if (callback && typeof callback === 'function') {
-                callback();
-            }
-        } else {
-            indexedDBLogger.debug(
-                `Waiting for the database connection ${this.dbName} store ${this.objectStoreName} ready...`
-            );
-            if ((timeout && timeout > 0) || timeout === undefined) {
-                window.setTimeout(() => {
-                    this.waitForConnectionReady(callback, {
-                        timeout: timeout ? timeout - interval : undefined,
-                        interval,
-                        readyLog: defaultReadyLog,
-                    });
-                }, interval);
-            } else {
-                if (callback && typeof callback === 'function') {
-                    callback(
-                        new Error(
-                            `Waiting for the database connection ${this.dbName} store ${this.objectStoreName} ready timeout.`
-                        )
-                    );
-                }
-            }
-        }
-    }
     connectDB() {
         if (this.dbConnection) {
             this.dbConnection.close();
@@ -172,6 +88,91 @@ export default class IndexedDBStore extends BaseStore<IndexedDBStoreOptions> {
             }
         });
     }
+    init(): Promise<this> {
+        // init the database connecttion and ensure the store table exists.
+        return this.connectDB().then(() => {
+            return this.initObjectStore().then(() => {
+                return this;
+            });
+        });
+    }
+    connectToVersion(dbVersion?: number): Promise<this> {
+        this.dbVersion = dbVersion;
+        indexedDBLogger.debug(
+            `Database ${this.dbName} is connecting to version ${
+                this.dbVersion || 'latest'
+            } and store ${this.objectStoreName} will be created if not exists.`
+        );
+        return this.init()
+            .then(() => {
+                indexedDBLogger.debug(
+                    `Database ${this.dbName} is connected to ${this.dbVersion} success and store ${this.objectStoreName} is ready.`
+                );
+                this.getReady();
+                return this;
+            })
+            .catch((err) => {
+                // get the database connection failed, maybe the version is not match, so we need to upgrade it.
+                if (this.dbConnection) {
+                    window.console.error(
+                        `Database ${this.dbName} is connected to ${this.dbConnection.version} success but store ${
+                            this.objectStoreName
+                        } init failed because of the outdated version. now reconnect to the next version ${
+                            this.dbConnection.version + 1
+                        }`,
+                        err
+                    );
+                    return this.connectToVersion(this.dbConnection.version + 1);
+                } else {
+                    window.console.error(
+                        `Database ${this.dbName} is connected to ${this.dbVersion || 'latest'} failed and store ${
+                            this.objectStoreName
+                        } is not ready because of the outdated version. now reconnect to the latest version`,
+                        err
+                    );
+                    // maybe the given database version to connect is not the latest, so we need to reconnect to the latest one without the exact version.
+                    return this.connectToVersion();
+                }
+            });
+    }
+    waitForConnectionReady(callback: (error?: Error) => void, connectOptions: IndexedDBConnectOptions = {}) {
+        const defaultTimeout = this.opts?.connectOptions?.timeout;
+        const defaultInterval = this.opts?.connectOptions?.interval || 100;
+        const defaultReadyLog = this.opts?.connectOptions?.readyLog !== false;
+        const { timeout = defaultTimeout, interval = defaultInterval, readyLog = false } = connectOptions;
+        if (this.isReady && this.dbConnection) {
+            if (readyLog) {
+                indexedDBLogger.debug(
+                    `Database connection ${this.dbName} is connected and store ${this.objectStoreName} is ready.(^v^)`
+                );
+            }
+            if (callback && typeof callback === 'function') {
+                callback();
+            }
+        } else {
+            indexedDBLogger.debug(
+                `Waiting for the database connection ${this.dbName} store ${this.objectStoreName} ready...`
+            );
+            if ((timeout && timeout > 0) || timeout === undefined) {
+                window.setTimeout(() => {
+                    this.waitForConnectionReady(callback, {
+                        timeout: timeout ? timeout - interval : undefined,
+                        interval,
+                        readyLog: defaultReadyLog,
+                    });
+                }, interval);
+            } else {
+                if (callback && typeof callback === 'function') {
+                    callback(
+                        new Error(
+                            `Waiting for the database connection ${this.dbName} store ${this.objectStoreName} ready timeout.`
+                        )
+                    );
+                }
+            }
+        }
+    }
+
     keyValueGet(key: string): Promise<StoreObject | undefined> {
         return new Promise((resolve, reject) => {
             this.waitForConnectionReady((error) => {
