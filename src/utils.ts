@@ -90,5 +90,46 @@ const connectToIndexedDB = (dbName: string, dbVersion?: number): Promise<IDBData
         };
     });
 };
-
-export { getSupportedDriverList, getStoreClass, connectToIndexedDB, cacheLogger, indexedDBLogger };
+const createDBAndObjectStores = (
+    dbName: string,
+    objectStoreNames: string[],
+    createOptions?: IDBObjectStoreParameters
+) => {
+    return connectToIndexedDB(dbName)
+        .then((dbConnection) => {
+            const objectStoreSize = dbConnection.objectStoreNames.length;
+            if (objectStoreSize === 0) {
+                return dbConnection;
+            } else {
+                return connectToIndexedDB(dbName, dbConnection.version + 1);
+            }
+        })
+        .then((dbConnection) => {
+            for (const objectStoreName of objectStoreNames) {
+                if (!dbConnection.objectStoreNames.contains(objectStoreName)) {
+                    try {
+                        const objectStore = dbConnection.createObjectStore(objectStoreName, {
+                            autoIncrement: createOptions?.autoIncrement,
+                            keyPath: createOptions?.keyPath || 'key',
+                        });
+                        objectStore.transaction.oncomplete = (_event) => {
+                            indexedDBLogger.debug(`Object store ${objectStoreName} created.`);
+                        };
+                    } catch (e) {
+                        indexedDBLogger.error(`Object store ${objectStoreName} create error.`, e);
+                    }
+                } else {
+                    indexedDBLogger.debug(`Object store ${objectStoreName} already exists.`);
+                }
+            }
+            return dbConnection;
+        });
+};
+export {
+    getSupportedDriverList,
+    getStoreClass,
+    connectToIndexedDB,
+    createDBAndObjectStores,
+    cacheLogger,
+    indexedDBLogger,
+};

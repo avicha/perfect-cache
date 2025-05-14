@@ -12,7 +12,13 @@ import {
     StoreResult,
     registerStore,
 } from './stores';
-import { getSupportedDriverList, connectToIndexedDB, cacheLogger, indexedDBLogger } from './utils';
+import {
+    getSupportedDriverList,
+    connectToIndexedDB,
+    createDBAndObjectStores,
+    cacheLogger,
+    indexedDBLogger,
+} from './utils';
 import type {
     Events,
     SupportedDriver,
@@ -57,6 +63,7 @@ export {
     registerStore,
     getSupportedDriverList,
     connectToIndexedDB,
+    createDBAndObjectStores,
     cacheLogger,
     indexedDBLogger,
 };

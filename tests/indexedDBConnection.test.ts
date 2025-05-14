@@ -1,10 +1,10 @@
 import { describe, test, expect, vi } from 'vitest';
-import { PerfectCache, IndexedDBStore } from '../src';
+import { PerfectCache, IndexedDBStore, createDBAndObjectStores } from '../src';
 import type { IndexedDBStoreOptions } from '../src/types';
 
 describe('indexedDB connection should be correct', () => {
     const appCache = new PerfectCache<IndexedDBStoreOptions, IndexedDBStore>('indexedDB', {
-        dbName: 'perfectCache',
+        dbName: 'myapp',
         objectStoreName: 'app-cache',
         dbVersion: 2,
         prefix: 'app:',
@@ -31,7 +31,7 @@ describe('indexedDB connection should be correct', () => {
     });
     test('connection trigger onversionchange when invalid state error', async () => {
         const dictCache = new PerfectCache<IndexedDBStoreOptions, IndexedDBStore>('indexedDB', {
-            dbName: 'perfectCache',
+            dbName: 'myapp',
             objectStoreName: 'dict-cache',
             dbVersion: 1,
             prefix: 'dict:',
@@ -78,7 +78,7 @@ describe('indexedDB connection should be correct', () => {
     });
     test('connection not ready and set item ok', async () => {
         const addressCache = new PerfectCache<IndexedDBStoreOptions, IndexedDBStore>('indexedDB', {
-            dbName: 'perfectCache',
+            dbName: 'myapp',
             objectStoreName: 'address-cache',
             dbVersion: 1,
             prefix: 'address:',
@@ -131,5 +131,73 @@ describe('indexedDB connection should be correct', () => {
         expect(appInitObjectStore).toHaveBeenCalledAfter(appConnectDB);
         expect(appGetReady).toHaveBeenCalledTimes(3);
         expect(appGetReady).toHaveBeenCalledAfter(appInitObjectStore);
+    });
+    test('createDBAndObjectStores', async () => {
+        const dbName = 'test-db';
+        const objectStoreNames = ['store1', 'store2', 'store3'];
+        const createOptions: IDBObjectStoreParameters = {
+            keyPath: 'key',
+        };
+        const dbConnection = await createDBAndObjectStores(dbName, objectStoreNames, createOptions);
+        expect(dbConnection).toBeInstanceOf(IDBDatabase);
+        expect(dbConnection.name).toBe(dbName);
+        expect(dbConnection.objectStoreNames.length).toBe(objectStoreNames.length);
+        for (const storeName of objectStoreNames) {
+            expect(dbConnection.objectStoreNames.contains(storeName)).toBe(true);
+        }
+        // store1不用重新初始化，直接ready
+        const store1Cache = new PerfectCache<IndexedDBStoreOptions, IndexedDBStore>('indexedDB', {
+            dbName: dbName,
+            objectStoreName: 'store1',
+            dbConnection: dbConnection,
+            prefix: 'store1:',
+        });
+        const store1ConnectToVersion = vi.spyOn(store1Cache.store!, 'connectToVersion');
+        const store1Init = vi.spyOn(store1Cache.store!, 'init');
+        const store1ConnectDB = vi.spyOn(store1Cache.store!, 'connectDB');
+        const store1InitObjectStore = vi.spyOn(store1Cache.store!, 'initObjectStore');
+        const store1GetReady = vi.spyOn(store1Cache.store!, 'getReady');
+        await store1Cache.ready();
+        expect(store1ConnectToVersion).toHaveBeenCalledTimes(0);
+        expect(store1Init).toHaveBeenCalledTimes(0);
+        expect(store1ConnectDB).toHaveBeenCalledTimes(0);
+        expect(store1InitObjectStore).toHaveBeenCalledTimes(0);
+        expect(store1GetReady).toHaveBeenCalledTimes(1);
+        // store2不用重新初始化，直接ready
+        const store2Cache = new PerfectCache<IndexedDBStoreOptions, IndexedDBStore>('indexedDB', {
+            dbName: dbName,
+            objectStoreName: 'store2',
+            dbConnection: dbConnection,
+            prefix: 'store2:',
+        });
+        const store2ConnectToVersion = vi.spyOn(store2Cache.store!, 'connectToVersion');
+        const store2Init = vi.spyOn(store2Cache.store!, 'init');
+        const store2ConnectDB = vi.spyOn(store2Cache.store!, 'connectDB');
+        const store2InitObjectStore = vi.spyOn(store2Cache.store!, 'initObjectStore');
+        const store2GetReady = vi.spyOn(store2Cache.store!, 'getReady');
+        await store2Cache.ready();
+        expect(store2ConnectToVersion).toHaveBeenCalledTimes(0);
+        expect(store2Init).toHaveBeenCalledTimes(0);
+        expect(store2ConnectDB).toHaveBeenCalledTimes(0);
+        expect(store2InitObjectStore).toHaveBeenCalledTimes(0);
+        expect(store2GetReady).toHaveBeenCalledTimes(1);
+        // store3不用重新初始化，直接ready
+        const store3Cache = new PerfectCache<IndexedDBStoreOptions, IndexedDBStore>('indexedDB', {
+            dbName: dbName,
+            objectStoreName: 'store3',
+            dbConnection: dbConnection,
+            prefix: 'store3:',
+        });
+        const store3ConnectToVersion = vi.spyOn(store3Cache.store!, 'connectToVersion');
+        const store3Init = vi.spyOn(store3Cache.store!, 'init');
+        const store3ConnectDB = vi.spyOn(store3Cache.store!, 'connectDB');
+        const store3InitObjectStore = vi.spyOn(store3Cache.store!, 'initObjectStore');
+        const store3GetReady = vi.spyOn(store3Cache.store!, 'getReady');
+        await store3Cache.ready();
+        expect(store3ConnectToVersion).toHaveBeenCalledTimes(0);
+        expect(store3Init).toHaveBeenCalledTimes(0);
+        expect(store3ConnectDB).toHaveBeenCalledTimes(0);
+        expect(store3InitObjectStore).toHaveBeenCalledTimes(0);
+        expect(store3GetReady).toHaveBeenCalledTimes(1);
     });
 });
