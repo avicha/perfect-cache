@@ -21,31 +21,29 @@ export default class IndexedDBStore extends BaseStore<IndexedDBStoreOptions> {
         }
         if (this.opts?.dbConnection) {
             this.dbConnection = this.opts.dbConnection;
+            this.dbVersion = this.dbConnection.version;
+            this.dbName = this.dbConnection.name;
         }
+    }
+    setDBConnection(dbConnection: IDBDatabase) {
+        this.dbConnection = dbConnection;
+        this.dbVersion = dbConnection.version;
+        this.dbName = dbConnection.name;
+    }
+    init() {
         if (!this.dbConnection) {
             // 这里为什么延迟connectToVersion，纯粹方便vitest测试connectToVersion函数被调用过了
-            window.setTimeout(() => {
-                this.connectToVersion(this.dbVersion);
-            }, 0);
+            this.connectToVersion(this.dbVersion);
+            return this;
         } else {
             this.dbName = this.dbConnection.name;
             this.dbVersion = this.dbConnection.version;
-            // 这里为什么延迟ready，一方面因为统一制造异步ready的回调，另一方面方便vitest测试getReady函数被调用过了
-            window.setTimeout(() => {
-                this.getReady();
-            }, 0);
+            this.getReady();
+            return this;
         }
     }
     connectDB() {
-        if (this.dbConnection) {
-            this.dbConnection.close();
-            this.dbConnection.onversionchange = null;
-            this.dbConnection = undefined;
-            this.isReady = false;
-        }
         return connectToIndexedDB(this.dbName, this.dbVersion).then((dbConnection) => {
-            this.dbConnection = dbConnection;
-            this.dbVersion = dbConnection.version;
             dbConnection.onversionchange = (event) => {
                 indexedDBLogger.debug(
                     `The version of this database ${this.dbName} store ${this.objectStoreName} has changed from ${event.oldVersion} to ${event.newVersion}`
@@ -55,7 +53,7 @@ export default class IndexedDBStore extends BaseStore<IndexedDBStoreOptions> {
             return dbConnection;
         });
     }
-    initObjectStore(): Promise<IDBObjectStore | undefined> {
+    createObjectStore(): Promise<IDBObjectStore | undefined> {
         return new Promise((resolve, reject) => {
             if (this.dbConnection) {
                 if (!this.dbConnection.objectStoreNames.contains(this.objectStoreName)) {
@@ -88,27 +86,39 @@ export default class IndexedDBStore extends BaseStore<IndexedDBStoreOptions> {
             }
         });
     }
-    init(): Promise<this> {
+    createDBAndObjectStore(): Promise<this> {
         // init the database connecttion and ensure the store table exists.
-        return this.connectDB().then(() => {
-            return this.initObjectStore().then(() => {
+        return this.connectDB().then((dbConnection) => {
+            this.setDBConnection(dbConnection);
+            return this.createObjectStore().then(() => {
+                // 这里为什么延迟getReady，纯粹方便vitest测试connectToVersion函数被调用过了，并且返回this，不然ready的时候函数还未调用完成，就会导致vitest测试报错
+                let readyTick: number | undefined = window.setTimeout(() => {
+                    this.getReady();
+                    clearTimeout(readyTick);
+                    readyTick = undefined;
+                }, 0);
                 return this;
             });
         });
     }
     connectToVersion(dbVersion?: number): Promise<this> {
+        if (this.dbConnection) {
+            this.dbConnection.close();
+            this.dbConnection.onversionchange = null;
+            this.dbConnection = undefined;
+        }
         this.dbVersion = dbVersion;
+        this.isReady = false;
         indexedDBLogger.debug(
             `Database ${this.dbName} is connecting to version ${
                 this.dbVersion || 'latest'
             } and store ${this.objectStoreName} will be created if not exists.`
         );
-        return this.init()
+        return this.createDBAndObjectStore()
             .then(() => {
                 indexedDBLogger.debug(
                     `Database ${this.dbName} is connected to ${this.dbVersion} success and store ${this.objectStoreName} is ready.`
                 );
-                this.getReady();
                 return this;
             })
             .catch((err) => {
@@ -135,6 +145,7 @@ export default class IndexedDBStore extends BaseStore<IndexedDBStoreOptions> {
                 }
             });
     }
+    // 这个函数一般不需要，但是为了避免外面直接跳过ready事件，直接调用store的函数，所以这里提供一个函数来确保连接成功才进行函数的调用
     waitForConnectionReady(callback: (error?: Error) => void, connectOptions: IndexedDBConnectOptions = {}) {
         const defaultTimeout = this.opts?.connectOptions?.timeout;
         const defaultInterval = this.opts?.connectOptions?.interval || 100;

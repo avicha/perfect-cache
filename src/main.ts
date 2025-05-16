@@ -72,27 +72,38 @@ class PerfectCache<StoreOptions extends BaseStoreOptions, Store extends BaseStor
         this.initDriver();
     }
     /**
-     * init the driver
+     * @description init the driver
      */
     protected initDriver() {
         const supportedDriverList = getSupportedDriverList();
         if (this.opts && this.opts.driver && supportedDriverList.includes(this.opts.driver)) {
+            this.driver = this.opts.driver;
             // get the store class
             const StoreClass: new (opts: StoreOptions) => Store = getStoreClass(this.opts.driver);
             // the store instance object
             this.store = new StoreClass(this.opts as unknown as StoreOptions);
             // the store like database maybe async,so listen the ready event to be ready
             this.store.$on('ready', () => {
-                this.driver = this.opts.driver;
                 this.$emit('ready');
             });
             // if the cache expired,fire the cacheExpired event
             this.store.$on('cacheExpired', (key) => {
                 this.$emit('cacheExpired', key);
             });
+            if (this.opts.initStoreImmediately !== false) {
+                this.store.init();
+            }
         }
     }
     /**
+     * @description init the store
+     * @returns {void}
+     */
+    init() {
+        return this.store!.init();
+    }
+    /**
+     * @description return is the driver is ready
      * @returns {Boolean} is the driver is ready
      */
     isReady() {
@@ -100,7 +111,7 @@ class PerfectCache<StoreOptions extends BaseStoreOptions, Store extends BaseStor
     }
     /**
      *
-     * @param {CallableFunction} timeout the timeout in ms
+     * @param {CallableFunction} callback the callback function will be called when the driver is ready
      * @returns {Promise} the promise object
      * @description the promise will be resolved when the driver is ready
      */
@@ -123,13 +134,13 @@ class PerfectCache<StoreOptions extends BaseStoreOptions, Store extends BaseStor
         });
     }
     /**
-     *
+     * @description get the cache value by key
      * @param {String} key the cache key
      * @param {Object} opts the options
      * @param {Object} opts.defaultVal default value if not get it
      * @param {Boolean} opts.withFallback if use fallback when does not get the cache value
      * @param {Boolean} opts.refreshCache if refresh the cache result when use the fallback
-     * @returns
+     * @returns {Promise} the cache value
      */
     getItem(key: string, opts: GetItemOptions = {}) {
         return this.ready().then(async () => {
@@ -167,10 +178,16 @@ class PerfectCache<StoreOptions extends BaseStoreOptions, Store extends BaseStor
         });
     }
     /**
+     * @description set the cache value by key
      * @param {String} key the cache key
      * @param {Object} value the cache value
      * @param {Object} options the cache options
-     * @returns {StoreResult}
+     * @param {Number} options.expiredTime seconds -- Set the specified expire time, in milliseconds.
+     * @param {Number} options.expiredTimeAt timestamp-seconds -- Set the specified Unix time at which the key will expire, in milliseconds.
+     * @param {Number} options.maxAge exists max age, in milliseconds.
+     * @param {Boolean} options.setOnlyNotExist Only set the key if it does not already exist.
+     * @param {Boolean} options.setOnlyExist Only set the key if it already exist.
+     * @returns {StoreResult} the store result
      */
     setItem(...args: [string, any, SetItemOptions?]) {
         return this.ready().then(() => {
@@ -178,8 +195,9 @@ class PerfectCache<StoreOptions extends BaseStoreOptions, Store extends BaseStor
         });
     }
     /**
+     * @description remove the cache value by key
      * @param {String} key the cache key
-     * @returns {Null}
+     * @returns {void}
      */
     removeItem(...args: [string]) {
         return this.ready().then(() => {
@@ -187,6 +205,7 @@ class PerfectCache<StoreOptions extends BaseStoreOptions, Store extends BaseStor
         });
     }
     /**
+     * @description return is the key exists
      * @param {String} key the cache key
      * @returns {Boolean}  is the key exists
      */
@@ -196,6 +215,7 @@ class PerfectCache<StoreOptions extends BaseStoreOptions, Store extends BaseStor
         });
     }
     /**
+     * @description return the cache keys
      * @returns {Array} the cache keys
      */
     keys() {
@@ -204,6 +224,7 @@ class PerfectCache<StoreOptions extends BaseStoreOptions, Store extends BaseStor
         });
     }
     /**
+     * @description clear the cache values
      * @returns {Null}
      */
     clear() {
@@ -212,6 +233,7 @@ class PerfectCache<StoreOptions extends BaseStoreOptions, Store extends BaseStor
         });
     }
     /**
+     * @description return the cache keys count
      * @returns {Number} the cache keys count
      */
     length() {
@@ -220,6 +242,7 @@ class PerfectCache<StoreOptions extends BaseStoreOptions, Store extends BaseStor
         });
     }
     /**
+     * @description return the cache values
      * @returns {Array} the cache values
      */
     getItemList(keys?: string[] | RegExp, opts?: GetItemOptions) {
@@ -246,6 +269,7 @@ class PerfectCache<StoreOptions extends BaseStoreOptions, Store extends BaseStor
         });
     }
     /**
+     * @description remove the cache values
      * @returns {Null}
      */
     removeItemList(keys?: string[] | RegExp) {
@@ -270,7 +294,7 @@ class PerfectCache<StoreOptions extends BaseStoreOptions, Store extends BaseStor
         });
     }
     /**
-     *
+     * @description set the cache key fallback config
      * @param {String/Regex} key the extra key or the key pattern
      * @param {Function} fallback the fallback function when the key is not exists
      * @param {Object} options the setItem operation options when the cache is updated

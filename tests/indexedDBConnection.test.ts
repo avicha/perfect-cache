@@ -3,44 +3,50 @@ import { PerfectCache, IndexedDBStore, createDBAndObjectStores } from '../src';
 import type { IndexedDBStoreOptions } from '../src/types';
 
 describe('indexedDB connection should be correct', () => {
-    const appCache = new PerfectCache<IndexedDBStoreOptions, IndexedDBStore>('indexedDB', {
+    const appCache = new PerfectCache<IndexedDBStoreOptions, IndexedDBStore>({
+        driver: 'indexedDB',
         dbName: 'myapp',
         objectStoreName: 'app-cache',
         dbVersion: 2,
         prefix: 'app:',
+        initStoreImmediately: false,
     });
     const appConnectToVersion = vi.spyOn(appCache.store!, 'connectToVersion');
-    const appInit = vi.spyOn(appCache.store!, 'init');
+    const appCreateDBAndObjectStore = vi.spyOn(appCache.store!, 'createDBAndObjectStore');
     const appConnectDB = vi.spyOn(appCache.store!, 'connectDB');
-    const appInitObjectStore = vi.spyOn(appCache.store!, 'initObjectStore');
+    const appCreateObjectStore = vi.spyOn(appCache.store!, 'createObjectStore');
     const appGetReady = vi.spyOn(appCache.store!, 'getReady');
     test('connection upgrade need when first create', async () => {
+        appCache.init();
         await appCache.ready();
         expect(appConnectToVersion).toHaveBeenCalledExactlyOnceWith(2);
         expect(appConnectToVersion).toHaveResolvedWith(appCache.store!);
-        expect(appInit).toHaveBeenCalledOnce();
-        expect(appInit).toHaveResolvedWith(appCache.store!);
-        expect(appInit).toHaveBeenCalledAfter(appConnectToVersion);
+        expect(appCreateDBAndObjectStore).toHaveBeenCalledOnce();
+        expect(appCreateDBAndObjectStore).toHaveResolvedWith(appCache.store!);
+        expect(appCreateDBAndObjectStore).toHaveBeenCalledAfter(appConnectToVersion);
         expect(appConnectDB).toHaveBeenCalledOnce();
         expect(appConnectDB).toHaveResolvedWith(appCache.store!.dbConnection);
-        expect(appConnectDB).toHaveBeenCalledAfter(appInit);
-        expect(appInitObjectStore).toHaveBeenCalledOnce();
-        expect(appInitObjectStore).toHaveBeenCalledAfter(appConnectDB);
+        expect(appConnectDB).toHaveBeenCalledAfter(appCreateDBAndObjectStore);
+        expect(appCreateObjectStore).toHaveBeenCalledOnce();
+        expect(appCreateObjectStore).toHaveBeenCalledAfter(appConnectDB);
         expect(appGetReady).toHaveBeenCalledOnce();
-        expect(appGetReady).toHaveBeenCalledAfter(appInitObjectStore);
+        expect(appGetReady).toHaveBeenCalledAfter(appCreateObjectStore);
     });
     test('connection trigger onversionchange when invalid state error', async () => {
-        const dictCache = new PerfectCache<IndexedDBStoreOptions, IndexedDBStore>('indexedDB', {
+        const dictCache = new PerfectCache<IndexedDBStoreOptions, IndexedDBStore>({
+            driver: 'indexedDB',
             dbName: 'myapp',
             objectStoreName: 'dict-cache',
             dbVersion: 1,
             prefix: 'dict:',
+            initStoreImmediately: false,
         });
         const dictConnectToVersion = vi.spyOn(dictCache.store!, 'connectToVersion');
-        const dictInit = vi.spyOn(dictCache.store!, 'init');
+        const dictCreateDBAndObjectStore = vi.spyOn(dictCache.store!, 'createDBAndObjectStore');
         const dictConnectDB = vi.spyOn(dictCache.store!, 'connectDB');
-        const dictInitObjectStore = vi.spyOn(dictCache.store!, 'initObjectStore');
+        const dictCreateObjectStore = vi.spyOn(dictCache.store!, 'createObjectStore');
         const dictGetReady = vi.spyOn(dictCache.store!, 'getReady');
+        dictCache.init();
         await dictCache.ready();
         await appCache.ready();
         // 第一次按指定版本连接1
@@ -50,34 +56,35 @@ describe('indexedDB connection should be correct', () => {
         // 因为创建新的store，所以第三次按升级版本连接3
         expect(dictConnectToVersion).toHaveBeenNthCalledWith(3, 3);
         // 所以init函数也会被触发三次
-        expect(dictInit).toHaveBeenCalledTimes(3);
-        expect(dictInit).toHaveBeenCalledAfter(dictConnectToVersion);
+        expect(dictCreateDBAndObjectStore).toHaveBeenCalledTimes(3);
+        expect(dictCreateDBAndObjectStore).toHaveBeenCalledAfter(dictConnectToVersion);
         // 连接数据库也会被触发三次
         expect(dictConnectDB).toHaveBeenCalledTimes(3);
-        expect(dictConnectDB).toHaveBeenCalledAfter(dictInit);
+        expect(dictConnectDB).toHaveBeenCalledAfter(dictCreateDBAndObjectStore);
         // 第一次连接db已经失败了，所以不会调用创建objectStore，所以被触发两次
-        expect(dictInitObjectStore).toHaveBeenCalledTimes(2);
-        expect(dictInitObjectStore).toHaveBeenCalledAfter(dictConnectDB);
+        expect(dictCreateObjectStore).toHaveBeenCalledTimes(2);
+        expect(dictCreateObjectStore).toHaveBeenCalledAfter(dictConnectDB);
         // 最后触发一次ready
         expect(dictGetReady).toHaveBeenCalledOnce();
-        expect(dictGetReady).toHaveBeenCalledAfter(dictInitObjectStore);
+        expect(dictGetReady).toHaveBeenCalledAfter(dictCreateObjectStore);
         // appConnection也会多次重新连接
         expect(appConnectToVersion).toHaveBeenNthCalledWith(1, 2);
         expect(appConnectToVersion).toHaveBeenNthCalledWith(2, 3);
         expect(appConnectToVersion).toHaveLastResolvedWith(appCache.store!);
-        expect(appInit).toHaveBeenCalledTimes(2);
-        expect(appInit).toHaveLastResolvedWith(appCache.store!);
-        expect(appInit).toHaveBeenCalledAfter(appConnectToVersion);
+        expect(appCreateDBAndObjectStore).toHaveBeenCalledTimes(2);
+        expect(appCreateDBAndObjectStore).toHaveLastResolvedWith(appCache.store!);
+        expect(appCreateDBAndObjectStore).toHaveBeenCalledAfter(appConnectToVersion);
         expect(appConnectDB).toHaveBeenCalledTimes(2);
         expect(appConnectDB).toHaveResolvedWith(appCache.store!.dbConnection);
-        expect(appConnectDB).toHaveBeenCalledAfter(appInit);
-        expect(appInitObjectStore).toHaveBeenCalledTimes(2);
-        expect(appInitObjectStore).toHaveBeenCalledAfter(appConnectDB);
+        expect(appConnectDB).toHaveBeenCalledAfter(appCreateDBAndObjectStore);
+        expect(appCreateObjectStore).toHaveBeenCalledTimes(2);
+        expect(appCreateObjectStore).toHaveBeenCalledAfter(appConnectDB);
         expect(appGetReady).toHaveBeenCalledTimes(2);
-        expect(appGetReady).toHaveBeenCalledAfter(appInitObjectStore);
+        expect(appGetReady).toHaveBeenCalledAfter(appCreateObjectStore);
     });
     test('connection not ready and set item ok', async () => {
-        const addressCache = new PerfectCache<IndexedDBStoreOptions, IndexedDBStore>('indexedDB', {
+        const addressCache = new PerfectCache<IndexedDBStoreOptions, IndexedDBStore>({
+            driver: 'indexedDB',
             dbName: 'myapp',
             objectStoreName: 'address-cache',
             dbVersion: 1,
@@ -87,14 +94,16 @@ describe('indexedDB connection should be correct', () => {
                 interval: 100,
                 readyLog: true,
             },
+            initStoreImmediately: false,
         });
         const addressConnectToVersion = vi.spyOn(addressCache.store!, 'connectToVersion');
-        const addressInit = vi.spyOn(addressCache.store!, 'init');
+        const addressCreateDBAndObjectStore = vi.spyOn(addressCache.store!, 'createDBAndObjectStore');
         const addressConnectDB = vi.spyOn(addressCache.store!, 'connectDB');
-        const addressInitObjectStore = vi.spyOn(addressCache.store!, 'initObjectStore');
+        const addressCreateObjectStore = vi.spyOn(addressCache.store!, 'createObjectStore');
         const addressGetReady = vi.spyOn(addressCache.store!, 'getReady');
         const addressSetItem = vi.spyOn(addressCache.store!, 'setItem');
-        await addressCache.setItem('key', 'value');
+        addressCache.init();
+        await addressCache.store!.setItem('key', 'value');
         await appCache.ready();
         expect(addressSetItem).toHaveBeenCalledOnce();
         expect(addressSetItem).toHaveBeenCalledWith('key', 'value');
@@ -105,32 +114,32 @@ describe('indexedDB connection should be correct', () => {
         // 因为创建新的store，所以第三次按升级版本连接3
         expect(addressConnectToVersion).toHaveBeenNthCalledWith(3, 4);
         // 所以init函数也会被触发三次
-        expect(addressInit).toHaveBeenCalledTimes(3);
-        expect(addressInit).toHaveBeenCalledAfter(addressConnectToVersion);
+        expect(addressCreateDBAndObjectStore).toHaveBeenCalledTimes(3);
+        expect(addressCreateDBAndObjectStore).toHaveBeenCalledAfter(addressConnectToVersion);
         // 连接数据库也会被触发三次
         expect(addressConnectDB).toHaveBeenCalledTimes(3);
-        expect(addressConnectDB).toHaveBeenCalledAfter(addressInit);
+        expect(addressConnectDB).toHaveBeenCalledAfter(addressCreateDBAndObjectStore);
         // 第一次连接db已经失败了，所以不会调用创建objectStore，所以被触发两次
-        expect(addressInitObjectStore).toHaveBeenCalledTimes(2);
-        expect(addressInitObjectStore).toHaveBeenCalledAfter(addressConnectDB);
+        expect(addressCreateObjectStore).toHaveBeenCalledTimes(2);
+        expect(addressCreateObjectStore).toHaveBeenCalledAfter(addressConnectDB);
         // 最后触发一次ready
         expect(addressGetReady).toHaveBeenCalledOnce();
-        expect(addressGetReady).toHaveBeenCalledAfter(addressInitObjectStore);
+        expect(addressGetReady).toHaveBeenCalledAfter(addressCreateObjectStore);
         // appConnection也会多次重新连接
         expect(appConnectToVersion).toHaveBeenNthCalledWith(1, 2);
         expect(appConnectToVersion).toHaveBeenNthCalledWith(2, 3);
         expect(appConnectToVersion).toHaveBeenNthCalledWith(3, 4);
         expect(appConnectToVersion).toHaveLastResolvedWith(appCache.store!);
-        expect(appInit).toHaveBeenCalledTimes(3);
-        expect(appInit).toHaveLastResolvedWith(appCache.store!);
-        expect(appInit).toHaveBeenCalledAfter(appConnectToVersion);
+        expect(appCreateDBAndObjectStore).toHaveBeenCalledTimes(3);
+        expect(appCreateDBAndObjectStore).toHaveLastResolvedWith(appCache.store!);
+        expect(appCreateDBAndObjectStore).toHaveBeenCalledAfter(appConnectToVersion);
         expect(appConnectDB).toHaveBeenCalledTimes(3);
         expect(appConnectDB).toHaveResolvedWith(appCache.store!.dbConnection);
-        expect(appConnectDB).toHaveBeenCalledAfter(appInit);
-        expect(appInitObjectStore).toHaveBeenCalledTimes(3);
-        expect(appInitObjectStore).toHaveBeenCalledAfter(appConnectDB);
+        expect(appConnectDB).toHaveBeenCalledAfter(appCreateDBAndObjectStore);
+        expect(appCreateObjectStore).toHaveBeenCalledTimes(3);
+        expect(appCreateObjectStore).toHaveBeenCalledAfter(appConnectDB);
         expect(appGetReady).toHaveBeenCalledTimes(3);
-        expect(appGetReady).toHaveBeenCalledAfter(appInitObjectStore);
+        expect(appGetReady).toHaveBeenCalledAfter(appCreateObjectStore);
     });
     test('createDBAndObjectStores', async () => {
         const dbName = 'test-db';
@@ -146,58 +155,67 @@ describe('indexedDB connection should be correct', () => {
             expect(dbConnection.objectStoreNames.contains(storeName)).toBe(true);
         }
         // store1不用重新初始化，直接ready
-        const store1Cache = new PerfectCache<IndexedDBStoreOptions, IndexedDBStore>('indexedDB', {
+        const store1Cache = new PerfectCache<IndexedDBStoreOptions, IndexedDBStore>({
+            driver: 'indexedDB',
             dbName: dbName,
             objectStoreName: 'store1',
             dbConnection: dbConnection,
             prefix: 'store1:',
+            initStoreImmediately: false,
         });
         const store1ConnectToVersion = vi.spyOn(store1Cache.store!, 'connectToVersion');
-        const store1Init = vi.spyOn(store1Cache.store!, 'init');
+        const store1CreateDBAndObjectStore = vi.spyOn(store1Cache.store!, 'createDBAndObjectStore');
         const store1ConnectDB = vi.spyOn(store1Cache.store!, 'connectDB');
-        const store1InitObjectStore = vi.spyOn(store1Cache.store!, 'initObjectStore');
+        const store1CreateObjectStore = vi.spyOn(store1Cache.store!, 'createObjectStore');
         const store1GetReady = vi.spyOn(store1Cache.store!, 'getReady');
+        store1Cache.init();
         await store1Cache.ready();
         expect(store1ConnectToVersion).toHaveBeenCalledTimes(0);
-        expect(store1Init).toHaveBeenCalledTimes(0);
+        expect(store1CreateDBAndObjectStore).toHaveBeenCalledTimes(0);
         expect(store1ConnectDB).toHaveBeenCalledTimes(0);
-        expect(store1InitObjectStore).toHaveBeenCalledTimes(0);
+        expect(store1CreateObjectStore).toHaveBeenCalledTimes(0);
         expect(store1GetReady).toHaveBeenCalledTimes(1);
         // store2不用重新初始化，直接ready
-        const store2Cache = new PerfectCache<IndexedDBStoreOptions, IndexedDBStore>('indexedDB', {
+        const store2Cache = new PerfectCache<IndexedDBStoreOptions, IndexedDBStore>({
+            driver: 'indexedDB',
             dbName: dbName,
             objectStoreName: 'store2',
             dbConnection: dbConnection,
             prefix: 'store2:',
+            initStoreImmediately: false,
         });
         const store2ConnectToVersion = vi.spyOn(store2Cache.store!, 'connectToVersion');
-        const store2Init = vi.spyOn(store2Cache.store!, 'init');
+        const store2CreateDBAndObjectStore = vi.spyOn(store2Cache.store!, 'createDBAndObjectStore');
         const store2ConnectDB = vi.spyOn(store2Cache.store!, 'connectDB');
-        const store2InitObjectStore = vi.spyOn(store2Cache.store!, 'initObjectStore');
+        const store2CreateObjectStore = vi.spyOn(store2Cache.store!, 'createObjectStore');
         const store2GetReady = vi.spyOn(store2Cache.store!, 'getReady');
+        store2Cache.init();
         await store2Cache.ready();
         expect(store2ConnectToVersion).toHaveBeenCalledTimes(0);
-        expect(store2Init).toHaveBeenCalledTimes(0);
+        expect(store2CreateDBAndObjectStore).toHaveBeenCalledTimes(0);
         expect(store2ConnectDB).toHaveBeenCalledTimes(0);
-        expect(store2InitObjectStore).toHaveBeenCalledTimes(0);
+        expect(store2CreateObjectStore).toHaveBeenCalledTimes(0);
         expect(store2GetReady).toHaveBeenCalledTimes(1);
         // store3不用重新初始化，直接ready
-        const store3Cache = new PerfectCache<IndexedDBStoreOptions, IndexedDBStore>('indexedDB', {
+        const store3Cache = new PerfectCache<IndexedDBStoreOptions, IndexedDBStore>({
+            driver: 'indexedDB',
             dbName: dbName,
             objectStoreName: 'store3',
             dbConnection: dbConnection,
             prefix: 'store3:',
+            initStoreImmediately: false,
         });
         const store3ConnectToVersion = vi.spyOn(store3Cache.store!, 'connectToVersion');
-        const store3Init = vi.spyOn(store3Cache.store!, 'init');
+        const store3CreateDBAndObjectStore = vi.spyOn(store3Cache.store!, 'createDBAndObjectStore');
         const store3ConnectDB = vi.spyOn(store3Cache.store!, 'connectDB');
-        const store3InitObjectStore = vi.spyOn(store3Cache.store!, 'initObjectStore');
+        const store3CreateObjectStore = vi.spyOn(store3Cache.store!, 'createObjectStore');
         const store3GetReady = vi.spyOn(store3Cache.store!, 'getReady');
+        store3Cache.init();
         await store3Cache.ready();
         expect(store3ConnectToVersion).toHaveBeenCalledTimes(0);
-        expect(store3Init).toHaveBeenCalledTimes(0);
+        expect(store3CreateDBAndObjectStore).toHaveBeenCalledTimes(0);
         expect(store3ConnectDB).toHaveBeenCalledTimes(0);
-        expect(store3InitObjectStore).toHaveBeenCalledTimes(0);
+        expect(store3CreateObjectStore).toHaveBeenCalledTimes(0);
         expect(store3GetReady).toHaveBeenCalledTimes(1);
     });
 });

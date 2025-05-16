@@ -3,6 +3,7 @@
 PerfectCache 是一个前端 javascript 的缓存库，可以使用不同的存储引擎来进行数据的保存，获取，删除等操作，作为国产软件，始终追求极致与完美，所以命名PerfectCache。它拥有如下功能
 
 - 支持不同的存储引擎方式，例如内存、localStorage、sessionStorage、cookie、indexedDB和自定义引擎
+- 支持多缓存实例，支持实例的延迟初始化init
 - 支持存储的key的前缀prefix，以便跟其他key区分，清空时不会把其他key清除
 - 作为缓存库，获取key时如果获取不到会自动重新请求（详见下面fallbackKey功能），并自动更新到缓存值，以便下次获取时可以直接拿到缓存值
 - 支持缓存的批量插入，查询，删除操作
@@ -26,8 +27,9 @@ export {
     registerStore, // 用于注册自定义存储引擎
     getSupportedDriverList, // 在使用相应的存储引擎之前可以先获取支持的情况，确保可以正常使用
     connectToIndexedDB, // 封装了连接到IndexedDB函数
-    cacheDebugger, // 缓存库的debugger，用于调试
-    indexedDBDebugger, // indexedDB的debugger，用于调试
+    createDBAndObjectStores, // 封装了连接DB并创建一次性创建多个store的函数
+    cacheLogger, // 缓存库的日志前缀'perfect-cache:*'，用于调试
+    indexedDBLogger, // indexedDB的日志前缀'perfect-cache:indexedDB:*'，用于调试
 };
 ```
 
@@ -65,18 +67,25 @@ const perfectCacheInstance = new PerfectCache();
 
 参数说明
 
-| 名称                 | 意义                           | 类型        | 默认值          | 是否必填 |
-| -------------------- | ------------------------------ | ----------- | --------------- | -------- |
-| driver               | 使用的存储引擎                 | string      | memory          | 非必填   |
-| opts                 | 缓存配置                       | object      | -               | 非必填   |
-| opts.driver          | 缓存使用的存储引擎             | string      | memory          | 非必填   |
-| opts.prefix          | 缓存 key 使用的前缀            | string      | cache:          | 非必填   |
-| opts.dbName          | indexdb 名称                   | string      | 'perfect-cache' | 非必填   |
-| opts.objectStoreName | indexdb 的 store 名称          | string      | 'perfect-cache' | 非必填   |
-| opts.dbVersion       | indexdb 连接版本，默认最新     | number      | -               | 非必填   |
-| opts.dbConnection    | indexdb 连接，用于公用现有连接 | IDBDatabase | -               | 非必填   |
+| 名称                      | 意义                           | 类型        | 默认值          | 是否必填 |
+| ------------------------- | ------------------------------ | ----------- | --------------- | -------- |
+| driver                    | 使用的存储引擎                 | string      | memory          | 非必填   |
+| opts                      | 缓存配置                       | object      | -               | 非必填   |
+| opts.driver               | 缓存使用的存储引擎             | string      | memory          | 非必填   |
+| opts.prefix               | 缓存 key 使用的前缀            | string      | cache:          | 非必填   |
+| opts.dbName               | indexdb 名称                   | string      | 'perfect-cache' | 非必填   |
+| opts.objectStoreName      | indexdb 的 store 名称          | string      | 'perfect-cache' | 非必填   |
+| opts.dbVersion            | indexdb 连接版本，默认最新     | number      | -               | 非必填   |
+| opts.dbConnection         | indexdb 连接，用于公用现有连接 | IDBDatabase | -               | 非必填   |
+| opts.initStoreImmediately | 是否立即初始化存储引擎         | boolean     | true            | 非必填   |
 
 ### 实例方法
+
+- 初始化存储引擎
+
+```javascript
+perfectCacheInstance.init();
+```
 
 - 存储引擎是否已经准备好
 
@@ -87,11 +96,11 @@ const isReady = await perfectCacheInstance.isReady();
 - 存储引擎已经准备好回调
 
 ```javascript
-// 方式一
+// 方式一，回调Callback方式
 perfectCacheInstance.ready((self) => {
     window.console.log(self.driver + ' cache ready.');
 });
-// 方式二
+// 方式二，promise模式
 perfectCacheInstance.ready().then(() => {
     window.console.log('cache ready.');
 });
@@ -326,8 +335,12 @@ class MyStore extends BaseStore {
     data = {};
     constructor(opts) {
         super(opts);
+    }
+    // 重载初始化函数
+    init() {
         // 告诉缓存系统已经准备好了，如果是异步的就在准备好的时候调用ready函数告知系统
         this.getReady();
+        return this;
     }
     // 重载keyValueGet方法，告知引擎底层怎样获取一个key对应的缓存值
     // 必须返回Promise对象，同时resolve的对象结构为

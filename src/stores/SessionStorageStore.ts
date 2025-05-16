@@ -6,10 +6,6 @@ export default class SessionStorageStore extends BaseStore<BaseStoreOptions> {
     static driver = 'sessionStorage' as const;
     constructor(opts: BaseStoreOptions) {
         super(opts);
-        // 这里为什么延迟ready，一方面因为统一制造异步ready的回调，另一方面方便vitest测试getReady函数被调用过了
-        window.setTimeout(() => {
-            this.getReady();
-        }, 0);
     }
     keyValueGet(key: string): Promise<StoreObject | undefined> {
         const valueStr = sessionStorage.getItem(this.__getRealKey(key));
