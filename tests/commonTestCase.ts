@@ -196,13 +196,13 @@ const runTestCases = (perfectCacheInstance: InstanceType<typeof PerfectCache>) =
         const result2 = await perfectCacheInstance.setItem('key2', 'key2');
         expect(result2).eq(StoreResult.OK);
         const clearResult1 = await perfectCacheInstance.clear();
-        expect(clearResult1).eq(2);
+        expect(clearResult1).eq(void 0);
         const exists1 = await perfectCacheInstance.existsKey('key1');
         expect(exists1).toBeFalsy();
         const exists2 = await perfectCacheInstance.existsKey('key2');
         expect(exists2).toBeFalsy();
         const clearResult2 = await perfectCacheInstance.clear();
-        expect(clearResult2).eq(0);
+        expect(clearResult2).eq(void 0);
     });
     test('keys should return all keys', async () => {
         const result1 = await perfectCacheInstance.setItem('key1', 'key1');
@@ -214,7 +214,7 @@ const runTestCases = (perfectCacheInstance: InstanceType<typeof PerfectCache>) =
         const keys1 = await perfectCacheInstance.keys();
         expect(keys1).toStrictEqual(['key1', 'key2', 'key3']);
         const clearResult = await perfectCacheInstance.clear();
-        expect(clearResult).eq(3);
+        expect(clearResult).eq(void 0);
         const keys2 = await perfectCacheInstance.keys();
         expect(keys2).toStrictEqual([]);
         const result4 = await perfectCacheInstance.setItem('key4', 'key4');
@@ -232,7 +232,7 @@ const runTestCases = (perfectCacheInstance: InstanceType<typeof PerfectCache>) =
         const length1 = await perfectCacheInstance.length();
         expect(length1).eq(3);
         const clearResult = await perfectCacheInstance.clear();
-        expect(clearResult).eq(3);
+        expect(clearResult).eq(void 0);
         const length2 = await perfectCacheInstance.length();
         expect(length2).eq(0);
     });

@@ -183,7 +183,6 @@ export default class IndexedDBStore extends BaseStore<IndexedDBStoreOptions> {
             }
         }
     }
-
     keyValueGet(key: string): Promise<StoreObject | undefined> {
         return new Promise((resolve, reject) => {
             this.waitForConnectionReady((error) => {
@@ -265,7 +264,6 @@ export default class IndexedDBStore extends BaseStore<IndexedDBStoreOptions> {
         });
     }
     keys(): Promise<string[]> {
-        const keys: string[] = [];
         return new Promise((resolve, reject) => {
             this.waitForConnectionReady((error) => {
                 if (error) {
@@ -273,24 +271,54 @@ export default class IndexedDBStore extends BaseStore<IndexedDBStoreOptions> {
                 } else {
                     const request = this.dbConnection!.transaction([this.objectStoreName], 'readonly')
                         .objectStore(this.objectStoreName)
-                        .openCursor();
+                        .getAllKeys();
                     request.onerror = () => {
-                        window.console.error('Database openCursor occurs error', request.result);
+                        window.console.error('Database getAllKeys occurs error', request.result);
                         reject(request.result);
                     };
                     request.onsuccess = (e) => {
-                        const cursor = request.result;
-                        if (cursor) {
-                            if ((cursor.key as string).startsWith(this.prefix)) {
-                                keys.push((cursor.key as string).replace(this.prefix, ''));
-                            }
-                            cursor.continue();
+                        const keys = request.result;
+                        if (Array.isArray(keys)) {
+                            const resKeys = this.prefix
+                                ? keys
+                                      .filter((key) => {
+                                          return (key as string).startsWith(this.prefix);
+                                      })
+                                      .map((key) => {
+                                          return (key as string).replace(this.prefix, '');
+                                      })
+                                : keys.map((key) => key as string);
+                            resolve(resKeys.sort());
                         } else {
-                            resolve(keys.sort());
+                            resolve([]);
                         }
                     };
                 }
             });
         });
+    }
+    clear(): Promise<void> {
+        if (this.prefix) {
+            return super.clear();
+        } else {
+            return new Promise((resolve, reject) => {
+                this.waitForConnectionReady((error) => {
+                    if (error) {
+                        reject(error);
+                    } else {
+                        const request = this.dbConnection!.transaction([this.objectStoreName], 'readwrite')
+                            .objectStore(this.objectStoreName)
+                            .clear();
+                        request.onerror = () => {
+                            window.console.error('Database clear occurs error', request.result);
+                            reject(request.result);
+                        };
+                        request.onsuccess = () => {
+                            resolve(void 0);
+                        };
+                    }
+                });
+            });
+        }
     }
 }

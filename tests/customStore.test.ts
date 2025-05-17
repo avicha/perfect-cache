@@ -70,9 +70,8 @@ class MyStore extends BaseStore<BaseStoreOptions> {
     }
     // 重载clear方法，清空缓存值
     clear() {
-        const size = Object.keys(this.data).length;
         this.data = {};
-        return Promise.resolve(size);
+        return Promise.resolve();
     }
     // 重载length方法，获取keys的长度
     length() {

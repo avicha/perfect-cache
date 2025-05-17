@@ -43,13 +43,12 @@ export default class MemoryStore extends BaseStore<BaseStoreOptions> {
         return Promise.resolve();
     }
     keys() {
-        const keys = Array.from(this.data.keys()).map((key) => key.replace(this.prefix, ''));
+        const keys = Array.from(this.data.keys()).map((key) => (this.prefix ? key.replace(this.prefix, '') : key));
         return Promise.resolve(keys.sort());
     }
-    clear(): Promise<number> {
-        const size = this.data.size;
+    clear() {
         this.data.clear();
-        return Promise.resolve(size);
+        return Promise.resolve();
     }
     length() {
         return Promise.resolve(this.data.size);

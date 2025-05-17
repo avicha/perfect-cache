@@ -48,11 +48,13 @@ export default class CookieStore extends BaseStore<BaseStoreOptions> {
     }
     keys() {
         const cookies = jsCookie.get();
-        const keys: string[] = [];
-        for (const key of Object.keys(cookies)) {
-            if (key.startsWith(this.prefix)) {
-                keys.push(key.replace(this.prefix, ''));
-            }
+        let keys: string[] = [];
+        if (this.prefix) {
+            keys = Object.keys(cookies)
+                .filter((key) => key.startsWith(this.prefix))
+                .map((key) => key.replace(this.prefix, ''));
+        } else {
+            keys = Object.keys(cookies);
         }
         return Promise.resolve(keys.sort());
     }

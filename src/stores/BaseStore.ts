@@ -34,12 +34,12 @@ export default abstract class BaseStore<StoreOption extends BaseStoreOptions> ex
     abstract existsKey(_key: string): Promise<boolean>;
     abstract removeItem(_key: string): Promise<void>;
     abstract keys(): Promise<string[]>;
-    async clear(): Promise<number> {
+    async clear(): Promise<void> {
         const keys = await this.keys();
         for (const key of keys) {
             await this.removeItem(key);
         }
-        return Promise.resolve(keys.length);
+        return Promise.resolve();
     }
     length(): Promise<number> {
         return new Promise((resolve, reject) => {

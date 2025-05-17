@@ -42,12 +42,22 @@ export default class LocalStorageStore extends BaseStore<BaseStoreOptions> {
         return Promise.resolve();
     }
     keys() {
-        const keys: string[] = [];
-        for (const key of Object.keys(localStorage)) {
-            if (key.startsWith(this.prefix)) {
-                keys.push(key.replace(this.prefix, ''));
-            }
+        let keys: string[] = [];
+        if (this.prefix) {
+            keys = Object.keys(localStorage)
+                .filter((key) => key.startsWith(this.prefix))
+                .map((key) => key.replace(this.prefix, ''));
+        } else {
+            keys = Object.keys(localStorage);
         }
         return Promise.resolve(keys.sort());
+    }
+    clear() {
+        if (this.prefix) {
+            return super.clear();
+        } else {
+            localStorage.clear();
+            return Promise.resolve();
+        }
     }
 }

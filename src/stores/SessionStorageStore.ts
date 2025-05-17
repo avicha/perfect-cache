@@ -47,12 +47,22 @@ export default class SessionStorageStore extends BaseStore<BaseStoreOptions> {
         return Promise.resolve();
     }
     keys() {
-        const keys: string[] = [];
-        for (const key of Object.keys(sessionStorage)) {
-            if (key.startsWith(this.prefix)) {
-                keys.push(key.replace(this.prefix, ''));
-            }
+        let keys: string[] = [];
+        if (this.prefix) {
+            keys = Object.keys(sessionStorage)
+                .filter((key) => key.startsWith(this.prefix))
+                .map((key) => key.replace(this.prefix, ''));
+        } else {
+            keys = Object.keys(sessionStorage);
         }
         return Promise.resolve(keys.sort());
+    }
+    clear(): Promise<void> {
+        if (this.prefix) {
+            return super.clear();
+        } else {
+            sessionStorage.clear();
+            return Promise.resolve();
+        }
     }
 }
