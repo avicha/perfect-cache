@@ -5,6 +5,7 @@ import type { BaseStoreOptions, StoreObject } from '../types';
 export default class MemoryStore extends BaseStore<BaseStoreOptions> {
     static driver = 'memory' as const;
     data = new Map<string, string>();
+    prefix = '';
     constructor(opts: BaseStoreOptions) {
         super(opts);
     }

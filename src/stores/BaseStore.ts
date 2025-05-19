@@ -8,8 +8,8 @@ export default abstract class BaseStore<StoreOption extends BaseStoreOptions> ex
     opts: StoreOption;
     isReady = false;
     prefix = 'cache:';
-    getItemList?: (keys?: string[] | RegExp, opts?: GetItemOptions) => Promise<{ [key: string]: any }>;
-    removeItemList?: (keys?: string[] | RegExp) => Promise<void>;
+    getItemList?(keys?: string[] | RegExp, opts?: GetItemOptions): Promise<{ [key: string]: any }>;
+    removeItemList?(keys?: string[] | RegExp): Promise<void>;
     constructor(opts: StoreOption) {
         super();
         this.opts = opts;

@@ -7,12 +7,12 @@ describe('perfect cache should be correct', () => {
         const perfectCacheInstance = new PerfectCache();
         expect(perfectCacheInstance.opts).toStrictEqual(defaultOpts);
         expect(perfectCacheInstance.opts.driver).toBe('memory');
-        expect(perfectCacheInstance.store?.prefix).toBe('cache:');
+        expect(perfectCacheInstance.store?.prefix).toBe('');
     });
     test('new PerfectCache(driver) valid', () => {
         const perfectCacheInstance = new PerfectCache('memory');
         expect(perfectCacheInstance.opts.driver).toBe('memory');
-        expect(perfectCacheInstance.store?.prefix).toBe('cache:');
+        expect(perfectCacheInstance.store?.prefix).toBe('');
     });
     test('new PerfectCache(opts) valid', () => {
         const perfectCacheInstance = new PerfectCache({ driver: 'localStorage', prefix: 'app:' });

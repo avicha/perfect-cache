@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import BaseStore from './BaseStore';
 import { connectToIndexedDB, indexedDBLogger } from '../utils';
 import type { IndexedDBStoreOptions, IndexedDBConnectOptions, IndexedDBStoreObject, StoreObject } from '../types';
@@ -8,6 +9,7 @@ export default class IndexedDBStore extends BaseStore<IndexedDBStoreOptions> {
     objectStoreName = 'perfect-cache';
     dbVersion: number | undefined = undefined;
     dbConnection: IDBDatabase | undefined = undefined;
+    prefix = '';
     constructor(opts: IndexedDBStoreOptions) {
         super(opts);
         if (this.opts?.dbName) {
@@ -189,12 +191,12 @@ export default class IndexedDBStore extends BaseStore<IndexedDBStoreOptions> {
                 if (error) {
                     reject(error);
                 } else {
-                    const request = this.dbConnection!.transaction([this.objectStoreName], 'readonly')
+                    const request = this.dbConnection!.transaction(this.objectStoreName, 'readonly')
                         .objectStore(this.objectStoreName)
                         .get(this.__getRealKey(key));
                     request.onerror = () => {
                         window.console.error('Database get occurs error', request.result);
-                        reject(request.result);
+                        reject(request.error);
                     };
                     request.onsuccess = () => {
                         resolve((request.result as IndexedDBStoreObject)?.value);
@@ -209,12 +211,12 @@ export default class IndexedDBStore extends BaseStore<IndexedDBStoreOptions> {
                 if (error) {
                     reject(error);
                 } else {
-                    const request = this.dbConnection!.transaction([this.objectStoreName], 'readwrite')
+                    const request = this.dbConnection!.transaction(this.objectStoreName, 'readwrite')
                         .objectStore(this.objectStoreName)
                         .put({ key: this.__getRealKey(key), value });
                     request.onerror = () => {
                         window.console.error('Database put occurs error', request.result);
-                        reject(request.result);
+                        reject(request.error);
                     };
                     request.onsuccess = () => {
                         resolve();
@@ -229,12 +231,12 @@ export default class IndexedDBStore extends BaseStore<IndexedDBStoreOptions> {
                 if (error) {
                     reject(error);
                 } else {
-                    const request = this.dbConnection!.transaction([this.objectStoreName], 'readonly')
+                    const request = this.dbConnection!.transaction(this.objectStoreName, 'readonly')
                         .objectStore(this.objectStoreName)
                         .count(this.__getRealKey(key));
                     request.onerror = () => {
                         window.console.error('Database count occurs error', request.result);
-                        reject(request.result);
+                        reject(request.error);
                     };
                     request.onsuccess = () => {
                         resolve(!!request.result);
@@ -249,12 +251,12 @@ export default class IndexedDBStore extends BaseStore<IndexedDBStoreOptions> {
                 if (error) {
                     reject(error);
                 } else {
-                    const request = this.dbConnection!.transaction([this.objectStoreName], 'readwrite')
+                    const request = this.dbConnection!.transaction(this.objectStoreName, 'readwrite')
                         .objectStore(this.objectStoreName)
                         .delete(this.__getRealKey(key));
                     request.onerror = () => {
                         window.console.error('Database delete occurs error', request.result);
-                        reject(request.result);
+                        reject(request.error);
                     };
                     request.onsuccess = () => {
                         resolve();
@@ -269,12 +271,12 @@ export default class IndexedDBStore extends BaseStore<IndexedDBStoreOptions> {
                 if (error) {
                     reject(error);
                 } else {
-                    const request = this.dbConnection!.transaction([this.objectStoreName], 'readonly')
+                    const request = this.dbConnection!.transaction(this.objectStoreName, 'readonly')
                         .objectStore(this.objectStoreName)
                         .getAllKeys();
                     request.onerror = () => {
-                        window.console.error('Database getAllKeys occurs error', request.result);
-                        reject(request.result);
+                        window.console.error('Database getAllKeys occurs error', request.error);
+                        reject(request.error);
                     };
                     request.onsuccess = (e) => {
                         const keys = request.result;
@@ -299,7 +301,22 @@ export default class IndexedDBStore extends BaseStore<IndexedDBStoreOptions> {
     }
     clear(): Promise<void> {
         if (this.prefix) {
-            return super.clear();
+            return new Promise((resolve, reject) => {
+                this.keys().then((keys) => {
+                    const transaction = this.dbConnection!.transaction(this.objectStoreName, 'readwrite');
+                    const objectStore = transaction.objectStore(this.objectStoreName);
+                    for (const key of keys) {
+                        objectStore.delete(this.__getRealKey(key));
+                    }
+                    transaction.onerror = (ev) => {
+                        window.console.error('Database clear occurs error', ev);
+                        reject(transaction.error);
+                    };
+                    transaction.oncomplete = () => {
+                        resolve();
+                    };
+                });
+            });
         } else {
             return new Promise((resolve, reject) => {
                 this.waitForConnectionReady((error) => {
@@ -311,7 +328,7 @@ export default class IndexedDBStore extends BaseStore<IndexedDBStoreOptions> {
                             .clear();
                         request.onerror = () => {
                             window.console.error('Database clear occurs error', request.result);
-                            reject(request.result);
+                            reject(request.error);
                         };
                         request.onsuccess = () => {
                             resolve(void 0);
@@ -320,5 +337,40 @@ export default class IndexedDBStore extends BaseStore<IndexedDBStoreOptions> {
                 });
             });
         }
+    }
+    removeItemList(keys?: string[] | RegExp): Promise<void> {
+        return new Promise((resolve, reject) => {
+            this.waitForConnectionReady(async (error) => {
+                if (error) {
+                    reject(error);
+                } else {
+                    let storeKeys: string[] = [];
+                    const itemListMap: { [key: string]: any } = {};
+                    if (Array.isArray(keys)) {
+                        storeKeys = keys;
+                    } else {
+                        if (keys instanceof RegExp) {
+                            storeKeys = (await this.keys()).filter((key) => {
+                                return keys.test(key);
+                            });
+                        }
+                    }
+                    const transaction = this.dbConnection!.transaction(this.objectStoreName, 'readwrite');
+                    const objectStore = transaction.objectStore(this.objectStoreName);
+                    for (const key of storeKeys) {
+                        objectStore.delete(this.__getRealKey(key));
+                    }
+                    transaction.onerror = (ev) => {
+                        window.console.error('Database clear occurs error', ev);
+                        reject(transaction.error);
+                    };
+                    transaction.oncomplete = () => {
+                        resolve(void 0);
+                    };
+
+                    return itemListMap;
+                }
+            });
+        });
     }
 }
