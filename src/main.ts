@@ -178,67 +178,21 @@ class PerfectCache<StoreOptions extends BaseStoreOptions, Store extends BaseStor
         });
     }
     /**
-     * @description set the cache value by key
-     * @param {String} key the cache key
-     * @param {Object} value the cache value
-     * @param {Object} options the cache options
-     * @param {Number} options.expiredTime seconds -- Set the specified expire time, in milliseconds.
-     * @param {Number} options.expiredTimeAt timestamp-seconds -- Set the specified Unix time at which the key will expire, in milliseconds.
-     * @param {Number} options.maxAge exists max age, in milliseconds.
-     * @param {Boolean} options.setOnlyNotExist Only set the key if it does not already exist.
-     * @param {Boolean} options.setOnlyExist Only set the key if it already exist.
-     * @returns {StoreResult} the store result
+     * @returns {Promise} the all cache values
+     * @description return the all cache values
      */
-    setItem(...args: [string, any, SetItemOptions?]) {
-        return this.ready().then(() => {
-            return this.store!.setItem(...args);
-        });
-    }
-    /**
-     * @description remove the cache value by key
-     * @param {String} key the cache key
-     * @returns {void}
-     */
-    removeItem(...args: [string]) {
-        return this.ready().then(() => {
-            return this.store!.removeItem(...args);
-        });
-    }
-    /**
-     * @description return is the key exists
-     * @param {String} key the cache key
-     * @returns {Boolean}  is the key exists
-     */
-    existsKey(...args: [string]) {
-        return this.ready().then(() => {
-            return this.store!.existsKey(...args);
-        });
-    }
-    /**
-     * @description return the cache keys
-     * @returns {Array} the cache keys
-     */
-    keys() {
-        return this.ready().then(() => {
-            return this.store!.keys();
-        });
-    }
-    /**
-     * @description clear the cache values
-     * @returns {Null}
-     */
-    clear() {
-        return this.ready().then(() => {
-            return this.store!.clear();
-        });
-    }
-    /**
-     * @description return the cache keys count
-     * @returns {Number} the cache keys count
-     */
-    length() {
-        return this.ready().then(() => {
-            return this.store!.length();
+    getAllItem() {
+        return this.ready().then(async () => {
+            if (this.store?.getAllItem) {
+                return this.store.getAllItem();
+            }
+            const keys = await this.keys();
+            const itemListMap: { [key: string]: any } = {};
+            for (const key of keys) {
+                const item = await this.store!.getItem(key);
+                itemListMap[key] = item;
+            }
+            return itemListMap;
         });
     }
     /**
@@ -269,8 +223,59 @@ class PerfectCache<StoreOptions extends BaseStoreOptions, Store extends BaseStor
         });
     }
     /**
+     * @description set the cache value by key
+     * @param {String} key the cache key
+     * @param {Object} value the cache value
+     * @param {Object} options the set cache options
+     * @param {Number} options.expiredTime seconds -- Set the specified expire time, in milliseconds.
+     * @param {Number} options.expiredTimeAt timestamp-seconds -- Set the specified Unix time at which the key will expire, in milliseconds.
+     * @param {Number} options.maxAge exists max age, in milliseconds.
+     * @param {Boolean} options.setOnlyNotExist Only set the key if it does not already exist.
+     * @param {Boolean} options.setOnlyExist Only set the key if it already exist.
+     * @returns {StoreResult} the store result
+     */
+    setItem(...args: [string, any, SetItemOptions?]) {
+        return this.ready().then(() => {
+            return this.store!.setItem(...args);
+        });
+    }
+    /**
+     * @description set the cache value by object key value
+     * @param itemList the cache key value object
+     * @param options the set cache options
+     * @param {Number} options.expiredTime seconds -- Set the specified expire time, in milliseconds.
+     * @param {Number} options.expiredTimeAt timestamp-seconds -- Set the specified Unix time at which the key will expire, in milliseconds.
+     * @param {Number} options.maxAge exists max age, in milliseconds.
+     * @param {Boolean} options.setOnlyNotExist Only set the key if it does not already exist.
+     * @param {Boolean} options.setOnlyExist Only set the key if it already exist.
+     * @returns {Promise<void>}
+     */
+    setItemList(itemList: { [key: string]: any }, options?: SetItemOptions) {
+        return this.ready().then(async () => {
+            if (this.store?.setItemList) {
+                return this.store.setItemList(itemList, options);
+            }
+            const keys = Object.keys(itemList);
+            for (const key of keys) {
+                const value = itemList[key];
+                await this.setItem(key, value, options);
+            }
+            return void 0;
+        });
+    }
+    /**
+     * @description remove the cache value by key
+     * @param {String} key the cache key
+     * @returns {Promise<void>}
+     */
+    removeItem(...args: [string]) {
+        return this.ready().then(() => {
+            return this.store!.removeItem(...args);
+        });
+    }
+    /**
      * @description remove the cache values
-     * @returns {Null}
+     * @returns {Promise<void>}
      */
     removeItemList(keys?: string[] | RegExp) {
         return this.ready().then(async () => {
@@ -291,6 +296,43 @@ class PerfectCache<StoreOptions extends BaseStoreOptions, Store extends BaseStor
                 await this.removeItem(key);
             }
             return void 0;
+        });
+    }
+    /**
+     * @description clear the cache values
+     * @returns {Null}
+     */
+    clear() {
+        return this.ready().then(() => {
+            return this.store!.clear();
+        });
+    }
+    /**
+     * @description return is the key exists
+     * @param {String} key the cache key
+     * @returns {Boolean}  is the key exists
+     */
+    existsKey(...args: [string]) {
+        return this.ready().then(() => {
+            return this.store!.existsKey(...args);
+        });
+    }
+    /**
+     * @description return the cache keys
+     * @returns {Array} the cache keys
+     */
+    keys() {
+        return this.ready().then(() => {
+            return this.store!.keys();
+        });
+    }
+    /**
+     * @description return the cache keys count
+     * @returns {Number} the cache keys count
+     */
+    length() {
+        return this.ready().then(() => {
+            return this.store!.length();
         });
     }
     /**
