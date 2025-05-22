@@ -83,6 +83,8 @@ const perfectCacheInstance = new PerfectCache();
 
 - 初始化存储引擎
 
+实例在构造函数时默认立即调用init并马上ready，但是也可以设置手动调用，把initStoreImmediately设置为false，并在你认为合适的时机才调用init方法进行存储引擎的初始化，此时如果不调用init函数进行初始化，存储引擎会一直处于非ready的状态，所有的操作都会被阻塞。
+
 ```javascript
 perfectCacheInstance.init();
 ```
@@ -152,6 +154,19 @@ const itemListMap = await perfectCacheInstance.getItemList(/^key_.*$/, opts);
 | opts.withFallback | 获取不到时是否使用退路                  | boolean                 | true   | 非必填   |
 | opts.refreshCache | 使用退路获取到值时是否更新缓存          | boolean                 | true   | 非必填   |
 
+- 获取全部key的缓存值，没有默认值，回退方案和刷新缓存的选项，只获取当前存储的值
+
+```javascript
+/**
+ * itemListMap = {
+ *   'key_a': 'valueA',
+ *   'key_b': undefined,
+ *   'otherKey_c': 'valueC'
+ * }
+ */
+const itemListMap = await perfectCacheInstance.getAllItem();
+```
+
 - 设置 key 对应的缓存值
 
 ```javascript
@@ -195,17 +210,16 @@ switch (result) {
 | NX_SET_NOT_PERFORMED | 设置缓存值时，设置了不存在才设置，但是由于 key 存在导致没有设置 |
 | XX_SET_NOT_PERFORMED | 设置缓存值时，设置了存在才设置，但是由于 key 不存在导致没有设置 |
 
-- 返回 key 是否存在
+- 批量设置缓存值
 
 ```javascript
-const isKeyExists = await perfectCacheInstance.existsKey(key);
+itemListMap = {
+    key_a: 'valueA',
+    key_b: undefined,
+    otherKey_c: 'valueC',
+};
+await perfectCacheInstance.setItemList(itemListMap, { maxAge: 5000 });
 ```
-
-参数说明
-
-| 名称 | 意义       | 类型   | 默认值 | 是否必填 |
-| ---- | ---------- | ------ | ------ | -------- |
-| key  | 缓存的 key | string | -      | 必填     |
 
 - 删除 key 对应的缓存值
 
@@ -237,6 +251,18 @@ await perfectCacheInstance.removeItemList(/^key_.*$/);
 ```javascript
 await perfectCacheInstance.clear();
 ```
+
+- 返回 key 是否存在
+
+```javascript
+const isKeyExists = await perfectCacheInstance.existsKey(key);
+```
+
+参数说明
+
+| 名称 | 意义       | 类型   | 默认值 | 是否必填 |
+| ---- | ---------- | ------ | ------ | -------- |
+| key  | 缓存的 key | string | -      | 必填     |
 
 - 获取所有缓存 key
 
@@ -336,17 +362,17 @@ class MyStore extends BaseStore {
     constructor(opts) {
         super(opts);
     }
-    // 重载初始化函数
+    // 可选覆盖初始化函数
     init() {
         // 告诉缓存系统已经准备好了，如果是异步的就在准备好的时候调用ready函数告知系统
         this.getReady();
         return this;
     }
-    // 重载keyValueGet方法，告知引擎底层怎样获取一个key对应的缓存值
+    // 必须重载keyValueGet方法，告知引擎底层怎样获取一个key对应的缓存值
     // 必须返回Promise对象，同时resolve的对象结构为
     // { value:'xxx', expiredTimeAt: 12345678910, maxAge: 3600000}
     keyValueGet(key) {
-        const valueStr = this.data[this.__getRealKey(key)];
+        const valueStr = this.data[key];
         return new Promise((resolve) => {
             if (valueStr) {
                 try {
@@ -361,45 +387,90 @@ class MyStore extends BaseStore {
             }
         });
     }
-    // 重载keyValueSet方法，告知引擎底层怎样设置一个key对应的缓存值
+    // 必须重载keyValueSet方法，告知引擎底层怎样设置一个key对应的缓存值
     // 必须返回Promise对象
     // value的数据结构为{ value:'xxx', expiredTimeAt: 12345678910, maxAge: 3600000}
     keyValueSet(key, value) {
-        this.data[this.__getRealKey(key)] = JSON.stringify(value);
+        this.data[key] = JSON.stringify(value);
         return Promise.resolve();
     }
-    // 重载existsKey方法，告知引擎底层一个key是否存在
-    // 必须返回Promise对象
-    existsKey(key) {
-        const realKey = this.__getRealKey(key);
-        if (realKey in this.data) {
-            return Promise.resolve(true);
+    // 可选覆盖实现getAllItem方法
+    getAllItem() {
+        return { ...this.data };
+    }
+    // 可选覆盖实现getItemList方法
+    async getItemList(keys, opts) {
+        let storeKeys = [];
+        const itemListMap = {};
+        if (Array.isArray(keys)) {
+            storeKeys = keys;
         } else {
-            return Promise.resolve(false);
+            if (keys instanceof RegExp) {
+                storeKeys = (await this.keys()).filter((key) => {
+                    return keys.test(key);
+                });
+            }
+        }
+        for (const key of storeKeys) {
+            itemListMap[key] = this.data[key];
+        }
+        return itemListMap;
+    }
+    // 可选覆盖实现setItemList方法
+    async setItemList(itemList, options) {
+        const keys = Object.keys(itemList);
+        for (const key of keys) {
+            const value = itemList[key];
+            await this.setItem(key, value, options);
         }
     }
-    // 重载removeItem方法，删除key对应的缓存值
+    // 必须重载removeItem方法，删除key对应的缓存值
     removeItem(key) {
         return new Promise((resolve, reject) => {
             try {
-                delete this.data[this.__getRealKey(key)];
+                delete this.data[key];
                 resolve();
             } catch (error) {
                 reject(error);
             }
         });
     }
-    // 重载keys方法，获取缓存所有key
-    keys() {
-        const keys = Object.keys(this.data).map((key) => key.replace(this.prefix, ''));
-        return Promise.resolve(keys);
+    // 可选覆盖实现removeItemList方法
+    async removeItemList(keys) {
+        let storeKeys = [];
+        if (Array.isArray(keys)) {
+            storeKeys = keys;
+        } else {
+            if (keys instanceof RegExp) {
+                storeKeys = (await this.keys()).filter((key) => {
+                    return keys.test(key);
+                });
+            }
+        }
+        for (const key of storeKeys) {
+            delete this.data[key];
+        }
     }
-    // 重载clear方法，清空缓存值
+    // 可选覆盖实现clear方法，清空缓存值
     clear() {
         this.data = {};
         return Promise.resolve();
     }
-    // 重载length方法，获取keys的长度
+    // 必须重载existsKey方法，告知引擎底层一个key是否存在
+    // 必须返回Promise对象
+    existsKey(key) {
+        if (key in this.data) {
+            return Promise.resolve(true);
+        } else {
+            return Promise.resolve(false);
+        }
+    }
+    // 必须重载keys方法，获取缓存所有key
+    keys() {
+        const keys = Object.keys(this.data);
+        return Promise.resolve(keys);
+    }
+    // 可选覆盖实现length方法，获取keys的长度
     length() {
         return Promise.resolve(Object.keys(this.data).length);
     }

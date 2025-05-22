@@ -178,24 +178,6 @@ class PerfectCache<StoreOptions extends BaseStoreOptions, Store extends BaseStor
         });
     }
     /**
-     * @returns {Promise} the all cache values
-     * @description return the all cache values
-     */
-    getAllItem() {
-        return this.ready().then(async () => {
-            if (this.store?.getAllItem) {
-                return this.store.getAllItem();
-            }
-            const keys = await this.keys();
-            const itemListMap: { [key: string]: any } = {};
-            for (const key of keys) {
-                const item = await this.store!.getItem(key);
-                itemListMap[key] = item;
-            }
-            return itemListMap;
-        });
-    }
-    /**
      * @description return the cache values
      * @returns {Array} the cache values
      */
@@ -217,6 +199,24 @@ class PerfectCache<StoreOptions extends BaseStoreOptions, Store extends BaseStor
             }
             for (const key of storeKeys) {
                 const item = await this.getItem(key, opts);
+                itemListMap[key] = item;
+            }
+            return itemListMap;
+        });
+    }
+    /**
+     * @returns {Promise} the all cache values
+     * @description return the all cache values
+     */
+    getAllItem() {
+        return this.ready().then(async () => {
+            if (this.store?.getAllItem) {
+                return this.store.getAllItem();
+            }
+            const keys = await this.keys();
+            const itemListMap: { [key: string]: any } = {};
+            for (const key of keys) {
+                const item = await this.store!.getItem(key);
                 itemListMap[key] = item;
             }
             return itemListMap;
