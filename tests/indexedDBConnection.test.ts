@@ -170,10 +170,10 @@ describe('indexedDB connection should be correct', () => {
         const store1GetReady = vi.spyOn(store1Cache.store!, 'getReady');
         store1Cache.init();
         await store1Cache.ready();
-        expect(store1ConnectToVersion).toHaveBeenCalledTimes(0);
-        expect(store1CreateDBAndObjectStore).toHaveBeenCalledTimes(0);
-        expect(store1ConnectDB).toHaveBeenCalledTimes(0);
-        expect(store1CreateObjectStore).toHaveBeenCalledTimes(0);
+        expect(store1ConnectToVersion).toHaveBeenCalledTimes(1);
+        expect(store1CreateDBAndObjectStore).toHaveBeenCalledTimes(1);
+        expect(store1ConnectDB).toHaveBeenCalledTimes(1);
+        expect(store1CreateObjectStore).toHaveBeenCalledTimes(1);
         expect(store1GetReady).toHaveBeenCalledTimes(1);
         // store2不用重新初始化，直接ready
         const store2Cache = new PerfectCache<IndexedDBStoreOptions, IndexedDBStore>({
@@ -191,10 +191,10 @@ describe('indexedDB connection should be correct', () => {
         const store2GetReady = vi.spyOn(store2Cache.store!, 'getReady');
         store2Cache.init();
         await store2Cache.ready();
-        expect(store2ConnectToVersion).toHaveBeenCalledTimes(0);
-        expect(store2CreateDBAndObjectStore).toHaveBeenCalledTimes(0);
-        expect(store2ConnectDB).toHaveBeenCalledTimes(0);
-        expect(store2CreateObjectStore).toHaveBeenCalledTimes(0);
+        expect(store2ConnectToVersion).toHaveBeenCalledTimes(1);
+        expect(store2CreateDBAndObjectStore).toHaveBeenCalledTimes(1);
+        expect(store2ConnectDB).toHaveBeenCalledTimes(1);
+        expect(store2CreateObjectStore).toHaveBeenCalledTimes(1);
         expect(store2GetReady).toHaveBeenCalledTimes(1);
         // store3不用重新初始化，直接ready
         const store3Cache = new PerfectCache<IndexedDBStoreOptions, IndexedDBStore>({
@@ -212,10 +212,10 @@ describe('indexedDB connection should be correct', () => {
         const store3GetReady = vi.spyOn(store3Cache.store!, 'getReady');
         store3Cache.init();
         await store3Cache.ready();
-        expect(store3ConnectToVersion).toHaveBeenCalledTimes(0);
-        expect(store3CreateDBAndObjectStore).toHaveBeenCalledTimes(0);
-        expect(store3ConnectDB).toHaveBeenCalledTimes(0);
-        expect(store3CreateObjectStore).toHaveBeenCalledTimes(0);
+        expect(store3ConnectToVersion).toHaveBeenCalledTimes(1);
+        expect(store3CreateDBAndObjectStore).toHaveBeenCalledTimes(1);
+        expect(store3ConnectDB).toHaveBeenCalledTimes(1);
+        expect(store3CreateObjectStore).toHaveBeenCalledTimes(1);
         expect(store3GetReady).toHaveBeenCalledTimes(1);
     });
 });

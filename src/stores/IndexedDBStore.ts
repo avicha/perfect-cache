@@ -33,27 +33,23 @@ export default class IndexedDBStore extends BaseStore<IndexedDBStoreOptions> {
         this.dbName = dbConnection.name;
     }
     init() {
-        if (!this.dbConnection) {
-            // 这里为什么延迟connectToVersion，纯粹方便vitest测试connectToVersion函数被调用过了
-            this.connectToVersion(this.dbVersion);
-            return this;
-        } else {
-            this.dbName = this.dbConnection.name;
-            this.dbVersion = this.dbConnection.version;
-            this.getReady();
-            return this;
-        }
+        this.connectToVersion(this.dbVersion);
+        return this;
     }
     connectDB() {
-        return connectToIndexedDB(this.dbName, this.dbVersion).then((dbConnection) => {
-            dbConnection.onversionchange = (event) => {
-                indexedDBLogger.debug(
-                    `The version of this database ${this.dbName} store ${this.objectStoreName} has changed from ${event.oldVersion} to ${event.newVersion}`
-                );
-                this.connectToVersion(event.newVersion || undefined);
-            };
-            return dbConnection;
-        });
+        if (this.dbConnection) {
+            return Promise.resolve(this.dbConnection);
+        } else {
+            return connectToIndexedDB(this.dbName, this.dbVersion).then((dbConnection) => {
+                dbConnection.onversionchange = (event) => {
+                    indexedDBLogger.debug(
+                        `The version of this database ${this.dbName} store ${this.objectStoreName} has changed from ${event.oldVersion} to ${event.newVersion}`
+                    );
+                    this.connectToVersion(event.newVersion || undefined);
+                };
+                return dbConnection;
+            });
+        }
     }
     createObjectStore(): Promise<IDBObjectStore | undefined> {
         return new Promise((resolve, reject) => {
@@ -104,7 +100,7 @@ export default class IndexedDBStore extends BaseStore<IndexedDBStoreOptions> {
         });
     }
     connectToVersion(dbVersion?: number): Promise<this> {
-        if (this.dbConnection) {
+        if (this.dbConnection && dbVersion && dbVersion !== this.dbConnection.version) {
             this.dbConnection.close();
             this.dbConnection.onversionchange = null;
             this.dbConnection = undefined;
