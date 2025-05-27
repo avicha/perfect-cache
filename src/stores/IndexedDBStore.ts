@@ -26,6 +26,9 @@ export default class IndexedDBStore extends BaseStore<IndexedDBStoreOptions> {
             this.dbVersion = this.dbConnection.version;
             this.dbName = this.dbConnection.name;
         }
+        if (typeof this.opts.prefix === 'string') {
+            this.prefix = this.opts.prefix;
+        }
     }
     setDBConnection(dbConnection: IDBDatabase) {
         this.dbConnection = dbConnection;
@@ -274,22 +277,18 @@ export default class IndexedDBStore extends BaseStore<IndexedDBStoreOptions> {
                         window.console.error('Database getAllKeys occurs error', request.error);
                         reject(request.error);
                     };
-                    request.onsuccess = (e) => {
+                    request.onsuccess = () => {
                         const keys = request.result;
-                        if (Array.isArray(keys)) {
-                            const resKeys = this.prefix
-                                ? keys
-                                      .filter((key) => {
-                                          return (key as string).startsWith(this.prefix);
-                                      })
-                                      .map((key) => {
-                                          return (key as string).replace(this.prefix, '');
-                                      })
-                                : keys.map((key) => key as string);
-                            resolve(resKeys.sort());
-                        } else {
-                            resolve([]);
-                        }
+                        const resKeys = this.prefix
+                            ? keys
+                                  .filter((key) => {
+                                      return (key as string).startsWith(this.prefix);
+                                  })
+                                  .map((key) => {
+                                      return (key as string).replace(this.prefix, '');
+                                  })
+                            : keys.map((key) => key as string);
+                        resolve(resKeys.sort());
                     };
                 }
             });

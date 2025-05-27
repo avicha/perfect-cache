@@ -16,7 +16,7 @@ export default abstract class BaseStore<StoreOption extends BaseStoreOptions> ex
     constructor(opts: StoreOption) {
         super();
         this.opts = opts;
-        if (this.opts.prefix) {
+        if (typeof this.opts.prefix === 'string') {
             this.prefix = this.opts.prefix;
         }
         this.isReady = false;

@@ -80,26 +80,52 @@ class MyStore extends BaseStore<BaseStoreOptions> {
 }
 registerStore(MyStore);
 describe('custom store cache should be correct', () => {
-    const perfectCacheInstance: PerfectCache<BaseStoreOptions, MyStore> = new PerfectCache('myStore');
-    beforeAll(() => perfectCacheInstance.ready(), 5000);
-    runTestCases(perfectCacheInstance);
+    const perfectCacheInstance1: PerfectCache<BaseStoreOptions, MyStore> = new PerfectCache('myStore', {
+        prefix: '',
+    });
+    const perfectCacheInstance2: PerfectCache<BaseStoreOptions, MyStore> = new PerfectCache('myStore', {
+        prefix: 'myStore-',
+    });
+    beforeAll(() => Promise.all([perfectCacheInstance1.ready(), perfectCacheInstance2.ready()]), 5000);
+    runTestCases(perfectCacheInstance1);
+    runTestCases(perfectCacheInstance2);
     test('custom store cache driver name should be myStore', () => {
         const supportedDriverList = getSupportedDriverList();
         expect(supportedDriverList).toContain('myStore');
         expect(Object.keys(externalStores)).toContain('myStore');
-        expect(perfectCacheInstance.driver).toBe('myStore');
-        expect(perfectCacheInstance.store).toBeInstanceOf(MyStore);
-        expect(perfectCacheInstance.getItem).toBeInstanceOf(Function);
-        expect(perfectCacheInstance.setItem).toBeInstanceOf(Function);
-        expect(perfectCacheInstance.removeItem).toBeInstanceOf(Function);
-        expect(perfectCacheInstance.clear).toBeInstanceOf(Function);
-        expect(perfectCacheInstance.length).toBeInstanceOf(Function);
-        expect(perfectCacheInstance.keys).toBeInstanceOf(Function);
-        expect(perfectCacheInstance.existsKey).toBeInstanceOf(Function);
-        expect(perfectCacheInstance.getItemList).toBeInstanceOf(Function);
-        expect(perfectCacheInstance.removeItemList).toBeInstanceOf(Function);
-        expect(perfectCacheInstance.fallbackKey).toBeInstanceOf(Function);
-        expect(perfectCacheInstance.isReady).toBeInstanceOf(Function);
-        expect(perfectCacheInstance.ready).toBeInstanceOf(Function);
+        expect(perfectCacheInstance1.driver).toBe('myStore');
+        expect(perfectCacheInstance1.store).toBeInstanceOf(MyStore);
+        expect(perfectCacheInstance1.store!.prefix).toBe('');
+        expect(perfectCacheInstance1.getItem).toBeInstanceOf(Function);
+        expect(perfectCacheInstance1.getItemList).toBeInstanceOf(Function);
+        expect(perfectCacheInstance1.getAllItem).toBeInstanceOf(Function);
+        expect(perfectCacheInstance1.setItem).toBeInstanceOf(Function);
+        expect(perfectCacheInstance1.setItemList).toBeInstanceOf(Function);
+        expect(perfectCacheInstance1.removeItem).toBeInstanceOf(Function);
+        expect(perfectCacheInstance1.removeItemList).toBeInstanceOf(Function);
+        expect(perfectCacheInstance1.clear).toBeInstanceOf(Function);
+        expect(perfectCacheInstance1.length).toBeInstanceOf(Function);
+        expect(perfectCacheInstance1.keys).toBeInstanceOf(Function);
+        expect(perfectCacheInstance1.existsKey).toBeInstanceOf(Function);
+        expect(perfectCacheInstance1.fallbackKey).toBeInstanceOf(Function);
+        expect(perfectCacheInstance1.isReady).toBeInstanceOf(Function);
+        expect(perfectCacheInstance1.ready).toBeInstanceOf(Function);
+        expect(perfectCacheInstance2.driver).toBe('myStore');
+        expect(perfectCacheInstance2.store).toBeInstanceOf(MyStore);
+        expect(perfectCacheInstance2.store!.prefix).toBe('myStore-');
+        expect(perfectCacheInstance2.getItem).toBeInstanceOf(Function);
+        expect(perfectCacheInstance2.getItemList).toBeInstanceOf(Function);
+        expect(perfectCacheInstance2.getAllItem).toBeInstanceOf(Function);
+        expect(perfectCacheInstance2.setItem).toBeInstanceOf(Function);
+        expect(perfectCacheInstance2.setItemList).toBeInstanceOf(Function);
+        expect(perfectCacheInstance2.removeItem).toBeInstanceOf(Function);
+        expect(perfectCacheInstance2.removeItemList).toBeInstanceOf(Function);
+        expect(perfectCacheInstance2.clear).toBeInstanceOf(Function);
+        expect(perfectCacheInstance2.length).toBeInstanceOf(Function);
+        expect(perfectCacheInstance2.keys).toBeInstanceOf(Function);
+        expect(perfectCacheInstance2.existsKey).toBeInstanceOf(Function);
+        expect(perfectCacheInstance2.fallbackKey).toBeInstanceOf(Function);
+        expect(perfectCacheInstance2.isReady).toBeInstanceOf(Function);
+        expect(perfectCacheInstance2.ready).toBeInstanceOf(Function);
     });
 });

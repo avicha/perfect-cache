@@ -4,11 +4,22 @@ import { runTestCases } from './commonTestCase';
 import type { BaseStoreOptions } from '../src/types';
 
 describe('localStorage cache should be correct', () => {
-    const perfectCacheInstance: PerfectCache<BaseStoreOptions, LocalStorageStore> = new PerfectCache('localStorage');
+    const perfectCacheInstance1: PerfectCache<BaseStoreOptions, LocalStorageStore> = new PerfectCache('localStorage', {
+        prefix: '',
+    });
+    const perfectCacheInstance2: PerfectCache<BaseStoreOptions, LocalStorageStore> = new PerfectCache('localStorage', {
+        prefix: 'localStorage-',
+    });
     beforeAll(() => {
-        return new Promise((resolve) => {
-            perfectCacheInstance.ready(resolve);
-        });
+        return Promise.all([
+            new Promise((resolve) => {
+                perfectCacheInstance1.ready(resolve);
+            }),
+            new Promise((resolve) => {
+                perfectCacheInstance2.ready(resolve);
+            }),
+        ]);
     }, 5000);
-    runTestCases(perfectCacheInstance);
+    runTestCases(perfectCacheInstance1);
+    runTestCases(perfectCacheInstance2);
 });

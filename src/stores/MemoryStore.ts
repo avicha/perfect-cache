@@ -8,6 +8,9 @@ export default class MemoryStore extends BaseStore<BaseStoreOptions> {
     prefix = '';
     constructor(opts: BaseStoreOptions) {
         super(opts);
+        if (typeof this.opts.prefix === 'string') {
+            this.prefix = this.opts.prefix;
+        }
     }
     keyValueGet(key: string): Promise<StoreObject | undefined> {
         const valueStr = this.data.get(this.__getRealKey(key));
