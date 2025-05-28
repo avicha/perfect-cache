@@ -1,4 +1,4 @@
-import { beforeAll, beforeEach, expect, test } from 'vitest';
+import { beforeAll, beforeEach, expect, test, assert } from 'vitest';
 import { PerfectCache, StoreResult } from '../src';
 
 const sleep = (ms: number) => {
@@ -212,15 +212,15 @@ const runTestCases = (perfectCacheInstance: InstanceType<typeof PerfectCache>) =
         const result3 = await perfectCacheInstance.setItem('key3', 'key3');
         expect(result3).eq(StoreResult.OK);
         const keys1 = await perfectCacheInstance.keys();
-        expect(keys1).toStrictEqual(['key1', 'key2', 'key3']);
+        assert.sameMembers(keys1, ['key1', 'key2', 'key3']);
         const clearResult = await perfectCacheInstance.clear();
         expect(clearResult).eq(void 0);
         const keys2 = await perfectCacheInstance.keys();
-        expect(keys2).toStrictEqual([]);
+        assert.sameMembers(keys2, []);
         const result4 = await perfectCacheInstance.setItem('key4', 'key4');
         expect(result4).eq(StoreResult.OK);
         const keys3 = await perfectCacheInstance.keys();
-        expect(keys3).toStrictEqual(['key4']);
+        assert.sameMembers(keys3, ['key4']);
     });
     test('length should return all keys length', async () => {
         const result1 = await perfectCacheInstance.setItem('key1', 'key1');
@@ -284,6 +284,19 @@ const runTestCases = (perfectCacheInstance: InstanceType<typeof PerfectCache>) =
         });
         const getItemListResult4 = await perfectCacheInstance.getItemList(new RegExp('not_exists_key[0-9]'));
         expect(getItemListResult4).toStrictEqual({});
+        const getAllItemResult = await perfectCacheInstance.getAllItem();
+        expect(getAllItemResult).toStrictEqual({
+            key1: 'key1',
+            key2: 'key2',
+            key3: 'key3',
+            string: 'string',
+            number: 123,
+            boolean: true,
+            object: { a: 1, b: 2 },
+            array: [1, 2, 3],
+            null: null,
+            undefined: undefined,
+        });
     });
     test('removeItemList should success', async () => {
         const result1 = await perfectCacheInstance.setItem('key1', 'key1');
@@ -313,6 +326,16 @@ const runTestCases = (perfectCacheInstance: InstanceType<typeof PerfectCache>) =
             'undefined',
         ]);
         expect(removeItemListResult1).eq(void 0);
+        const getAllItemResult1 = await perfectCacheInstance.getAllItem();
+        expect(getAllItemResult1).toStrictEqual({
+            key1: 'key1',
+            key2: 'key2',
+            key3: 'key3',
+            boolean: true,
+            object: { a: 1, b: 2 },
+            array: [1, 2, 3],
+            null: null,
+        });
         const getItemListResult1 = await perfectCacheInstance.getItemList(['key0', 'string', 'number', 'undefined']);
         expect(getItemListResult1).toStrictEqual({
             key0: undefined,
@@ -324,6 +347,13 @@ const runTestCases = (perfectCacheInstance: InstanceType<typeof PerfectCache>) =
         expect(removeItemListResult2).eq(void 0);
         const getItemListResult2 = await perfectCacheInstance.getItemList(/^key[0-9]/);
         expect(getItemListResult2).toStrictEqual({});
+        const getAllItemResult2 = await perfectCacheInstance.getAllItem();
+        expect(getAllItemResult2).toStrictEqual({
+            boolean: true,
+            object: { a: 1, b: 2 },
+            array: [1, 2, 3],
+            null: null,
+        });
     });
     test('setItem with expiredTime and get with not expired should return the value', async () => {
         const result = await perfectCacheInstance.setItem('key', defaultValue, { expiredTime: expiredTime });
@@ -439,6 +469,85 @@ const runTestCases = (perfectCacheInstance: InstanceType<typeof PerfectCache>) =
         expect(result2).eq(StoreResult.OK);
         const value2 = await perfectCacheInstance.getItem('key');
         expect(value2).eq('value2');
+    });
+    test('setItemList with keys should success', async () => {
+        const setItemListResult1 = await perfectCacheInstance.setItemList({
+            key1: 'value1',
+            key2: 'value2',
+            key3: 'value3',
+            string: 'string',
+            number: 123,
+            boolean: true,
+            object: { a: 1, b: 2 },
+            array: [1, 2, 3],
+            null: null,
+            undefined: undefined,
+        });
+        expect(setItemListResult1).eq(void 0);
+        const keys1 = await perfectCacheInstance.keys();
+        assert.sameMembers(keys1, [
+            'key1',
+            'key2',
+            'key3',
+            'string',
+            'number',
+            'boolean',
+            'object',
+            'array',
+            'null',
+            'undefined',
+        ]);
+        const getItemListResult1 = await perfectCacheInstance.getItemList();
+        expect(getItemListResult1).toStrictEqual({});
+        const getAllItem1 = await perfectCacheInstance.getAllItem();
+        expect(getAllItem1).toStrictEqual({
+            key1: 'value1',
+            key2: 'value2',
+            key3: 'value3',
+            string: 'string',
+            number: 123,
+            boolean: true,
+            object: { a: 1, b: 2 },
+            array: [1, 2, 3],
+            null: null,
+            undefined: undefined,
+        });
+        const setItemListResult2 = await perfectCacheInstance.setItemList(
+            { boolean: false, number: 456 },
+            { setOnlyNotExist: true }
+        );
+        expect(setItemListResult2).eq(void 0);
+        const getAllItem2 = await perfectCacheInstance.getAllItem();
+        expect(getAllItem2).toStrictEqual({
+            key1: 'value1',
+            key2: 'value2',
+            key3: 'value3',
+            string: 'string',
+            number: 123,
+            boolean: true,
+            object: { a: 1, b: 2 },
+            array: [1, 2, 3],
+            null: null,
+            undefined: undefined,
+        });
+        const setItemListResult3 = await perfectCacheInstance.setItemList(
+            { boolean: false, number: 456 },
+            { setOnlyExist: true }
+        );
+        expect(setItemListResult3).eq(void 0);
+        const getAllItem3 = await perfectCacheInstance.getAllItem();
+        expect(getAllItem3).toStrictEqual({
+            key1: 'value1',
+            key2: 'value2',
+            key3: 'value3',
+            string: 'string',
+            number: 456,
+            boolean: false,
+            object: { a: 1, b: 2 },
+            array: [1, 2, 3],
+            null: null,
+            undefined: undefined,
+        });
     });
     test('getItem null and fallback key with expiredTime', async () => {
         const result1 = await perfectCacheInstance.getItem('cacheExpiredTime_key');
