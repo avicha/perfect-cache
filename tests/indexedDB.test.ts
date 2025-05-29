@@ -1,14 +1,14 @@
 import { describe, beforeAll } from 'vitest';
 import { PerfectCache, IndexedDBStore } from '../src';
 import { runTestCases } from './commonTestCase';
-import type { BaseStoreOptions } from '../src/types';
+import type { IndexedDBStoreOptions } from '../src/types';
 
 describe('indexedDB cache should be correct', () => {
-    const perfectCacheInstance1: PerfectCache<BaseStoreOptions, IndexedDBStore> = new PerfectCache('indexedDB', {
+    const perfectCacheInstance1 = new PerfectCache<IndexedDBStoreOptions, IndexedDBStore>('indexedDB', {
         dbName: 'perfect-cache-test1',
         prefix: '',
     });
-    const perfectCacheInstance2: PerfectCache<BaseStoreOptions, IndexedDBStore> = new PerfectCache('indexedDB', {
+    const perfectCacheInstance2 = new PerfectCache<IndexedDBStoreOptions, IndexedDBStore>('indexedDB', {
         dbName: 'perfect-cache-test2',
         prefix: 'indexedDB-',
     });

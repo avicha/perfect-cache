@@ -4,10 +4,10 @@ import { runTestCases } from './commonTestCase';
 import type { BaseStoreOptions } from '../src/types';
 
 describe('sessionStorage cache should be correct', () => {
-    const perfectCacheInstance1: PerfectCache<BaseStoreOptions, MemoryStore> = new PerfectCache('memory', {
+    const perfectCacheInstance1 = new PerfectCache<BaseStoreOptions, MemoryStore>('memory', {
         prefix: '',
     });
-    const perfectCacheInstance2: PerfectCache<BaseStoreOptions, MemoryStore> = new PerfectCache('memory', {
+    const perfectCacheInstance2 = new PerfectCache<BaseStoreOptions, MemoryStore>('memory', {
         prefix: 'memory-',
     });
     beforeAll(() => Promise.all([perfectCacheInstance1.ready(), perfectCacheInstance2.ready()]), 5000);

@@ -4,10 +4,10 @@ import { runTestCases } from './commonTestCase';
 import type { BaseStoreOptions } from '../src/types';
 
 describe('cookie cache should be correct', () => {
-    const perfectCacheInstance1: PerfectCache<BaseStoreOptions, CookieStore> = new PerfectCache('cookie', {
+    const perfectCacheInstance1 = new PerfectCache<BaseStoreOptions, CookieStore>('cookie', {
         prefix: '',
     });
-    const perfectCacheInstance2: PerfectCache<BaseStoreOptions, CookieStore> = new PerfectCache('cookie', {
+    const perfectCacheInstance2 = new PerfectCache<BaseStoreOptions, CookieStore>('cookie', {
         prefix: 'cookie-',
     });
     beforeAll(() => Promise.all([perfectCacheInstance1.ready(), perfectCacheInstance2.ready()]), 5000);

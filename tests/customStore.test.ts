@@ -80,10 +80,10 @@ class MyStore extends BaseStore<BaseStoreOptions> {
 }
 registerStore(MyStore);
 describe('custom store cache should be correct', () => {
-    const perfectCacheInstance1: PerfectCache<BaseStoreOptions, MyStore> = new PerfectCache('myStore', {
+    const perfectCacheInstance1 = new PerfectCache<BaseStoreOptions, MyStore>('myStore', {
         prefix: '',
     });
-    const perfectCacheInstance2: PerfectCache<BaseStoreOptions, MyStore> = new PerfectCache('myStore', {
+    const perfectCacheInstance2 = new PerfectCache<BaseStoreOptions, MyStore>('myStore', {
         prefix: 'myStore-',
     });
     beforeAll(() => Promise.all([perfectCacheInstance1.ready(), perfectCacheInstance2.ready()]), 5000);

@@ -4,10 +4,10 @@ import { runTestCases } from './commonTestCase';
 import type { BaseStoreOptions } from '../src/types';
 
 describe('localStorage cache should be correct', () => {
-    const perfectCacheInstance1: PerfectCache<BaseStoreOptions, LocalStorageStore> = new PerfectCache('localStorage', {
+    const perfectCacheInstance1 = new PerfectCache<BaseStoreOptions, LocalStorageStore>('localStorage', {
         prefix: '',
     });
-    const perfectCacheInstance2: PerfectCache<BaseStoreOptions, LocalStorageStore> = new PerfectCache('localStorage', {
+    const perfectCacheInstance2 = new PerfectCache<BaseStoreOptions, LocalStorageStore>('localStorage', {
         prefix: 'localStorage-',
     });
     beforeAll(() => {
