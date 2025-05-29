@@ -42,7 +42,6 @@ export type {
     BaseStoreOptions, // 定义了BaseStore的构造函数的选项
     CacheOptions, // 定义了PerfectCache的构造函数的选项
     IndexedDBStoreOptions, // 定义了IndexedDBStore的构造函数的选项
-    IndexedDBConnectOptions, // 定义了IndexedDBStore的连接函数的选项
     IndexedDBStoreObject, // 定义了IndexedDBStore的内部存储结构
     StoreObject, // 定义了存储引擎的内部存储结构
     SetItemOptions, // 定义了setItem函数的选项

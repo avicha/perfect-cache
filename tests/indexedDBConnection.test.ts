@@ -103,7 +103,7 @@ describe('indexedDB connection should be correct', () => {
         const addressGetReady = vi.spyOn(addressCache.store!, 'getReady');
         const addressSetItem = vi.spyOn(addressCache.store!, 'setItem');
         addressCache.init();
-        await addressCache.store!.setItem('key', 'value');
+        await addressCache.setItem('key', 'value');
         await appCache.ready();
         expect(addressSetItem).toHaveBeenCalledOnce();
         expect(addressSetItem).toHaveBeenCalledWith('key', 'value');
@@ -147,19 +147,19 @@ describe('indexedDB connection should be correct', () => {
         const createOptions: IDBObjectStoreParameters = {
             keyPath: 'key',
         };
-        const dbConnection = await createDBAndObjectStores(dbName, objectStoreNames, createOptions);
-        expect(dbConnection).toBeInstanceOf(IDBDatabase);
-        expect(dbConnection.name).toBe(dbName);
-        expect(dbConnection.objectStoreNames.length).toBe(objectStoreNames.length);
+        const dbConnection1 = await createDBAndObjectStores(dbName, objectStoreNames, createOptions);
+        expect(dbConnection1).toBeInstanceOf(IDBDatabase);
+        expect(dbConnection1.name).toBe(dbName);
+        expect(dbConnection1.objectStoreNames.length).toBe(objectStoreNames.length);
         for (const storeName of objectStoreNames) {
-            expect(dbConnection.objectStoreNames.contains(storeName)).toBe(true);
+            expect(dbConnection1.objectStoreNames.contains(storeName)).toBe(true);
         }
         // store1不用重新初始化，直接ready
         const store1Cache = new PerfectCache<IndexedDBStoreOptions, IndexedDBStore>({
             driver: 'indexedDB',
             dbName: dbName,
             objectStoreName: 'store1',
-            dbConnection: dbConnection,
+            dbConnection: dbConnection1,
             prefix: 'store1:',
             initStoreImmediately: false,
         });
@@ -180,7 +180,7 @@ describe('indexedDB connection should be correct', () => {
             driver: 'indexedDB',
             dbName: dbName,
             objectStoreName: 'store2',
-            dbConnection: dbConnection,
+            dbConnection: dbConnection1,
             prefix: 'store2:',
             initStoreImmediately: false,
         });
@@ -201,7 +201,7 @@ describe('indexedDB connection should be correct', () => {
             driver: 'indexedDB',
             dbName: dbName,
             objectStoreName: 'store3',
-            dbConnection: dbConnection,
+            dbConnection: dbConnection1,
             prefix: 'store3:',
             initStoreImmediately: false,
         });
@@ -217,5 +217,14 @@ describe('indexedDB connection should be correct', () => {
         expect(store3ConnectDB).toHaveBeenCalledTimes(1);
         expect(store3CreateObjectStore).toHaveBeenCalledTimes(1);
         expect(store3GetReady).toHaveBeenCalledTimes(1);
+        objectStoreNames.push('store4');
+        // 再次创建一个新的store4
+        const dbConnection2 = await createDBAndObjectStores(dbName, objectStoreNames);
+        expect(dbConnection2).toBeInstanceOf(IDBDatabase);
+        expect(dbConnection2.name).toBe(dbName);
+        expect(dbConnection2.objectStoreNames.length).toBe(objectStoreNames.length);
+        for (const storeName of objectStoreNames) {
+            expect(dbConnection2.objectStoreNames.contains(storeName)).toBe(true);
+        }
     });
 });

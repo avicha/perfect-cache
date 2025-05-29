@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import BaseStore from './BaseStore';
 import { connectToIndexedDB, indexedDBLogger } from '../utils';
-import type { IndexedDBStoreOptions, IndexedDBConnectOptions, IndexedDBStoreObject, StoreObject } from '../types';
+import type { IndexedDBStoreOptions, IndexedDBStoreObject, StoreObject } from '../types';
 
 export default class IndexedDBStore extends BaseStore<IndexedDBStoreOptions> {
     static driver = 'indexedDB' as const;
@@ -22,9 +22,7 @@ export default class IndexedDBStore extends BaseStore<IndexedDBStoreOptions> {
             this.dbVersion = this.opts.dbVersion;
         }
         if (this.opts?.dbConnection) {
-            this.dbConnection = this.opts.dbConnection;
-            this.dbVersion = this.dbConnection.version;
-            this.dbName = this.dbConnection.name;
+            this.setDBConnection(this.opts?.dbConnection);
         }
         if (typeof this.opts.prefix === 'string') {
             this.prefix = this.opts.prefix;
@@ -44,12 +42,6 @@ export default class IndexedDBStore extends BaseStore<IndexedDBStoreOptions> {
             return Promise.resolve(this.dbConnection);
         } else {
             return connectToIndexedDB(this.dbName, this.dbVersion).then((dbConnection) => {
-                dbConnection.onversionchange = (event) => {
-                    indexedDBLogger.debug(
-                        `The version of this database ${this.dbName} store ${this.objectStoreName} has changed from ${event.oldVersion} to ${event.newVersion}`
-                    );
-                    this.connectToVersion(event.newVersion || undefined);
-                };
                 return dbConnection;
             });
         }
@@ -91,6 +83,12 @@ export default class IndexedDBStore extends BaseStore<IndexedDBStoreOptions> {
         // init the database connecttion and ensure the store table exists.
         return this.connectDB().then((dbConnection) => {
             this.setDBConnection(dbConnection);
+            dbConnection.onversionchange = (event) => {
+                indexedDBLogger.debug(
+                    `The version of this database ${this.dbName} store ${this.objectStoreName} has changed from ${event.oldVersion} to ${event.newVersion}`
+                );
+                this.connectToVersion(event.newVersion || undefined);
+            };
             return this.createObjectStore().then(() => {
                 // 这里为什么延迟getReady，纯粹方便vitest测试connectToVersion函数被调用过了，并且返回this，不然ready的时候函数还未调用完成，就会导致vitest测试报错
                 let readyTick: number | undefined = window.setTimeout(() => {
@@ -146,152 +144,84 @@ export default class IndexedDBStore extends BaseStore<IndexedDBStoreOptions> {
                 }
             });
     }
-    // 这个函数一般不需要，但是为了避免外面直接跳过ready事件，直接调用store的函数，所以这里提供一个函数来确保连接成功才进行函数的调用
-    waitForConnectionReady(callback: (error?: Error) => void, connectOptions: IndexedDBConnectOptions = {}) {
-        const defaultTimeout = this.opts?.connectOptions?.timeout;
-        const defaultInterval = this.opts?.connectOptions?.interval || 100;
-        const defaultReadyLog = this.opts?.connectOptions?.readyLog !== false;
-        const { timeout = defaultTimeout, interval = defaultInterval, readyLog = false } = connectOptions;
-        if (this.isReady && this.dbConnection) {
-            if (readyLog) {
-                indexedDBLogger.debug(
-                    `Database connection ${this.dbName} is connected and store ${this.objectStoreName} is ready.(^v^)`
-                );
-            }
-            if (callback && typeof callback === 'function') {
-                callback();
-            }
-        } else {
-            indexedDBLogger.debug(
-                `Waiting for the database connection ${this.dbName} store ${this.objectStoreName} ready...`
-            );
-            if ((timeout && timeout > 0) || timeout === undefined) {
-                window.setTimeout(() => {
-                    this.waitForConnectionReady(callback, {
-                        timeout: timeout ? timeout - interval : undefined,
-                        interval,
-                        readyLog: defaultReadyLog,
-                    });
-                }, interval);
-            } else {
-                if (callback && typeof callback === 'function') {
-                    callback(
-                        new Error(
-                            `Waiting for the database connection ${this.dbName} store ${this.objectStoreName} ready timeout.`
-                        )
-                    );
-                }
-            }
-        }
-    }
     keyValueGet(key: string): Promise<StoreObject | undefined> {
         return new Promise((resolve, reject) => {
-            this.waitForConnectionReady((error) => {
-                if (error) {
-                    reject(error);
-                } else {
-                    const request = this.dbConnection!.transaction(this.objectStoreName, 'readonly')
-                        .objectStore(this.objectStoreName)
-                        .get(this.__getRealKey(key));
-                    request.onerror = () => {
-                        window.console.error('Database get occurs error', request.result);
-                        reject(request.error);
-                    };
-                    request.onsuccess = () => {
-                        resolve((request.result as IndexedDBStoreObject)?.value);
-                    };
-                }
-            });
+            const request = this.dbConnection!.transaction(this.objectStoreName, 'readonly')
+                .objectStore(this.objectStoreName)
+                .get(this.__getRealKey(key));
+            request.onerror = () => {
+                window.console.error('Database get occurs error', request.result);
+                reject(request.error);
+            };
+            request.onsuccess = () => {
+                resolve((request.result as IndexedDBStoreObject)?.value);
+            };
         });
     }
     keyValueSet(key: string, value: StoreObject): Promise<void> {
         return new Promise((resolve, reject) => {
-            this.waitForConnectionReady((error) => {
-                if (error) {
-                    reject(error);
-                } else {
-                    const request = this.dbConnection!.transaction(this.objectStoreName, 'readwrite')
-                        .objectStore(this.objectStoreName)
-                        .put({ key: this.__getRealKey(key), value });
-                    request.onerror = () => {
-                        window.console.error('Database put occurs error', request.result);
-                        reject(request.error);
-                    };
-                    request.onsuccess = () => {
-                        resolve();
-                    };
-                }
-            });
+            const request = this.dbConnection!.transaction(this.objectStoreName, 'readwrite')
+                .objectStore(this.objectStoreName)
+                .put({ key: this.__getRealKey(key), value });
+            request.onerror = () => {
+                window.console.error('Database put occurs error', request.result);
+                reject(request.error);
+            };
+            request.onsuccess = () => {
+                resolve();
+            };
         });
     }
     existsKey(key: string): Promise<boolean> {
         return new Promise((resolve, reject) => {
-            this.waitForConnectionReady((error) => {
-                if (error) {
-                    reject(error);
-                } else {
-                    const request = this.dbConnection!.transaction(this.objectStoreName, 'readonly')
-                        .objectStore(this.objectStoreName)
-                        .count(this.__getRealKey(key));
-                    request.onerror = () => {
-                        window.console.error('Database count occurs error', request.result);
-                        reject(request.error);
-                    };
-                    request.onsuccess = () => {
-                        resolve(!!request.result);
-                    };
-                }
-            });
+            const request = this.dbConnection!.transaction(this.objectStoreName, 'readonly')
+                .objectStore(this.objectStoreName)
+                .count(this.__getRealKey(key));
+            request.onerror = () => {
+                window.console.error('Database count occurs error', request.result);
+                reject(request.error);
+            };
+            request.onsuccess = () => {
+                resolve(!!request.result);
+            };
         });
     }
     removeItem(key: string): Promise<void> {
         return new Promise((resolve, reject) => {
-            this.waitForConnectionReady((error) => {
-                if (error) {
-                    reject(error);
-                } else {
-                    const request = this.dbConnection!.transaction(this.objectStoreName, 'readwrite')
-                        .objectStore(this.objectStoreName)
-                        .delete(this.__getRealKey(key));
-                    request.onerror = () => {
-                        window.console.error('Database delete occurs error', request.result);
-                        reject(request.error);
-                    };
-                    request.onsuccess = () => {
-                        resolve();
-                    };
-                }
-            });
+            const request = this.dbConnection!.transaction(this.objectStoreName, 'readwrite')
+                .objectStore(this.objectStoreName)
+                .delete(this.__getRealKey(key));
+            request.onerror = () => {
+                window.console.error('Database delete occurs error', request.result);
+                reject(request.error);
+            };
+            request.onsuccess = () => {
+                resolve();
+            };
         });
     }
     keys(): Promise<string[]> {
         return new Promise((resolve, reject) => {
-            this.waitForConnectionReady((error) => {
-                if (error) {
-                    reject(error);
-                } else {
-                    const request = this.dbConnection!.transaction(this.objectStoreName, 'readonly')
-                        .objectStore(this.objectStoreName)
-                        .getAllKeys();
-                    request.onerror = () => {
-                        window.console.error('Database getAllKeys occurs error', request.error);
-                        reject(request.error);
-                    };
-                    request.onsuccess = () => {
-                        const keys = request.result;
-                        const resKeys = this.prefix
-                            ? keys
-                                  .filter((key) => {
-                                      return (key as string).startsWith(this.prefix);
-                                  })
-                                  .map((key) => {
-                                      return (key as string).replace(this.prefix, '');
-                                  })
-                            : keys.map((key) => key as string);
-                        resolve(resKeys.sort());
-                    };
-                }
-            });
+            const request = this.dbConnection!.transaction(this.objectStoreName, 'readonly')
+                .objectStore(this.objectStoreName)
+                .getAllKeys();
+            request.onerror = () => {
+                window.console.error('Database getAllKeys occurs error', request.error);
+                reject(request.error);
+            };
+            request.onsuccess = () => {
+                const keys = request.result;
+                const resKeys = this.prefix
+                    ? keys
+                          .filter((key) => {
+                              return (key as string).startsWith(this.prefix);
+                          })
+                          .map((key) => {
+                              return (key as string).replace(this.prefix, '');
+                          })
+                    : keys.map((key) => key as string);
+                resolve(resKeys.sort());
+            };
         });
     }
     clear(): Promise<void> {
@@ -314,58 +244,45 @@ export default class IndexedDBStore extends BaseStore<IndexedDBStoreOptions> {
             });
         } else {
             return new Promise((resolve, reject) => {
-                this.waitForConnectionReady((error) => {
-                    if (error) {
-                        reject(error);
-                    } else {
-                        const request = this.dbConnection!.transaction([this.objectStoreName], 'readwrite')
-                            .objectStore(this.objectStoreName)
-                            .clear();
-                        request.onerror = () => {
-                            window.console.error('Database clear occurs error', request.result);
-                            reject(request.error);
-                        };
-                        request.onsuccess = () => {
-                            resolve(void 0);
-                        };
-                    }
-                });
+                const request = this.dbConnection!.transaction([this.objectStoreName], 'readwrite')
+                    .objectStore(this.objectStoreName)
+                    .clear();
+                request.onerror = () => {
+                    window.console.error('Database clear occurs error', request.result);
+                    reject(request.error);
+                };
+                request.onsuccess = () => {
+                    resolve(void 0);
+                };
             });
         }
     }
-    removeItemList(keys?: string[] | RegExp): Promise<void> {
+    async removeItemList(keys?: string[] | RegExp): Promise<void> {
+        let storeKeys: string[] = [];
+        const itemListMap: { [key: string]: any } = {};
+        if (Array.isArray(keys)) {
+            storeKeys = keys;
+        } else {
+            if (keys instanceof RegExp) {
+                storeKeys = (await this.keys()).filter((key) => {
+                    return keys.test(key);
+                });
+            }
+        }
         return new Promise((resolve, reject) => {
-            this.waitForConnectionReady(async (error) => {
-                if (error) {
-                    reject(error);
-                } else {
-                    let storeKeys: string[] = [];
-                    const itemListMap: { [key: string]: any } = {};
-                    if (Array.isArray(keys)) {
-                        storeKeys = keys;
-                    } else {
-                        if (keys instanceof RegExp) {
-                            storeKeys = (await this.keys()).filter((key) => {
-                                return keys.test(key);
-                            });
-                        }
-                    }
-                    const transaction = this.dbConnection!.transaction(this.objectStoreName, 'readwrite');
-                    const objectStore = transaction.objectStore(this.objectStoreName);
-                    for (const key of storeKeys) {
-                        objectStore.delete(this.__getRealKey(key));
-                    }
-                    transaction.onerror = (ev) => {
-                        window.console.error('Database clear occurs error', ev);
-                        reject(transaction.error);
-                    };
-                    transaction.oncomplete = () => {
-                        resolve(void 0);
-                    };
-
-                    return itemListMap;
-                }
-            });
+            const transaction = this.dbConnection!.transaction(this.objectStoreName, 'readwrite');
+            const objectStore = transaction.objectStore(this.objectStoreName);
+            for (const key of storeKeys) {
+                objectStore.delete(this.__getRealKey(key));
+            }
+            transaction.onerror = (ev) => {
+                window.console.error('Database clear occurs error', ev);
+                reject(transaction.error);
+            };
+            transaction.oncomplete = () => {
+                resolve(void 0);
+            };
+            return itemListMap;
         });
     }
 }

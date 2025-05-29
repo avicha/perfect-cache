@@ -17,11 +17,6 @@ interface IndexedDBStoreOptions extends BaseStoreOptions {
         readyLog?: boolean;
     };
 }
-interface IndexedDBConnectOptions {
-    interval?: number;
-    timeout?: number;
-    readyLog?: boolean;
-}
 interface IndexedDBStoreObject {
     key: string;
     value: StoreObject;
@@ -69,7 +64,6 @@ export type {
     BaseStoreOptions,
     CacheOptions,
     IndexedDBStoreOptions,
-    IndexedDBConnectOptions,
     IndexedDBStoreObject,
     StoreObject,
     SetItemOptions,
