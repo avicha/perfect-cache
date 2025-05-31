@@ -98,31 +98,46 @@ const createDBAndObjectStores = (
     return connectToIndexedDB(dbName)
         .then((dbConnection) => {
             const objectStoreSize = dbConnection.objectStoreNames.length;
-            if (objectStoreSize === 0) {
+            if (objectStoreSize === 0 || objectStoreNames.length === 0) {
                 return dbConnection;
             } else {
+                dbConnection.close();
                 return connectToIndexedDB(dbName, dbConnection.version + 1);
             }
         })
         .then((dbConnection) => {
-            for (const objectStoreName of objectStoreNames) {
-                if (!dbConnection.objectStoreNames.contains(objectStoreName)) {
-                    try {
-                        const objectStore = dbConnection.createObjectStore(objectStoreName, {
-                            autoIncrement: createOptions?.autoIncrement,
-                            keyPath: createOptions?.keyPath || 'key',
-                        });
-                        objectStore.transaction.oncomplete = (_event) => {
-                            indexedDBLogger.debug(`Object store ${objectStoreName} created.`);
-                        };
-                    } catch (e) {
-                        indexedDBLogger.error(`Object store ${objectStoreName} create error.`, e);
-                    }
+            return new Promise<IDBDatabase>((resolve, reject) => {
+                if (objectStoreNames.length === 0) {
+                    resolve(dbConnection);
                 } else {
-                    indexedDBLogger.debug(`Object store ${objectStoreName} already exists.`);
+                    let transaction: IDBTransaction | null = null;
+                    try {
+                        for (const objectStoreName of objectStoreNames) {
+                            if (!dbConnection.objectStoreNames.contains(objectStoreName)) {
+                                const objectStore = dbConnection.createObjectStore(objectStoreName, {
+                                    autoIncrement: createOptions?.autoIncrement,
+                                    keyPath: createOptions?.keyPath || 'key',
+                                });
+                                transaction = objectStore.transaction;
+                            } else {
+                                indexedDBLogger.debug(`Object store ${objectStoreName} already exists.`);
+                            }
+                        }
+                        if (transaction) {
+                            transaction.oncomplete = (_event) => {
+                                indexedDBLogger.debug(`Object store ${objectStoreNames.toString()} created.`);
+                                resolve(dbConnection);
+                            };
+                        } else {
+                            // 每一个objectStore都已经存在
+                            resolve(dbConnection);
+                        }
+                    } catch (e) {
+                        indexedDBLogger.error(`Object store ${objectStoreNames.toString()} create error.`, e);
+                        reject(e);
+                    }
                 }
-            }
-            return dbConnection;
+            });
         });
 };
 export {

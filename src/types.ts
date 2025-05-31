@@ -5,7 +5,7 @@ type SupportedDriver = 'memory' | 'localStorage' | 'sessionStorage' | 'cookie' |
 interface BaseStoreOptions {
     prefix?: string;
 }
-type CacheOptions = { driver: string; prefix?: string; [key: string]: any; initStoreImmediately?: boolean };
+type CacheOptions = { driver?: string; prefix?: string; initStoreImmediately?: boolean; [key: string]: any };
 interface IndexedDBStoreOptions extends BaseStoreOptions {
     dbName?: string;
     objectStoreName?: string;

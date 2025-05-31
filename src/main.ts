@@ -28,8 +28,8 @@ class PerfectCache<StoreOptions extends BaseStoreOptions, Store extends BaseStor
      * @param {Object} opts the store options
      */
     constructor(driver?: CacheOptions);
-    constructor(driver?: string, opts?: StoreOptions);
-    constructor(driver?: string | CacheOptions, opts?: StoreOptions) {
+    constructor(driver?: string, opts?: CacheOptions);
+    constructor(driver?: string | CacheOptions, opts?: CacheOptions) {
         super();
         const supportedDriverList = getSupportedDriverList();
         let cacheOptions: CacheOptions;
@@ -53,6 +53,7 @@ class PerfectCache<StoreOptions extends BaseStoreOptions, Store extends BaseStor
                     if (
                         typeof driver !== 'string' &&
                         Object.prototype.toString.call(driver) === '[object Object]' &&
+                        driver.driver &&
                         supportedDriverList.includes(driver.driver)
                     ) {
                         cacheOptions = { ...defaultOpts, ...driver };
