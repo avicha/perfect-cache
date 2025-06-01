@@ -4,6 +4,18 @@ import { PerfectCache, CookieStore } from '../src';
 import type { BaseStoreOptions } from '../src/types';
 
 // 经测试，cookie读取数据比写数据的速度要慢，不知道js-cookies怎么实现的
+// cookieCache ready: 0 ms
+// cookieCache setItem: 4.600000000034925 ms
+// cookieCache getItem: 34.20000000001164 ms
+// cookieCache getItemList: 33.09999999997672 ms
+// cookieCache getAllItem: 33.79999999998836 ms
+// cookieCache existsKey: 34.40000000002328 ms
+// cookieCache keys: 0.7999999999883585 ms
+// cookieCache length: 0.7999999999883585 ms
+// cookieCache removeItem: 7 ms
+// cookieCache setItemList: 4.2000000000116415 ms
+// cookieCache removeItemList: 4.2999999999883585 ms
+// cookieCache clear: 3.7999999999883585 ms
 describe('testing cookie cache performance', () => {
     const cookieCache = new PerfectCache<BaseStoreOptions, CookieStore>('cookie', {
         prefix: 'cookie-',
