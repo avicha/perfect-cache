@@ -61,8 +61,8 @@ describe('indexedDB connection should be correct', () => {
         // 连接数据库也会被触发三次
         expect(dictConnectDB).toHaveBeenCalledTimes(3);
         expect(dictConnectDB).toHaveBeenCalledAfter(dictCreateDBAndObjectStore);
-        // 第一次连接db已经失败了，所以不会调用创建objectStore，所以被触发两次
-        expect(dictCreateObjectStore).toHaveBeenCalledTimes(2);
+        // 第一次连接db已经失败了，所以不会调用创建objectStore，所以被触发一次
+        expect(dictCreateObjectStore).toHaveBeenCalledTimes(1);
         expect(dictCreateObjectStore).toHaveBeenCalledAfter(dictConnectDB);
         // 最后触发一次ready
         expect(dictGetReady).toHaveBeenCalledOnce();
@@ -77,7 +77,7 @@ describe('indexedDB connection should be correct', () => {
         expect(appConnectDB).toHaveBeenCalledTimes(2);
         expect(appConnectDB).toHaveResolvedWith(appCache.store!.dbConnection);
         expect(appConnectDB).toHaveBeenCalledAfter(appCreateDBAndObjectStore);
-        expect(appCreateObjectStore).toHaveBeenCalledTimes(2);
+        expect(appCreateObjectStore).toHaveBeenCalledTimes(1);
         expect(appCreateObjectStore).toHaveBeenCalledAfter(appConnectDB);
         expect(appGetReady).toHaveBeenCalledTimes(2);
         expect(appGetReady).toHaveBeenCalledAfter(appCreateObjectStore);
@@ -119,8 +119,8 @@ describe('indexedDB connection should be correct', () => {
         // 连接数据库也会被触发三次
         expect(addressConnectDB).toHaveBeenCalledTimes(3);
         expect(addressConnectDB).toHaveBeenCalledAfter(addressCreateDBAndObjectStore);
-        // 第一次连接db已经失败了，所以不会调用创建objectStore，所以被触发两次
-        expect(addressCreateObjectStore).toHaveBeenCalledTimes(2);
+        // 第一次连接db已经失败了，所以不会调用创建objectStore，所以被触发一次
+        expect(addressCreateObjectStore).toHaveBeenCalledTimes(1);
         expect(addressCreateObjectStore).toHaveBeenCalledAfter(addressConnectDB);
         // 最后触发一次ready
         expect(addressGetReady).toHaveBeenCalledOnce();
@@ -136,7 +136,7 @@ describe('indexedDB connection should be correct', () => {
         expect(appConnectDB).toHaveBeenCalledTimes(3);
         expect(appConnectDB).toHaveResolvedWith(appCache.store!.dbConnection);
         expect(appConnectDB).toHaveBeenCalledAfter(appCreateDBAndObjectStore);
-        expect(appCreateObjectStore).toHaveBeenCalledTimes(3);
+        expect(appCreateObjectStore).toHaveBeenCalledTimes(1);
         expect(appCreateObjectStore).toHaveBeenCalledAfter(appConnectDB);
         expect(appGetReady).toHaveBeenCalledTimes(3);
         expect(appGetReady).toHaveBeenCalledAfter(appCreateObjectStore);
@@ -173,7 +173,7 @@ describe('indexedDB connection should be correct', () => {
         expect(store1ConnectToVersion).toHaveBeenCalledTimes(1);
         expect(store1CreateDBAndObjectStore).toHaveBeenCalledTimes(1);
         expect(store1ConnectDB).toHaveBeenCalledTimes(1);
-        expect(store1CreateObjectStore).toHaveBeenCalledTimes(1);
+        expect(store1CreateObjectStore).toHaveBeenCalledTimes(0);
         expect(store1GetReady).toHaveBeenCalledTimes(1);
         // store2不用重新初始化，直接ready
         const store2Cache = new PerfectCache<IndexedDBStoreOptions, IndexedDBStore>({
@@ -194,7 +194,7 @@ describe('indexedDB connection should be correct', () => {
         expect(store2ConnectToVersion).toHaveBeenCalledTimes(1);
         expect(store2CreateDBAndObjectStore).toHaveBeenCalledTimes(1);
         expect(store2ConnectDB).toHaveBeenCalledTimes(1);
-        expect(store2CreateObjectStore).toHaveBeenCalledTimes(1);
+        expect(store2CreateObjectStore).toHaveBeenCalledTimes(0);
         expect(store2GetReady).toHaveBeenCalledTimes(1);
         // store3不用重新初始化，直接ready
         const store3Cache = new PerfectCache<IndexedDBStoreOptions, IndexedDBStore>({
@@ -215,7 +215,7 @@ describe('indexedDB connection should be correct', () => {
         expect(store3ConnectToVersion).toHaveBeenCalledTimes(1);
         expect(store3CreateDBAndObjectStore).toHaveBeenCalledTimes(1);
         expect(store3ConnectDB).toHaveBeenCalledTimes(1);
-        expect(store3CreateObjectStore).toHaveBeenCalledTimes(1);
+        expect(store3CreateObjectStore).toHaveBeenCalledTimes(0);
         expect(store3GetReady).toHaveBeenCalledTimes(1);
         objectStoreNames.push('store4');
         // 再次创建一个新的store4

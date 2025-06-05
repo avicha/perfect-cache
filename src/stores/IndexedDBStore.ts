@@ -37,22 +37,24 @@ export default class IndexedDBStore extends BaseStore<IndexedDBStoreOptions> {
         this.connectToVersion(this.dbVersion);
         return this;
     }
-    connectDB() {
+    connectDB(onupgradeneeded?: (dbConnection: IDBDatabase) => void) {
         if (this.dbConnection) {
             return Promise.resolve(this.dbConnection);
         } else {
-            return connectToIndexedDB(this.dbName, this.dbVersion).then((dbConnection) => {
-                return dbConnection;
+            return connectToIndexedDB(this.dbName, this.dbVersion, (dbConnection) => {
+                if (onupgradeneeded && typeof onupgradeneeded === 'function') {
+                    onupgradeneeded(dbConnection);
+                }
             });
         }
     }
-    createObjectStore(): Promise<IDBObjectStore | undefined> {
+    createObjectStore(dbConnection: IDBDatabase): Promise<IDBObjectStore | undefined> {
         return new Promise((resolve, reject) => {
-            if (this.dbConnection) {
-                if (!this.dbConnection.objectStoreNames.contains(this.objectStoreName)) {
+            if (dbConnection) {
+                if (!dbConnection.objectStoreNames.contains(this.objectStoreName)) {
                     indexedDBLogger.debug(`ObjectStore ${this.objectStoreName} is not exists, now creating it!`);
                     try {
-                        const objectStore = this.dbConnection.createObjectStore(this.objectStoreName, {
+                        const objectStore = dbConnection.createObjectStore(this.objectStoreName, {
                             keyPath: 'key',
                         });
                         // Use transaction oncomplete to make sure the objectStore creation is
@@ -81,15 +83,21 @@ export default class IndexedDBStore extends BaseStore<IndexedDBStoreOptions> {
     }
     createDBAndObjectStore(): Promise<this> {
         // init the database connecttion and ensure the store table exists.
-        return this.connectDB().then((dbConnection) => {
+        return this.connectDB((dbConnection) => {
+            if (!dbConnection.objectStoreNames.contains(this.objectStoreName)) {
+                this.createObjectStore(dbConnection);
+            }
+        }).then((dbConnection) => {
             this.setDBConnection(dbConnection);
-            dbConnection.onversionchange = (event) => {
-                indexedDBLogger.debug(
-                    `The version of this database ${this.dbName} store ${this.objectStoreName} has changed from ${event.oldVersion} to ${event.newVersion}`
-                );
-                this.connectToVersion(event.newVersion || undefined);
-            };
-            return this.createObjectStore().then(() => {
+            if (!dbConnection.objectStoreNames.contains(this.objectStoreName)) {
+                return this.connectToVersion(dbConnection.version + 1);
+            } else {
+                dbConnection.onversionchange = (event) => {
+                    indexedDBLogger.debug(
+                        `The version of this database ${this.dbName} store ${this.objectStoreName} has changed from ${event.oldVersion} to ${event.newVersion}`
+                    );
+                    this.connectToVersion(event.newVersion || undefined);
+                };
                 // 这里为什么延迟getReady，纯粹方便vitest测试connectToVersion函数被调用过了，并且返回this，不然ready的时候函数还未调用完成，就会导致vitest测试报错
                 let readyTick: number | undefined = window.setTimeout(() => {
                     this.getReady();
@@ -97,7 +105,7 @@ export default class IndexedDBStore extends BaseStore<IndexedDBStoreOptions> {
                     readyTick = undefined;
                 }, 0);
                 return this;
-            });
+            }
         });
     }
     connectToVersion(dbVersion?: number): Promise<this> {

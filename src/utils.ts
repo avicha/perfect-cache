@@ -66,7 +66,11 @@ const getStoreClass = (driver: SupportedDriver | string) => {
     }
 };
 
-const connectToIndexedDB = (dbName: string, dbVersion?: number): Promise<IDBDatabase> => {
+const connectToIndexedDB = (
+    dbName: string,
+    dbVersion?: number,
+    onupgradeneeded?: (dbConnection: IDBDatabase) => void
+): Promise<IDBDatabase> => {
     return new Promise((resolve, reject) => {
         const request = window.indexedDB.open(dbName, dbVersion);
         request.onerror = (e) => {
@@ -86,7 +90,9 @@ const connectToIndexedDB = (dbName: string, dbVersion?: number): Promise<IDBData
             indexedDBLogger.debug(
                 `Database ${dbName} upgrade needed as oldVersion is ${event.oldVersion} and newVersion is ${event.newVersion}.`
             );
-            resolve(dbConnection);
+            if (onupgradeneeded) {
+                onupgradeneeded(dbConnection);
+            }
         };
     });
 };
@@ -95,26 +101,19 @@ const createDBAndObjectStores = (
     objectStoreNames: string[],
     createOptions?: IDBObjectStoreParameters
 ) => {
-    return connectToIndexedDB(dbName)
-        .then((dbConnection) => {
-            const objectStoreSize = dbConnection.objectStoreNames.length;
-            if (objectStoreSize === 0 || objectStoreNames.length === 0) {
-                return dbConnection;
-            } else {
+    return connectToIndexedDB(dbName).then((dbConnection) => {
+        if (objectStoreNames.length) {
+            const needCreateObjectStores = objectStoreNames.filter(
+                (objectStoreName) => !dbConnection.objectStoreNames.contains(objectStoreName)
+            );
+            if (needCreateObjectStores.length) {
                 dbConnection.close();
-                return connectToIndexedDB(dbName, dbConnection.version + 1);
-            }
-        })
-        .then((dbConnection) => {
-            return new Promise<IDBDatabase>((resolve, reject) => {
-                if (objectStoreNames.length === 0) {
-                    resolve(dbConnection);
-                } else {
+                return connectToIndexedDB(dbName, dbConnection.version + 1, (newDbConnection) => {
                     let transaction: IDBTransaction | null = null;
                     try {
-                        for (const objectStoreName of objectStoreNames) {
-                            if (!dbConnection.objectStoreNames.contains(objectStoreName)) {
-                                const objectStore = dbConnection.createObjectStore(objectStoreName, {
+                        for (const objectStoreName of needCreateObjectStores) {
+                            if (!newDbConnection.objectStoreNames.contains(objectStoreName)) {
+                                const objectStore = newDbConnection.createObjectStore(objectStoreName, {
                                     autoIncrement: createOptions?.autoIncrement,
                                     keyPath: createOptions?.keyPath || 'key',
                                 });
@@ -126,19 +125,21 @@ const createDBAndObjectStores = (
                         if (transaction) {
                             transaction.oncomplete = (_event) => {
                                 indexedDBLogger.debug(`Object store ${objectStoreNames.toString()} created.`);
-                                resolve(dbConnection);
                             };
-                        } else {
-                            // 每一个objectStore都已经存在
-                            resolve(dbConnection);
                         }
                     } catch (e) {
                         indexedDBLogger.error(`Object store ${objectStoreNames.toString()} create error.`, e);
-                        reject(e);
                     }
-                }
-            });
-        });
+                });
+            } else {
+                indexedDBLogger.debug(`All object stores already exist in database ${dbName}.`);
+                return dbConnection;
+            }
+        } else {
+            indexedDBLogger.debug(`No object stores to create in database ${dbName}.`);
+            return dbConnection;
+        }
+    });
 };
 export {
     getSupportedDriverList,
