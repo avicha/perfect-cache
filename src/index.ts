@@ -15,6 +15,7 @@ import {
 import {
     getSupportedDriverList,
     connectToIndexedDB,
+    createObjectStores,
     createDBAndObjectStores,
     cacheLogger,
     indexedDBLogger,
@@ -61,6 +62,7 @@ export {
     registerStore,
     getSupportedDriverList,
     connectToIndexedDB,
+    createObjectStores,
     createDBAndObjectStores,
     cacheLogger,
     indexedDBLogger,
