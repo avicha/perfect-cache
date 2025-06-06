@@ -96,40 +96,68 @@ const connectToIndexedDB = (
         };
     });
 };
+const createObjectStores = (
+    dbConnection: IDBDatabase,
+    objectStoreNames: string[],
+    createOptions?: IDBObjectStoreParameters
+) => {
+    const needCreateObjectStores = objectStoreNames.filter(
+        (objectStoreName) => !dbConnection.objectStoreNames.contains(objectStoreName)
+    );
+    // 如果有需要创建的对象存储
+    if (needCreateObjectStores.length) {
+        return new Promise<IDBDatabase>((resolve, reject) => {
+            let transaction: IDBTransaction | undefined;
+            for (const objectStoreName of objectStoreNames) {
+                if (!dbConnection.objectStoreNames.contains(objectStoreName)) {
+                    const objectStore = dbConnection.createObjectStore(objectStoreName, {
+                        autoIncrement: createOptions?.autoIncrement,
+                        keyPath: createOptions?.keyPath || 'key',
+                    });
+                    transaction = objectStore.transaction;
+                    indexedDBLogger.debug(`Object store ${objectStoreName} created.`);
+                } else {
+                    indexedDBLogger.debug(`Object store ${objectStoreName} already exists.`);
+                }
+            }
+            if (transaction) {
+                transaction.oncomplete = () => {
+                    indexedDBLogger.debug(`Object stores ${needCreateObjectStores.toString()} created successfully.`);
+                    resolve(dbConnection);
+                };
+                transaction.onerror = (e) => {
+                    const error = (e.target as IDBTransaction).error;
+                    indexedDBLogger.error(`Object stores ${needCreateObjectStores.toString()} create error.`, error);
+                    reject(error);
+                };
+            } else {
+                indexedDBLogger.debug(`No object stores to create in database ${dbConnection.name}.`);
+                resolve(dbConnection);
+            }
+        });
+    } else {
+        indexedDBLogger.debug(`No object stores to create in database ${dbConnection.name}.`);
+        return Promise.resolve(dbConnection);
+    }
+};
 const createDBAndObjectStores = (
     dbName: string,
     objectStoreNames: string[],
     createOptions?: IDBObjectStoreParameters
 ) => {
+    // 先连接到最新的db，这时候肯定不会触发 onupgradeneeded 事件
     return connectToIndexedDB(dbName).then((dbConnection) => {
         if (objectStoreNames.length) {
             const needCreateObjectStores = objectStoreNames.filter(
                 (objectStoreName) => !dbConnection.objectStoreNames.contains(objectStoreName)
             );
+            // 如果有被需要创建的对象存储
             if (needCreateObjectStores.length) {
+                // 关闭之前的连接
                 dbConnection.close();
+                // 重新连接高级版本，这时候必然触发 onupgradeneeded 事件，在 onupgradeneeded 事件中创建对象存储
                 return connectToIndexedDB(dbName, dbConnection.version + 1, (newDbConnection) => {
-                    let transaction: IDBTransaction | null = null;
-                    try {
-                        for (const objectStoreName of needCreateObjectStores) {
-                            if (!newDbConnection.objectStoreNames.contains(objectStoreName)) {
-                                const objectStore = newDbConnection.createObjectStore(objectStoreName, {
-                                    autoIncrement: createOptions?.autoIncrement,
-                                    keyPath: createOptions?.keyPath || 'key',
-                                });
-                                transaction = objectStore.transaction;
-                            } else {
-                                indexedDBLogger.debug(`Object store ${objectStoreName} already exists.`);
-                            }
-                        }
-                        if (transaction) {
-                            transaction.oncomplete = (_event) => {
-                                indexedDBLogger.debug(`Object store ${objectStoreNames.toString()} created.`);
-                            };
-                        }
-                    } catch (e) {
-                        indexedDBLogger.error(`Object store ${objectStoreNames.toString()} create error.`, e);
-                    }
+                    return createObjectStores(newDbConnection, needCreateObjectStores, createOptions);
                 });
             } else {
                 indexedDBLogger.debug(`All object stores already exist in database ${dbName}.`);
@@ -145,6 +173,7 @@ export {
     getSupportedDriverList,
     getStoreClass,
     connectToIndexedDB,
+    createObjectStores,
     createDBAndObjectStores,
     cacheLogger,
     indexedDBLogger,

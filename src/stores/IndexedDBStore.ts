@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import BaseStore from './BaseStore';
-import { connectToIndexedDB, indexedDBLogger } from '../utils';
+import { connectToIndexedDB, createObjectStores, indexedDBLogger } from '../utils';
 import type { IndexedDBStoreOptions, IndexedDBStoreObject, StoreObject } from '../types';
 
 export default class IndexedDBStore extends BaseStore<IndexedDBStoreOptions> {
@@ -48,47 +48,23 @@ export default class IndexedDBStore extends BaseStore<IndexedDBStoreOptions> {
             });
         }
     }
-    createObjectStore(dbConnection: IDBDatabase): Promise<IDBObjectStore | undefined> {
-        return new Promise((resolve, reject) => {
-            if (dbConnection) {
-                if (!dbConnection.objectStoreNames.contains(this.objectStoreName)) {
-                    indexedDBLogger.debug(`ObjectStore ${this.objectStoreName} is not exists, now creating it!`);
-                    try {
-                        const objectStore = dbConnection.createObjectStore(this.objectStoreName, {
-                            keyPath: 'key',
-                        });
-                        // Use transaction oncomplete to make sure the objectStore creation is
-                        // finished before adding data into it.
-                        objectStore.transaction.oncomplete = (_event) => {
-                            indexedDBLogger.debug(`ObjectStore ${this.objectStoreName} is created now.`);
-                            resolve(objectStore);
-                        };
-                        // // 这个事件貌似不会执行到，当创建store出错的时候会直接抛出异常
-                        // objectStore.transaction.onerror = (_event) => {
-                        //     window.console.error(`ObjectStore ${this.objectStoreName} occurs error`, _event);
-                        //     reject(_event);
-                        // };
-                    } catch (e) {
-                        window.console.error(`ObjectStore ${this.objectStoreName} create failed`, e);
-                        reject(e);
-                    }
-                } else {
-                    resolve(undefined);
-                }
-            } else {
-                const error = new Error(`Database ${this.dbName} connection is not initialised.`);
-                reject(error);
-            }
-        });
+    createObjectStore(dbConnection: IDBDatabase): Promise<IDBDatabase> {
+        return createObjectStores(dbConnection, [this.objectStoreName], { keyPath: 'key' });
     }
     createDBAndObjectStore(): Promise<this> {
-        // init the database connecttion and ensure the store table exists.
+        // 连接到db，如果连接触发了 onupgradeneeded 事件，则创建对象存储
         return this.connectDB((dbConnection) => {
+            // 如果对象存储不存在，则创建对象存储
             if (!dbConnection.objectStoreNames.contains(this.objectStoreName)) {
                 this.createObjectStore(dbConnection);
             }
         }).then((dbConnection) => {
+            // 连接db成功则设置连接
             this.setDBConnection(dbConnection);
+            // 有两种情况
+            // 1. 连接的db版本=db当前版本，所以没有触发 onupgradeneeded 事件，这时候可能还未创建对象存储
+            // 2. 连接的db版本触发了 onupgradeneeded 事件，这时候对象存储已经创建好了
+            // 所以在连接db成功的时候，需要检查对象存储是否存在，如果不存在则需要重新连接到下一个版本
             if (!dbConnection.objectStoreNames.contains(this.objectStoreName)) {
                 return this.connectToVersion(dbConnection.version + 1);
             } else {
@@ -96,6 +72,7 @@ export default class IndexedDBStore extends BaseStore<IndexedDBStoreOptions> {
                     indexedDBLogger.debug(
                         `The version of this database ${this.dbName} store ${this.objectStoreName} has changed from ${event.oldVersion} to ${event.newVersion}`
                     );
+                    // 如果别的数据库连接创建了新的版本，则需要重新连接到新的版本
                     this.connectToVersion(event.newVersion || undefined);
                 };
                 // 这里为什么延迟getReady，纯粹方便vitest测试connectToVersion函数被调用过了，并且返回this，不然ready的时候函数还未调用完成，就会导致vitest测试报错
@@ -109,11 +86,13 @@ export default class IndexedDBStore extends BaseStore<IndexedDBStoreOptions> {
         });
     }
     connectToVersion(dbVersion?: number): Promise<this> {
+        // 连接db之前，如果已经有连接的db，并且版本不一致，则关闭当前连接
         if (this.dbConnection && dbVersion && dbVersion !== this.dbConnection.version) {
             this.dbConnection.close();
             this.dbConnection.onversionchange = null;
             this.dbConnection = undefined;
         }
+        // 记录当前需要连接的版本
         this.dbVersion = dbVersion;
         this.isReady = false;
         indexedDBLogger.debug(
@@ -129,27 +108,14 @@ export default class IndexedDBStore extends BaseStore<IndexedDBStoreOptions> {
                 return this;
             })
             .catch((err) => {
-                // get the database connection failed, maybe the version is not match, so we need to upgrade it.
-                if (this.dbConnection) {
-                    window.console.error(
-                        `Database ${this.dbName} is connected to ${this.dbConnection.version} success but store ${
-                            this.objectStoreName
-                        } init failed because of the outdated version. now reconnect to the next version ${
-                            this.dbConnection.version + 1
-                        }`,
-                        err
-                    );
-                    return this.connectToVersion(this.dbConnection.version + 1);
-                } else {
-                    window.console.error(
-                        `Database ${this.dbName} is connected to ${this.dbVersion || 'latest'} failed and store ${
-                            this.objectStoreName
-                        } is not ready because of the outdated version. now reconnect to the latest version`,
-                        err
-                    );
-                    // maybe the given database version to connect is not the latest, so we need to reconnect to the latest one without the exact version.
-                    return this.connectToVersion();
-                }
+                window.console.error(
+                    `Database ${this.dbName} is connected to ${this.dbVersion || 'latest'} failed and store ${
+                        this.objectStoreName
+                    } is not ready because of the outdated version. now reconnect to the latest version`,
+                    err
+                );
+                // maybe the given database version to connect is not the latest, so we need to reconnect to the latest one without the exact version.
+                return this.connectToVersion();
             });
     }
     keyValueGet(key: string): Promise<StoreObject | undefined> {
