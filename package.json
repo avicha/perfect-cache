@@ -1,6 +1,6 @@
 {
     "name": "perfect-cache",
-    "version": "2.0.0-beta.1",
+    "version": "2.0.1",
     "description": "browser cache lib",
     "homepage": "https://github.com/avicha/perfect-cache#readme",
     "scripts": {
