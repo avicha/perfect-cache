@@ -143,10 +143,12 @@ const createObjectStores = (
 const createDBAndObjectStores = (
     dbName: string,
     objectStoreNames: string[],
-    createOptions?: IDBObjectStoreParameters
+    createOptions?: IDBObjectStoreParameters & {
+        onupgradeneeded?: (dbConnection: IDBDatabase) => void;
+    }
 ) => {
     // 先连接到最新的db，这时候肯定不会触发 onupgradeneeded 事件
-    return connectToIndexedDB(dbName).then((dbConnection) => {
+    return connectToIndexedDB(dbName, undefined, createOptions?.onupgradeneeded).then((dbConnection) => {
         if (objectStoreNames.length) {
             const needCreateObjectStores = objectStoreNames.filter(
                 (objectStoreName) => !dbConnection.objectStoreNames.contains(objectStoreName)
@@ -157,7 +159,14 @@ const createDBAndObjectStores = (
                 dbConnection.close();
                 // 重新连接高级版本，这时候必然触发 onupgradeneeded 事件，在 onupgradeneeded 事件中创建对象存储
                 return connectToIndexedDB(dbName, dbConnection.version + 1, (newDbConnection) => {
-                    return createObjectStores(newDbConnection, needCreateObjectStores, createOptions);
+                    return createObjectStores(newDbConnection, needCreateObjectStores, createOptions).then((conn) => {
+                        if (createOptions?.onupgradeneeded) {
+                            createOptions.onupgradeneeded(conn);
+                            return conn;
+                        } else {
+                            return conn;
+                        }
+                    });
                 });
             } else {
                 indexedDBLogger.debug(`All object stores already exist in database ${dbName}.`);
