@@ -68,13 +68,13 @@ export default class IndexedDBStore extends BaseStore<IndexedDBStoreOptions> {
             if (!dbConnection.objectStoreNames.contains(this.objectStoreName)) {
                 return this.connectToVersion(dbConnection.version + 1);
             } else {
-                dbConnection.onversionchange = (event) => {
-                    indexedDBLogger.debug(
-                        `The version of this database ${this.dbName} store ${this.objectStoreName} has changed from ${event.oldVersion} to ${event.newVersion}`
-                    );
-                    // 如果别的数据库连接创建了新的版本，则需要重新连接到新的版本
-                    this.connectToVersion(event.newVersion || undefined);
-                };
+                // dbConnection.onversionchange = (event) => {
+                //     indexedDBLogger.debug(
+                //         `The version of this database ${this.dbName} store ${this.objectStoreName} has changed from ${event.oldVersion} to ${event.newVersion}`
+                //     );
+                //     // 如果别的数据库连接创建了新的版本，则需要重新连接到新的版本
+                //     this.connectToVersion(event.newVersion || undefined);
+                // };
                 // 这里为什么延迟getReady，纯粹方便vitest测试connectToVersion函数被调用过了，并且返回this，不然ready的时候函数还未调用完成，就会导致vitest测试报错
                 let readyTick: number | undefined = window.setTimeout(() => {
                     this.getReady();

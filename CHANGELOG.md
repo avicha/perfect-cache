@@ -2,6 +2,10 @@
 
 ## 2.1.0（2026.7.14）
 
+- 功能
+
+    1. 去掉了IndexedDBStore里db的onversionchange事件监听，以免多个实例共用链接时，监听到变化会断开connection，导致其他实例异常，换到createDBAndObjectStores函数的onupgradeneeded中统一处理
+
 - 修复
 
     1. 修复了IndexedDB升级，导致旧连接关闭后不能操作的缺陷

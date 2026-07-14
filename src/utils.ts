@@ -140,15 +140,32 @@ const createObjectStores = (
         return Promise.resolve(dbConnection);
     }
 };
+const addDatabaseVersionchangeHandler = (dbConnection: IDBDatabase, handler?: (dbConnection: IDBDatabase) => void) => {
+    dbConnection.onversionchange = (event) => {
+        const dbName = dbConnection.name;
+        indexedDBLogger.debug(
+            `The version of this database ${dbName} has changed from ${event.oldVersion} to ${event.newVersion}`
+        );
+        dbConnection.close();
+        dbConnection.onversionchange = null;
+        // 如果别的数据库连接创建了新的版本，则需要重新连接到新的版本
+        connectToIndexedDB(dbName, event.newVersion || undefined).then((newDbConnection) => {
+            addDatabaseVersionchangeHandler(newDbConnection, handler);
+            if (handler) {
+                handler(newDbConnection);
+            }
+        });
+    };
+};
 const createDBAndObjectStores = (
     dbName: string,
     objectStoreNames: string[],
     createOptions?: IDBObjectStoreParameters & {
-        onupgradeneeded?: (dbConnection: IDBDatabase) => void;
+        onversionchange?: (dbConnection: IDBDatabase) => void;
     }
 ) => {
     // 先连接到最新的db，这时候肯定不会触发 onupgradeneeded 事件
-    return connectToIndexedDB(dbName, undefined, createOptions?.onupgradeneeded).then((dbConnection) => {
+    return connectToIndexedDB(dbName).then((dbConnection) => {
         if (objectStoreNames.length) {
             const needCreateObjectStores = objectStoreNames.filter(
                 (objectStoreName) => !dbConnection.objectStoreNames.contains(objectStoreName)
@@ -159,21 +176,19 @@ const createDBAndObjectStores = (
                 dbConnection.close();
                 // 重新连接高级版本，这时候必然触发 onupgradeneeded 事件，在 onupgradeneeded 事件中创建对象存储
                 return connectToIndexedDB(dbName, dbConnection.version + 1, (newDbConnection) => {
-                    return createObjectStores(newDbConnection, needCreateObjectStores, createOptions).then((conn) => {
-                        if (createOptions?.onupgradeneeded) {
-                            createOptions.onupgradeneeded(conn);
-                            return conn;
-                        } else {
-                            return conn;
-                        }
-                    });
+                    return createObjectStores(newDbConnection, needCreateObjectStores, createOptions);
+                }).then((conn) => {
+                    addDatabaseVersionchangeHandler(conn, createOptions?.onversionchange);
+                    return conn;
                 });
             } else {
                 indexedDBLogger.debug(`All object stores already exist in database ${dbName}.`);
+                addDatabaseVersionchangeHandler(dbConnection, createOptions?.onversionchange);
                 return dbConnection;
             }
         } else {
             indexedDBLogger.debug(`No object stores to create in database ${dbName}.`);
+            addDatabaseVersionchangeHandler(dbConnection, createOptions?.onversionchange);
             return dbConnection;
         }
     });
